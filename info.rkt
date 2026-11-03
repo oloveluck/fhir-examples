@@ -12,7 +12,7 @@
 (define pkg-desc "FHIR as a framework for spec-driven development with LLMs: prose -> FSH -> checked, scored against the published IG (raco spec-bench)")
 (define pkg-authors '(oloveluck))
 (define license 'MIT)
-(define deps '("base" "fhir" "fhir-spec" "fhir-validation" "fsh"))
+(define deps '("base" "fhir" "fhir-spec" "fhir-validation" "fsh" "fml"))
 (define build-deps '("rackunit-lib"))
 (define raco-commands
   '(("spec-bench" (submod spec-driven/cli main) "make prose -> FSH tasks from a published IG, run a model on them, score the answers" #f)))
