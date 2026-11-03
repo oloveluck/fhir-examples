@@ -1,7 +1,8 @@
-# CLAUDE.md — fhir-spec-driven
+# CLAUDE.md — fhir-examples
 
-The demonstration repo of the fhir family (conventions, HTDP style and the package map live in the
-main `fhir` repo's CLAUDE.md). Collection `spec-driven`: `bench.rkt` (tasks, scoring, model runs),
+The examples repo of the fhir family (conventions, HTDP style and the package map live in the main
+`fhir` repo's CLAUDE.md). Collection `fhir-examples`: `examples/pipeline.rkt` (operations applied as
+procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, model runs),
 `cli.rkt` (`raco spec-bench`), `tests/bench-r4-test.rkt` (oracle/empty baselines on mCODE TumorSize),
 `results/` (recorded runs: prompt, raw answer, FSH and score per round).
 

@@ -6,7 +6,7 @@
 
 (require rackunit racket/file
          (only-in fhir/spec-package spec-package-path)
-         spec-driven/bench)
+         fhir-examples/bench)
 
 (define mcode (collection-file-path "mcode-4.0.0" "fsh" "tests" "vendor"))
 

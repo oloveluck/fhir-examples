@@ -10,7 +10,7 @@
 
 (require racket/list racket/match
          (only-in racket/file file->string)
-         spec-driven/bench)
+         fhir-examples/bench)
 
 (define usage-text
   (string-append "usage: raco spec-bench list <ig-dir>\n"

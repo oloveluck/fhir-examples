@@ -1,11 +1,36 @@
-# fhir-spec-driven — FHIR as a framework for spec-driven development with LLMs
+# fhir-examples — examples for the Racket FHIR family
+
+Worked examples for the [fhir](https://github.com/oloveluck/fhir) family of Racket packages: FHIR
+operations applied like functions, and FHIR as a framework for spec-driven development with LLMs,
+measured against published Implementation Guides.
+
+## FHIR operations as procedures
+
+`examples/pipeline.rkt` maps a QuestionnaireResponse to a Patient with an FML map, validates it, and
+checks its gender against the core value set, with no server:
+
+```racket
+(apply-operation "http://hl7.org/fhir/OperationDefinition/StructureMap-transform" qr #:srcMap fml)
+
+(define transform (operation "StructureMap/$transform"))
+(~> qr (transform #:srcMap fml) (ensure-valid))
+
+(apply-operation "ValueSet/$validate-code"
+                 #:url "http://hl7.org/fhir/ValueSet/administrative-gender"
+                 #:system "http://hl7.org/fhir/administrative-gender" #:code "female")
+```
+
+Operations are applied by reference to their OperationDefinition, with its parameters as keywords;
+the same operations serve over HTTP with a CapabilityStatement derived from them (fhir-server's
+`serve-operations`). Run it with `racket examples/pipeline.rkt`.
+
+## Spec-driven development with LLMs
 
 FHIR Implementation Guides are machine-readable specifications: profiles, value sets, invariants and
 examples, published as data. That makes them a good contract for an LLM to work against, provided
-the model gets precise feedback on what it wrote. This repo demonstrates that loop with the
-[fhir](https://github.com/oloveluck/fhir) family of Racket packages and measures how well it works.
+the model gets precise feedback on what it wrote.
 
-## The loop
+### The loop
 
 ```
 requirement (prose) ──► model writes FSH ──► raco fsh check ──► diagnostics on the FSH lines ──┐
@@ -29,7 +54,7 @@ caused it, naming the profile rule it breaks:
 
 `--format json` or `--format outcome` (a FHIR OperationOutcome) gives the same to a program.
 
-## The benchmark: prose -> FSH, scored against the published IG
+### The benchmark: prose -> FSH, scored against the published IG
 
 `raco spec-bench` turns a real, published IG into tasks. A task takes one profile out of the IG's own
 FSH sources, with its examples, and asks for it back from words:
@@ -61,7 +86,7 @@ raco spec-bench run task/ --model 'claude -p' --rounds 3 --timeout 1200     # an
 A run keeps every round's prompt, raw answer, extracted FSH and score under `task/runs/<stamp>/`
 and appends to `task/results.jsonl`.
 
-## Results
+### Results
 
 Three mCODE 4.0.0 profiles, `claude -p` (Claude Code's default model), up to 3 rounds, 2026-11-03.
 Every prompt, raw answer and score is in `results/2026-11-03/`.
@@ -105,7 +130,7 @@ which is why the prompt now names every constrained element.
 From source, with the family's repos side by side:
 
 ```sh
-raco pkg install --link --auto fhir/fhir fhir/fhir-spec fhirpath vcl fhir/fhir-validation cql fml fsh fhir/fhir-server fhir-spec-driven
+raco pkg install --link --auto fhir/fhir fhir/fhir-spec fhirpath vcl fhir/fhir-validation cql fml fsh fhir/fhir-server fhir-examples
 ```
 
 License: MIT. The IGs used as tasks keep their own licenses (mCODE: CC0-1.0).
