@@ -1,0 +1,4 @@
+{"patient": {"family": "Okafor", "given": "Bo", "gender": "male", "birthDate": "1958-02-27"},
+ "bloodPressures": [{"date": "2026-10-15", "systolic": 124, "diastolic": 79}],
+ "problems": ["44054006"],
+ "medications": ["6809"]}

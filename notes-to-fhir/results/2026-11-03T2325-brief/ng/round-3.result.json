@@ -1,0 +1,1 @@
+{"issues":["Observation/bp-1: Observation.code: value does not match required pattern"],"note":"ng","round":3,"score":{"bloodPressures":[1,1,0],"medications":[2,2,2],"patient":[4,4,0],"problems":[2,2,0]},"seconds":22.0}

@@ -1,0 +1,329 @@
+The clinic profile URLs are placeholders that I can't fetch, and nothing is checked out locally, so I built the Bundle against the terminology such profiles conventionally bind to. Assumptions are listed after the JSON.
+
+```json
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "patient-1",
+        "meta": {
+          "profile": ["http://example.org/fhir/notes/StructureDefinition/note-patient"]
+        },
+        "name": [
+          {
+            "family": "Ng",
+            "given": ["Ann"]
+          }
+        ],
+        "gender": "female",
+        "birthDate": "1961-04-12"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "bp-1",
+        "meta": {
+          "profile": ["http://example.org/fhir/notes/StructureDefinition/note-blood-pressure"]
+        },
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs",
+                "display": "Vital Signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "85354-9",
+              "display": "Blood pressure panel with all children optional"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/patient-1"
+        },
+        "effectiveDateTime": "2026-10-14",
+        "component": [
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8480-6",
+                  "display": "Systolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 152,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8462-4",
+                  "display": "Diastolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 96,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Condition",
+        "id": "problem-htn",
+        "meta": {
+          "profile": ["http://example.org/fhir/notes/StructureDefinition/note-problem"]
+        },
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active",
+              "display": "Active"
+            }
+          ]
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+              "code": "confirmed",
+              "display": "Confirmed"
+            }
+          ]
+        },
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+                "code": "problem-list-item",
+                "display": "Problem List Item"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "38341003",
+              "display": "Hypertensive disorder, systemic arterial"
+            }
+          ],
+          "text": "Hypertension"
+        },
+        "subject": {
+          "reference": "Patient/patient-1"
+        },
+        "recordedDate": "2026-10-14"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Condition",
+        "id": "problem-hld",
+        "meta": {
+          "profile": ["http://example.org/fhir/notes/StructureDefinition/note-problem"]
+        },
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active",
+              "display": "Active"
+            }
+          ]
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+              "code": "confirmed",
+              "display": "Confirmed"
+            }
+          ]
+        },
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/condition-category",
+                "code": "problem-list-item",
+                "display": "Problem List Item"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "55822004",
+              "display": "Hyperlipidemia"
+            }
+          ],
+          "text": "Hyperlipidemia"
+        },
+        "subject": {
+          "reference": "Patient/patient-1"
+        },
+        "recordedDate": "2026-10-14"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "MedicationStatement",
+        "id": "med-lisinopril",
+        "meta": {
+          "profile": ["http://example.org/fhir/notes/StructureDefinition/note-medication"]
+        },
+        "status": "active",
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+              "code": "314076",
+              "display": "lisinopril 10 MG Oral Tablet"
+            }
+          ],
+          "text": "lisinopril 10 mg"
+        },
+        "subject": {
+          "reference": "Patient/patient-1"
+        },
+        "dateAsserted": "2026-10-14",
+        "reasonReference": [
+          {
+            "reference": "Condition/problem-htn"
+          }
+        ],
+        "dosage": [
+          {
+            "text": "10 mg PO daily",
+            "timing": {
+              "repeat": {
+                "frequency": 1,
+                "period": 1,
+                "periodUnit": "d"
+              }
+            },
+            "route": {
+              "coding": [
+                {
+                  "system": "http://snomed.info/sct",
+                  "code": "26643006",
+                  "display": "Oral route"
+                }
+              ]
+            },
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 10,
+                  "unit": "mg",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "mg"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "MedicationStatement",
+        "id": "med-atorvastatin",
+        "meta": {
+          "profile": ["http://example.org/fhir/notes/StructureDefinition/note-medication"]
+        },
+        "status": "active",
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+              "code": "617310",
+              "display": "atorvastatin 20 MG Oral Tablet"
+            }
+          ],
+          "text": "atorvastatin 20 mg"
+        },
+        "subject": {
+          "reference": "Patient/patient-1"
+        },
+        "dateAsserted": "2026-10-14",
+        "reasonReference": [
+          {
+            "reference": "Condition/problem-hld"
+          }
+        ],
+        "dosage": [
+          {
+            "text": "20 mg PO nightly",
+            "timing": {
+              "repeat": {
+                "frequency": 1,
+                "period": 1,
+                "periodUnit": "d",
+                "when": ["HS"]
+              }
+            },
+            "route": {
+              "coding": [
+                {
+                  "system": "http://snomed.info/sct",
+                  "code": "26643006",
+                  "display": "Oral route"
+                }
+              ]
+            },
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 20,
+                  "unit": "mg",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "mg"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+What I assumed and left out:
+
+- **Profiles unreachable.** The example.org StructureDefinitions do not resolve and no copies exist in the working directory. I used the bindings these profile types almost always carry: LOINC for the blood pressure panel and its components, SNOMED CT for problems, RxNorm for medications. If the clinic's profiles bind to different value sets, the codes are the only thing that needs swapping.
+- **Date of birth** is read as April 12, 1961. That is the only reading of 04/12/1961 that makes the patient 65 on the visit date, as the note states.
+- **Omitted on purpose:** heart rate, weight, the LDL result, morning headaches, and the negated findings for chest pain, shortness of breath, and edema. None of these fit the four profiles.
+- **Blood pressure** carries the visit date as its effective date, since the note gives no time.

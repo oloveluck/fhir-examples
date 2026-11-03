@@ -1,0 +1,144 @@
+Here is the bundle. Asthma, the blood pressure, and albuterol are the only items the profiles cover; hypertension and diabetes are excluded because the note says the patient does not have them, and the inhaled corticosteroid was discussed but not started.
+
+```json
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "patient-1",
+        "meta": {
+          "profile": ["http://example.org/fhir/notes/StructureDefinition/note-patient"]
+        },
+        "name": [
+          {
+            "family": "Alvarez",
+            "given": ["Lucia"]
+          }
+        ],
+        "gender": "female",
+        "birthDate": "1990-07-03"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "bp-1",
+        "meta": {
+          "profile": ["http://example.org/fhir/notes/StructureDefinition/note-blood-pressure"]
+        },
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "85354-9",
+              "display": "Blood pressure panel"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/patient-1"
+        },
+        "effectiveDateTime": "2026-10-16",
+        "component": [
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8480-6",
+                  "display": "Systolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 118,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8462-4",
+                  "display": "Diastolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 76,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Condition",
+        "id": "problem-1",
+        "meta": {
+          "profile": ["http://example.org/fhir/notes/StructureDefinition/note-problem"]
+        },
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "195967001",
+              "display": "Asthma"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/patient-1"
+        },
+        "recordedDate": "2026-10-16"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "MedicationStatement",
+        "id": "med-1",
+        "meta": {
+          "profile": ["http://example.org/fhir/notes/StructureDefinition/note-medication"]
+        },
+        "status": "active",
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+              "code": "435",
+              "display": "albuterol"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/patient-1"
+        },
+        "dateAsserted": "2026-10-16",
+        "dosage": [
+          {
+            "text": "albuterol inhaler 2 puffs q4-6h PRN"
+          }
+        ]
+      }
+    }
+  ]
+}
+```

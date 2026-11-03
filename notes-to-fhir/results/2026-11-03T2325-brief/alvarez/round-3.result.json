@@ -1,0 +1,1 @@
+{"issues":["Observation/bp-2026-10-16: Observation.code: value does not match required pattern"],"note":"alvarez","round":3,"score":{"bloodPressures":[1,1,0],"medications":[1,1,0],"patient":[4,4,0],"problems":[1,1,0]},"seconds":22.0}

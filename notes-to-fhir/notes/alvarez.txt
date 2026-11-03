@@ -1,0 +1,13 @@
+Date of visit: 2026-10-16
+Patient: Lucia Alvarez   DOB: 1990-07-03   Sex: F
+
+Reason: wheezing x 3 days after a cold.
+
+Hx: Asthma since childhood, uses albuterol inhaler 2 puffs q4-6h PRN, last few days ~3x/day.
+No history of hypertension or diabetes. No controller med.
+
+Vitals: BP 118/76, HR 92, SpO2 97% RA, RR 18.
+Exam: mild expiratory wheeze bilaterally.
+
+Assessment: asthma exacerbation, mild.
+Plan: continue albuterol PRN; start ICS discussed, pt prefers to wait. Return if worse.

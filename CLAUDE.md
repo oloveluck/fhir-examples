@@ -1,7 +1,9 @@
 # CLAUDE.md — fhir-examples
 
 The examples repo of the fhir family (conventions, HTDP style and the package map live in the main
-`fhir` repo's CLAUDE.md). Collection `fhir-examples`: `screening/` (six FHIR languages — .fsh, .fhir6,
+`fhir` repo's CLAUDE.md). Collection `fhir-examples`: `notes-to-fhir/` (free-text notes -> a model ->
+FHIR checked against ig/ (FSH) with $validate, issues fed back by path; scored against answer keys;
+recorded runs replayed by replay-test.rkt; `--brief` leaves the FSH out of the prompt), `screening/` (six FHIR languages — .fsh, .fhir6,
 .fml, .vcl, .cql, .sof — each a module in its #lang, composed by main.rkt; `raco test` checks it),
 `examples/pipeline.rkt` (operations applied as
 procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, model runs),
@@ -15,6 +17,7 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   against the published differential (`facets`), the published examples against the candidate's
   profile, the candidate's examples against the published profile (fhir-validation, in the package
   context of the project / of the published IG).
+- `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.
   (A `system` call with string ports once hung for 90 minutes after the model exited; do not go back.)

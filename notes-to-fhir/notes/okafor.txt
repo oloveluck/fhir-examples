@@ -1,0 +1,12 @@
+Date of visit: 2026-10-15
+Patient: Bo Okafor, born 1958-02-27, male
+
+CC: diabetes check
+
+HPI: 68M with T2DM, on metformin 500mg twice daily w/ meals, tolerating well. No hypoglycemia.
+Walking 30 min most days.
+
+Exam: BP 124/79. BMI 29. Feet: intact sensation, no ulcers.
+Labs: HbA1c 7.1% (prev 7.6%).
+
+Plan: continue metformin 500 mg BID. Diet counseling. RTC 3 months with A1c.

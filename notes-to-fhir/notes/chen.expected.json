@@ -1,0 +1,5 @@
+{"patient": {"family": "Chen", "given": "Wei", "gender": "male", "birthDate": "1975-03-09"},
+ "bloodPressures": [{"date": "2026-10-17", "systolic": 158, "diastolic": 98},
+                    {"date": "2026-10-17", "systolic": 146, "diastolic": 92}],
+ "problems": ["38341003"],
+ "medications": ["17767"]}

@@ -4,6 +4,13 @@ Worked examples for the [fhir](https://github.com/oloveluck/fhir) family of Rack
 languages used together in one program, FHIR operations applied like functions, and FHIR as a framework
 for spec-driven development with LLMs, measured against published Implementation Guides.
 
+## Clinic notes → conforming FHIR
+
+[`notes-to-fhir/`](notes-to-fhir/) turns doctors' notes (free text) into FHIR with a model, holds the result to a
+small IG written in FSH — every resource validated against its profile and the IG's value sets, each issue
+fed back to the model by resource and path until it conforms — and runs the screening rule (CQL) over the
+result. Recorded runs replay without a model; see [notes-to-fhir/README.md](notes-to-fhir/README.md).
+
 ## One program, six FHIR languages
 
 [`screening/`](screening/) is a blood pressure screening written in six FHIR languages — FHIR Shorthand,

@@ -1,0 +1,203 @@
+```json
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "wei-chen",
+        "meta": {
+          "profile": ["http://example.org/fhir/notes/StructureDefinition/note-patient"]
+        },
+        "name": [
+          {
+            "family": "Chen",
+            "given": ["Wei"]
+          }
+        ],
+        "gender": "male",
+        "birthDate": "1975-03-09"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "bp-2026-10-17-arrival",
+        "meta": {
+          "profile": ["http://example.org/fhir/notes/StructureDefinition/note-blood-pressure"]
+        },
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "85354-9",
+              "display": "Blood pressure panel"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/wei-chen"
+        },
+        "effectiveDateTime": "2026-10-17",
+        "component": [
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8480-6",
+                  "display": "Systolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 158,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8462-4",
+                  "display": "Diastolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 98,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "bp-2026-10-17-repeat",
+        "meta": {
+          "profile": ["http://example.org/fhir/notes/StructureDefinition/note-blood-pressure"]
+        },
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "85354-9",
+              "display": "Blood pressure panel"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/wei-chen"
+        },
+        "effectiveDateTime": "2026-10-17",
+        "component": [
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8480-6",
+                  "display": "Systolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 146,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          },
+          {
+            "code": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "8462-4",
+                  "display": "Diastolic blood pressure"
+                }
+              ]
+            },
+            "valueQuantity": {
+              "value": 92,
+              "unit": "mmHg",
+              "system": "http://unitsofmeasure.org",
+              "code": "mm[Hg]"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Condition",
+        "id": "hypertension",
+        "meta": {
+          "profile": ["http://example.org/fhir/notes/StructureDefinition/note-problem"]
+        },
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://snomed.info/sct",
+              "code": "38341003",
+              "display": "Hypertensive disorder"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/wei-chen"
+        },
+        "onsetDateTime": "2026-10-17"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "MedicationStatement",
+        "id": "amlodipine",
+        "meta": {
+          "profile": ["http://example.org/fhir/notes/StructureDefinition/note-medication"]
+        },
+        "status": "active",
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+              "code": "17767",
+              "display": "amlodipine"
+            }
+          ]
+        },
+        "subject": {
+          "reference": "Patient/wei-chen"
+        },
+        "effectiveDateTime": "2026-10-17",
+        "dosage": [
+          {
+            "text": "5 mg once daily"
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+Left out on purpose: the September reading has no full date, so it is not a conformant blood pressure resource. The parents' diabetes and high cholesterol are family history, not the patient's problems. "No regular meds" produces no medication resource.

@@ -1,0 +1,1 @@
+{"issues":["the answer is not a FHIR Bundle"],"note":"ng","round":2,"score":{"bloodPressures":[0,1,0],"medications":[0,2,0],"patient":[0,4,0],"problems":[0,2,0]},"seconds":51.0}

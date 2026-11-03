@@ -1,0 +1,4 @@
+{"patient": {"family": "Alvarez", "given": "Lucia", "gender": "female", "birthDate": "1990-07-03"},
+ "bloodPressures": [{"date": "2026-10-16", "systolic": 118, "diastolic": 76}],
+ "problems": ["195967001"],
+ "medications": ["435"]}

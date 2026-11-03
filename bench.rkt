@@ -35,6 +35,7 @@
          (only-in fhir/serialize/read-json strip-jnum)
          (only-in fhir/package read-package)
          fsh/check
+         (only-in "model.rkt" ask extract-block)
          (only-in fsh/project compile-project project-located project-texts find-config fsh-files)
          (only-in fsh/ig-config read-ig-config ig-config-canonical ig-config-dependencies ig-config-fhir-version
                   ig-config-title ig-config-name dependency-packages)
@@ -271,7 +272,7 @@
     (define (file ext) (build-path run-dir (format "round-~a.~a" round ext)))
     (call-with-output-file (file "prompt.md") (lambda (o) (write-string prompt o)))
     (define-values (code seconds timed-out?) (ask cmd (file "prompt.md") (file "answer.txt") (file "err.txt") timeout))
-    (define fsh (extract-fsh (file->string (file "answer.txt"))))
+    (define fsh (extract-block (file->string (file "answer.txt")) "fsh"))
     (call-with-output-file (file "fsh") (lambda (o) (write-string fsh o)))
     (define answered? (and (eqv? code 0) (not timed-out?) (positive? (string-length (string-trim fsh)))))
     (define s (hash-set* (if answered? (score-task dir fsh) (hasheq 'task (hash-ref (read-task dir) 'profile)))
@@ -288,36 +289,8 @@
                              "Fix these and reply with the complete corrected FSH in ONE ```fsh block.\n")
               acc*))))
 
-;; ask : shell-command prompt-file answer-file err-file timeout -> (values exit-code seconds timed-out?)
-;; the command reads the prompt on stdin and writes its answer on stdout, through files (no pipes to
-;; pump, so nothing can wedge); past `timeout` seconds its whole process group is killed
-(define (ask cmd prompt-file answer-file err-file timeout)
-  (define start (current-inexact-milliseconds))
-  (define proc
-    (call-with-input-file prompt-file
-      (lambda (in)
-        (call-with-output-file answer-file #:exists 'truncate
-          (lambda (out)
-            (call-with-output-file err-file #:exists 'truncate
-              (lambda (err)
-                (define-values (p _o _i _e)
-                  (parameterize ([subprocess-group-enabled #t])
-                    (subprocess out in err "/bin/sh" "-c" cmd)))
-                p)))))))
-  (define done (sync/timeout timeout proc))
-  (unless done (subprocess-kill proc #t) (sync proc))
-  (values (subprocess-status proc) (round (/ (- (current-inexact-milliseconds) start) 1000.0)) (not done)))
-
-;; extract-fsh : answer -> fsh   the last ```fsh block, else the last ``` block, else the whole answer
-(define (extract-fsh a)
-  (define fenced (regexp-match* #px"```fsh[^\n]*\n(.*?)```" a #:match-select cadr))
-  (define any (regexp-match* #px"```[^\n]*\n(.*?)```" a #:match-select cadr))
-  (cond [(pair? fenced) (last fenced)] [(pair? any) (last any)] [else a]))
-
 (module+ test
   (require rackunit)
-  (check-equal? (extract-fsh "x\n```fsh\nProfile: A\n```\ny") "Profile: A\n")
-  (check-equal? (extract-fsh "```\nB\n```") "B\n")
   ;; facets ignore text and canonical versions
   (check-equal? (facets (hasheq 'id "O.code" 'short "x" 'min 1 'binding (hasheq 'strength "required" 'valueSet "http://v|1.0")))
                 (list (cons 'min 1) (cons 'binding (list "required" "http://v"))))
