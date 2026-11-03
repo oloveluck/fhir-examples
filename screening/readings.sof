@@ -1,0 +1,16 @@
+#lang sql-on-fhir
+;; readings.sof — a SQL on FHIR ViewDefinition: one row per blood pressure reading, flat enough for
+;; SQL. Its paths are FHIRPath; the view itself is checked against the IG's model when it compiles.
+
+(ViewDefinition
+ (name "bp_readings")
+ (status "active")
+ (resource "Observation")
+ (where (ViewDefinitionWhere (path "code.coding.where(system = 'http://loinc.org').code = '85354-9'")))
+ (select (ViewDefinitionSelect
+          (column (ViewDefinitionSelectColumn (name "patient") (path "subject.getReferenceKey(Patient)"))
+                  (ViewDefinitionSelectColumn (name "date") (path "effective.ofType(dateTime)"))
+                  (ViewDefinitionSelectColumn (name "systolic")
+                                              (path "component.where(code.coding.code = '8480-6').value.ofType(Quantity).value"))
+                  (ViewDefinitionSelectColumn (name "diastolic")
+                                              (path "component.where(code.coding.code = '8462-4').value.ofType(Quantity).value"))))))

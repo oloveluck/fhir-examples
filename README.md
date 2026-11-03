@@ -1,8 +1,24 @@
 # fhir-examples — examples for the Racket FHIR family
 
-Worked examples for the [fhir](https://github.com/oloveluck/fhir) family of Racket packages: FHIR
-operations applied like functions, and FHIR as a framework for spec-driven development with LLMs,
-measured against published Implementation Guides.
+Worked examples for the [fhir](https://github.com/oloveluck/fhir) family of Racket packages: the FHIR
+languages used together in one program, FHIR operations applied like functions, and FHIR as a framework
+for spec-driven development with LLMs, measured against published Implementation Guides.
+
+## One program, six FHIR languages
+
+[`screening/`](screening/) is a blood pressure screening written in six FHIR languages — FHIR Shorthand,
+FHIR R6 resources, the FHIR Mapping Language, VCL, CQL and SQL on FHIR — each file a Racket module in its
+own `#lang`, composed by one Racket program:
+
+```racket
+(require (only-in "profile.fsh" [compiled clinic]) (only-in "intake.fml" [transform intake->reading])
+         (only-in "bp-panels.vcl" [valueset bp-panels]) (only-in "screening.cql" [evaluate screen]) …)
+
+(~> form intake->reading (ensure-valid #:profile profile))
+(screen patient-data #:parameters (hash "Panel Codes" codes))
+```
+
+See [screening/README.md](screening/README.md); run it with `racket screening/main.rkt`.
 
 ## FHIR operations as procedures
 

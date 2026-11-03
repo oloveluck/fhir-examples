@@ -1,7 +1,9 @@
 # CLAUDE.md — fhir-examples
 
 The examples repo of the fhir family (conventions, HTDP style and the package map live in the main
-`fhir` repo's CLAUDE.md). Collection `fhir-examples`: `examples/pipeline.rkt` (operations applied as
+`fhir` repo's CLAUDE.md). Collection `fhir-examples`: `screening/` (six FHIR languages — .fsh, .fhir6,
+.fml, .vcl, .cql, .sof — each a module in its #lang, composed by main.rkt; `raco test` checks it),
+`examples/pipeline.rkt` (operations applied as
 procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, model runs),
 `cli.rkt` (`raco spec-bench`), `tests/bench-r4-test.rkt` (oracle/empty baselines on mCODE TumorSize),
 `results/` (recorded runs: prompt, raw answer, FSH and score per round).

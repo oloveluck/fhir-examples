@@ -1,0 +1,17 @@
+#lang fhir/r6
+;; forms.fhir6 — two intake forms as they arrive: FHIR QuestionnaireResponses, written in #lang
+;; fhir/r6, so each one is checked against the FHIR R6 model when this file compiles.
+
+(QuestionnaireResponse
+ (id "intake-ann") (status "completed") (authored "2026-10-02")
+ (questionnaire "http://example.org/Questionnaire/bp-intake")
+ (subject (Reference (reference "Patient/ann")))
+ (item (QuestionnaireResponseItem (linkId "systolic") (answer (QuestionnaireResponseItemAnswer (valueDecimal "148"))))
+       (QuestionnaireResponseItem (linkId "diastolic") (answer (QuestionnaireResponseItemAnswer (valueDecimal "92"))))))
+
+(QuestionnaireResponse
+ (id "intake-bo") (status "completed") (authored "2026-10-03")
+ (questionnaire "http://example.org/Questionnaire/bp-intake")
+ (subject (Reference (reference "Patient/bo")))
+ (item (QuestionnaireResponseItem (linkId "systolic") (answer (QuestionnaireResponseItemAnswer (valueDecimal "124"))))
+       (QuestionnaireResponseItem (linkId "diastolic") (answer (QuestionnaireResponseItemAnswer (valueDecimal "79"))))))

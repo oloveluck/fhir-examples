@@ -13,7 +13,7 @@
 (define pkg-desc "Examples for the Racket FHIR family: FHIR operations applied as procedures, and a spec-driven development benchmark (prose -> FSH -> checked, scored against the published IG; raco spec-bench)")
 (define pkg-authors '(oloveluck))
 (define license 'MIT)
-(define deps '("base" "fhir" "fhir-spec" "fhir-validation" "fsh" "fml"))
+(define deps '("base" "fhir" "fhir-spec" "fhir-validation" "fsh" "fml" "cql" "vcl" "sql-on-fhir"))
 (define build-deps '("rackunit-lib"))
 (define raco-commands
   '(("spec-bench" (submod fhir-examples/cli main) "make prose -> FSH tasks from a published IG, run a model on them, score the answers" #f)))

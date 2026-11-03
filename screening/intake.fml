@@ -1,0 +1,24 @@
+#lang fml
+// intake.fml — the FHIR Mapping Language: an intake form (QuestionnaireResponse) becomes a
+// screening blood pressure (Observation). The result is checked against profile.fsh downstream.
+
+map "http://example.org/StructureMap/bp-intake" = "BpIntake"
+
+uses "http://hl7.org/fhir/StructureDefinition/QuestionnaireResponse" alias QuestionnaireResponse as source
+uses "http://hl7.org/fhir/StructureDefinition/Observation" alias Observation as target
+
+group BpIntake(source src : QuestionnaireResponse, target tgt : Observation) {
+  src.id as i -> tgt.id = append(i, '-bp') "id";
+  src -> tgt.status = 'final' "status";
+  src -> tgt.code = cc('http://loinc.org', '85354-9', 'Blood pressure panel') "code";
+  src.subject as s -> tgt.subject = s "subject";
+  src.authored as a -> tgt.effective = a "when";
+  src.item as item where linkId = 'systolic' -> tgt.component as c, c.code = cc('http://loinc.org', '8480-6', 'Systolic blood pressure') then reading(item, c) "systolic";
+  src.item as item where linkId = 'diastolic' -> tgt.component as c, c.code = cc('http://loinc.org', '8462-4', 'Diastolic blood pressure') then reading(item, c) "diastolic";
+}
+
+group reading(source item, target c) {
+  item.answer as ans then {
+    ans.value as v -> c.value = qty(v, 'mm[Hg]', 'http://unitsofmeasure.org', 'mm[Hg]') "value";
+  } "answer";
+}
