@@ -1,0 +1,4 @@
+TumorSize round 1 [145.0s]: check errors 0 (0 in the candidate); profile compiled; fidelity 30/34 facets, 0 extra elements; accepts 0/2 published examples; 0/1 of its examples conform to the published profile
+CancerDiseaseStatus round 1 [114.0s]: check errors 1 (1 in the candidate); profile compiled; fidelity 16/20 facets, 0 extra elements; accepts 0/3 published examples; 0/1 of its examples conform to the published profile
+CancerDiseaseStatus round 2 [64.0s]: check errors 0 (0 in the candidate); profile compiled; fidelity 16/20 facets, 1 extra elements; accepts 0/3 published examples; 0/1 of its examples conform to the published profile
+ECOGPerformanceStatus round 1 [60.0s]: check errors 0 (0 in the candidate); profile compiled; fidelity 6/8 facets, 0 extra elements; accepts 2/2 published examples; 1/1 of its examples conform to the published profile
