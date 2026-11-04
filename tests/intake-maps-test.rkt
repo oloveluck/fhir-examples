@@ -2,7 +2,8 @@
 
 ;;; intake-maps-test.rkt — the worked project of structures and maps (examples/intake-maps): the FSH
 ;;; compiles, `check` finds nothing, the package carries the StructureMap, and the map resolves by
-;;; canonical from that package as a typed value whose result validates against the profile.
+;;; canonical from that package as a typed value whose result validates against the profile. (The
+;;; instance of the logical model has no id; fsh pairs it with its FSH entity by the model name.)
 
 (require rackunit racket/runtime-path racket/file json
          (only-in fhir/r5/schemas)
