@@ -36,6 +36,7 @@
   (check-equal? (smap-source to-bp) 'IntakeForm)
   (check-equal? (smap-target to-bp) 'Observation)
   (define form (findf (lambda (a) (equal? (hash-ref a 'resourceType) "IntakeForm")) (project-artifacts p)))
+  (check-false (hash-has-key? form 'id))              ; a logical model based on Base has no id element
   (define obs (to-bp form))
   (check-equal? (hash-ref obs 'resourceType) "Observation")
   (check-equal? (hash-ref obs 'effectiveDateTime) "2024-03-01T09:00:00Z")
