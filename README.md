@@ -11,6 +11,14 @@ small IG written in FSH — every resource validated against its profile and the
 fed back to the model by resource and path until it conforms — and runs the screening rule (CQL) over the
 result. Recorded runs replay without a model; see [notes-to-fhir/README.md](notes-to-fhir/README.md).
 
+## Servers generated from published IGs, held to the IGs
+
+[`ig-servers/`](ig-servers/) generates a FHIR server from each of six published IGs (IPA, AU Core,
+Plan-Net, Drug Formulary, CARIN Blue Button, SDC) and checks it against the IG alone: every example
+accepted, read back and found by every advertised search parameter and include; every example made
+invalid refused; every requirement of the IG's CapabilityStatement met. The first runs found five
+defects in the generator, now fixed; see [ig-servers/README.md](ig-servers/README.md).
+
 ## One program, six FHIR languages
 
 [`screening/`](screening/) is a blood pressure screening written in six FHIR languages — FHIR Shorthand,

@@ -5,7 +5,11 @@ The examples repo of the fhir family (conventions, HTDP style and the package ma
 FHIR checked against ig/ (FSH) with $validate, issues fed back by path; scored against answer keys;
 recorded runs replayed by replay-test.rkt; `--brief` leaves the FSH out of the prompt), `screening/` (six FHIR languages — .fsh, .fhir6,
 .fml, .vcl, .cql, .sof — each a module in its #lang, composed by main.rkt; `raco test` checks it),
-`examples/pipeline.rkt` (operations applied as
+`ig-servers/` (fetch.rkt: IG + transitive dependencies from packages.fhir.org into packages/,
+gitignored, shasum-checked, packages.lock; verify.rkt: make-ig-server per IG, oracles from the IG
+only — unmet, profiles resolve, examples accepted, read back, search by own values, includes,
+mutations refused; main.rkt: the IG list + results/*.json; verify-test.rkt: results as floors, fetched
+IGs only, no network), `examples/pipeline.rkt` (operations applied as
 procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, model runs),
 `cli.rkt` (`raco spec-bench`), `tests/bench-r4-test.rkt` (oracle/empty baselines on mCODE TumorSize),
 `results/` (recorded runs: prompt, raw answer, FSH and score per round).
