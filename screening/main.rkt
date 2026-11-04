@@ -91,6 +91,7 @@
 
 (module+ test
   (require rackunit json racket/runtime-path
+           (only-in fml/operations)                              ; registers StructureMap/$transform
            (only-in fml/parser/parse parse-fml)
            (only-in fhir/result/result ok-value)
            (only-in fhir/diagnostic diagnostic-message diagnostic-loc loc-line)
