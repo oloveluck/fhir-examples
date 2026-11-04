@@ -16,6 +16,7 @@ Each example directory has a README with its results.
 raco pkg install --link --auto fhir/fhir fhir/fhir-spec fhirpath vcl fhir/fhir-tx fhir/fhir-validation cql fml fsh fhir/fhir-server sql-on-fhir fhir-examples
 racket screening/main.rkt                      six languages, one program
 racket examples/pipeline.rkt                   operations as procedures
+raco fsh check examples/intake-maps            structures, a map, an example: checked as one project
 racket notes-to-fhir/main.rkt --replay notes-to-fhir/results/2026-11-03T2336-brief
     recorded model runs, no model
 racket ig-servers/main.rkt -v hl7.fhir.uv.ipa  one IG's server, every failure printed
@@ -45,6 +46,13 @@ modules' values are FHIR resources and procedures over them, joined by FHIR oper
 @item{@tt{examples/pipeline.rkt}: FHIR operations applied as procedures, no server. A
 QuestionnaireResponse becomes a Patient through @tt{$transform}, is validated, and its gender is
 checked with @tt{ValueSet/$validate-code}.}
+@item{@tt{examples/intake-maps/}: structures and the map between them as one project. A logical
+model (the front desk's intake form) and a profile (the clinic's screening Observation) in FSH, the
+map from one to the other in FML, and an example form. @tt{raco fsh check} compiles the structures,
+checks the map against them and transforms the example into a valid Observation; @tt{--pack} writes
+one package holding both structures and the StructureMap; @tt{(structure-map url)} then applies the
+map by canonical from that package as a typed procedure (@tt{tests/intake-maps-test.rkt}). The
+fml document walks through it.}
 @item{@tt{notes-to-fhir/}: clinic notes (text) become FHIR with a model, held to a small IG written
 in FSH by @tt{$validate}, each issue fed back by resource and path until the data conforms; then the
 screening rule runs over it. @litchar{--brief} leaves the FSH out of the prompt; @litchar{--replay} re-checks a
