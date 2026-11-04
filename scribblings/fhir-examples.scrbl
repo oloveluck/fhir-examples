@@ -10,28 +10,44 @@ Each example directory has a README with its results.
 
 @table-of-contents[]
 
+@section{Run them}
+
+@verbatim{
+raco pkg install --link --auto fhir/fhir fhir/fhir-spec fhirpath vcl fhir/fhir-validation cql fml fsh fhir/fhir-server sql-on-fhir fhir-examples
+racket screening/main.rkt                      six languages, one program
+racket examples/pipeline.rkt                   operations as procedures
+racket notes-to-fhir/main.rkt --replay notes-to-fhir/results/2026-11-03T2336-brief     recorded model runs, no model
+racket ig-servers/main.rkt -v hl7.fhir.uv.ipa  one IG's server, every failure printed
+raco test -p fhir-examples                     the recorded results as floors
+}
+
 @section{The examples}
 
 @itemlist[
 @item{@tt{screening/}: a blood pressure screening in six FHIR languages, each file a module in its
 own @hash-lang[] (FHIR Shorthand, FHIR R6 resources, the FHIR Mapping Language, VCL, CQL, SQL on
-FHIR), composed by one Racket program. @tt{racket screening/main.rkt}.
+FHIR), composed by one Racket program. Each language checks its file as the program compiles; the
+modules' values are FHIR resources and procedures over them, joined by FHIR operations.
 @racketblock[
 (require (only-in "profile.fsh" [compiled clinic]) (only-in "intake.fml" [transform intake->reading])
-         (only-in "bp-panels.vcl" [valueset bp-panels]) (only-in "screening.cql" [evaluate screen]))
-(~> form intake->reading (ensure-valid #:profile profile))
-(screen patient-data #:parameters (hash "Panel Codes" codes))]}
+         (only-in "bp-panels.vcl" [valueset bp-panels]) (only-in "screening.cql" [evaluate screen])
+         (only-in "readings.sof" [->json view-definitions]))
+(~> form intake->reading (ensure-valid #:profile profile))         (code:comment "FML, then the FSH profile")
+($expand #:valueSet bp-panels)                                      (code:comment "the VCL value set, expanded")
+(screen patient-data #:parameters (hash "Panel Codes" codes))       (code:comment "CQL over one patient")
+(view-rows view)                                                    (code:comment "SQL on FHIR over the same data")]}
 @item{@tt{examples/pipeline.rkt}: FHIR operations applied as procedures, no server. A
 QuestionnaireResponse becomes a Patient through @tt{$transform}, is validated, and its gender is
-checked with @tt{ValueSet/$validate-code}. @tt{racket examples/pipeline.rkt}.}
+checked with @tt{ValueSet/$validate-code}.}
 @item{@tt{notes-to-fhir/}: clinic notes (text) become FHIR with a model, held to a small IG written
 in FSH by @tt{$validate}, each issue fed back by resource and path until the data conforms; then the
-screening rule runs over it. Recorded runs replay without a model:
-@tt{racket notes-to-fhir/main.rkt --replay notes-to-fhir/results/<run>}.}
+screening rule runs over it. @tt{--brief} leaves the FSH out of the prompt; @tt{--replay} re-checks a
+recorded run without a model.}
 @item{@tt{ig-servers/}: servers generated from six published IGs (IPA, AU Core, Plan-Net, Drug
 Formulary, CARIN Blue Button, SDC), checked against nothing but each IG: every example accepted, read
 back, found by every advertised search parameter and include; every example made invalid refused;
-every requirement of the CapabilityStatement met. @tt{racket ig-servers/main.rkt}.}]
+every requirement of the CapabilityStatement met. Packages are fetched into @tt{ig-servers/packages/}
+and locked.}]
 
 @section{The benchmark}
 @defmodule[fhir-examples/bench]
@@ -82,8 +98,19 @@ raco spec-bench score <task-dir> (--oracle | --empty | <candidate.fsh>)
 raco spec-bench run <task-dir> --model '<shell command>' [--rounds n] [--timeout seconds]
 }
 
-@tt{--oracle} scores the IG's own FSH for the profile (the ceiling this compiler allows);
-@tt{--empty} an empty answer.
+End to end, on mCODE (its FSH sources are vendored in the fsh repository):
+
+@verbatim{
+raco spec-bench list ../fsh/tests/vendor/mcode-4.0.0
+raco spec-bench make ../fsh/tests/vendor/mcode-4.0.0 hl7.fhir.us.mcode-4.0.0 TumorSize task/
+raco spec-bench score task/ --oracle                 the IG's own FSH: the ceiling this compiler allows
+raco spec-bench score task/ --empty                  nothing: 0
+raco spec-bench run task/ --model 'claude -p' --rounds 3 --timeout 1200
+cat task/results.jsonl
+}
+
+The model command reads the prompt on stdin and answers on stdout; the last @tt{```fsh} block is the
+candidate. Each round's files are under @tt{task/runs/<stamp>/}.
 
 @section{IG servers}
 @defmodule[fhir-examples/ig-servers/verify]
@@ -105,8 +132,3 @@ The IG's package and its dependencies, transitively, from packages.fhir.org into
 Core packages come from @tt{fhir-spec}; terminology, extension and VSAC packages are not fetched.}
 @defproc[(packages-dir) path?]{@tt{ig-servers/packages/}, not committed.}
 
-@section{Install}
-
-@verbatim{
-raco pkg install --link --auto fhir/fhir fhir/fhir-spec fhirpath vcl fhir/fhir-validation cql fml fsh fhir/fhir-server sql-on-fhir fhir-examples
-}
