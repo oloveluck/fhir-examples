@@ -8,6 +8,7 @@ Reference: [oloveluck.github.io/fhir-examples](https://oloveluck.github.io/fhir-
 |---|---|---|
 | [`screening/`](screening/) | one program in six FHIR languages (FSH, FHIR R6, FML, VCL, CQL, SQL on FHIR), each file a `#lang` module | `racket screening/main.rkt` |
 | [`examples/pipeline.rkt`](examples/pipeline.rkt) | FHIR operations applied as procedures (`$transform`, `$validate`, `$validate-code`), no server | `racket examples/pipeline.rkt` |
+| [`examples/intake-maps/`](examples/intake-maps/) | structures (a logical model, a profile) and the map between them as one project: checked, packed, the map applied by canonical | `raco fsh check examples/intake-maps`; `raco test tests/intake-maps-test.rkt` |
 | [`notes-to-fhir/`](notes-to-fhir/) | clinic notes → FHIR with a model, held to an FSH IG by `$validate`, issues fed back by path; recorded runs replay without a model | `racket notes-to-fhir/main.rkt --replay notes-to-fhir/results/2026-11-03T2336-brief` |
 | [`ig-servers/`](ig-servers/) | servers generated from six published IGs, checked against nothing but the IGs | `racket ig-servers/main.rkt` |
 | `bench.rkt` | the spec-driven benchmark, `raco spec-bench` | below |
