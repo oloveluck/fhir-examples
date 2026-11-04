@@ -6,7 +6,7 @@ Reference: [oloveluck.github.io/fhir-examples](https://oloveluck.github.io/fhir-
 
 | directory | what | run |
 |---|---|---|
-| [`screening/`](screening/) | one program in six FHIR languages (FSH, FHIR R6, FML, VCL, CQL, SQL on FHIR), each file a `#lang` module | `racket screening/main.rkt` |
+| [`screening/`](screening/) | language-oriented programming with FHIR's languages: one program in seven `#lang`s (FSH, FHIR R6, FML, VCL, CQL, SQL on FHIR, a capability app), the seams between them checked | `racket screening/main.rkt`; `raco test screening/main.rkt` |
 | [`examples/pipeline.rkt`](examples/pipeline.rkt) | FHIR operations applied as procedures (`$transform`, `$validate`, `$validate-code`), no server | `racket examples/pipeline.rkt` |
 | [`examples/intake-maps/`](examples/intake-maps/) | structures (a logical model, a profile) and the map between them as one project: checked, packed, the map applied by canonical | `raco fsh check examples/intake-maps`; `raco test tests/intake-maps-test.rkt` |
 | [`notes-to-fhir/`](notes-to-fhir/) | clinic notes → FHIR with a model, held to an FSH IG by `$validate`, issues fed back by path; recorded runs replay without a model | `racket notes-to-fhir/main.rkt --replay notes-to-fhir/results/2026-11-03T2336-brief` |

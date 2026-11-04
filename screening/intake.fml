@@ -1,13 +1,14 @@
 #lang fml
 // intake.fml — the FHIR Mapping Language: an intake form (QuestionnaireResponse) becomes a
-// screening blood pressure (Observation). The result is checked against profile.fsh downstream.
+// screening blood pressure. The target structure is the PROFILE profile.fsh defines, named by its
+// canonical: the map is checked against it (main.rkt), and its results validated under it.
 
 map "http://example.org/StructureMap/bp-intake" = "BpIntake"
 
 uses "http://hl7.org/fhir/StructureDefinition/QuestionnaireResponse" alias QuestionnaireResponse as source
-uses "http://hl7.org/fhir/StructureDefinition/Observation" alias Observation as target
+uses "http://example.org/StructureDefinition/screening-blood-pressure" alias ScreeningBP as target
 
-group BpIntake(source src : QuestionnaireResponse, target tgt : Observation) {
+group BpIntake(source src : QuestionnaireResponse, target tgt : ScreeningBP) {
   src.id as i -> tgt.id = append(i, '-bp') "id";
   src -> tgt.status = 'final' "status";
   src -> tgt.code = cc('http://loinc.org', '85354-9', 'Blood pressure panel') "code";

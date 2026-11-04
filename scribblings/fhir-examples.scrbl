@@ -14,7 +14,8 @@ Each example directory has a README with its results.
 
 @verbatim{
 raco pkg install --link --auto fhir/fhir fhir/fhir-spec fhirpath vcl fhir/fhir-tx fhir/fhir-validation cql fml fsh fhir/fhir-server sql-on-fhir fhir-examples
-racket screening/main.rkt                      six languages, one program
+racket screening/main.rkt                      seven languages, one program; raco test screening/main.rkt checks the seams
+racket screening/app.rkt                       the composition's CapabilityStatement; raco fhir-server serve screening/app.rkt 8080
 racket examples/pipeline.rkt                   operations as procedures
 raco fsh check examples/intake-maps            structures, a map, an example: checked as one project
 racket notes-to-fhir/main.rkt --replay notes-to-fhir/results/2026-11-03T2336-brief
@@ -26,10 +27,14 @@ raco test -p fhir-examples                     the recorded results as floors
 @section{The examples}
 
 @itemlist[
-@item{@tt{screening/}: a blood pressure screening in six FHIR languages, each file a module in its
-own @hash-lang[] (FHIR Shorthand, FHIR R6 resources, the FHIR Mapping Language, VCL, CQL, SQL on
-FHIR), composed by one Racket program. Each language checks its file as the program compiles; the
-modules' values are FHIR resources and procedures over them, joined by FHIR operations.
+@item{@tt{screening/}: language-oriented programming with FHIR's languages. A blood pressure
+screening in seven @hash-lang[]s (FHIR Shorthand, FHIR R6 resources, the FHIR Mapping Language, VCL,
+CQL, SQL on FHIR, and a capability app that serves the composition), each file a module, composed by
+one Racket program. Each language checks its file as the program compiles; the modules' values are
+FHIR resources and procedures over them, joined by FHIR operations; and the seams are checked too:
+the map against the structures FSH defined (@tt{check-map}, positioned in the FML), each mapped
+reading against the profile, and the module registry doubling as the canonical registry
+(@tt{$transform #:source} finds the map a required module registered).
 @racketblock[
 (require (only-in "profile.fsh" [compiled clinic])
          (only-in "intake.fml" [transform intake->reading])

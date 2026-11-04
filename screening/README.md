@@ -1,36 +1,37 @@
-# One program, six FHIR languages
+# Language-oriented programming, with FHIR's languages
 
 FHIR is specified in several languages, each made for its job: FHIR Shorthand for profiles, the FHIR
 Mapping Language for transforms, CQL for clinical logic, VCL for value sets, SQL on FHIR for tabular
-views, and FHIR resources themselves for data. Usually each one needs its own tool, and gluing them
-together means files, command lines and formats between them.
+views, a CapabilityStatement for what a server does, and FHIR resources themselves for data. Each
+usually needs its own tool, and gluing them together means files, command lines and formats in
+between.
 
-In Racket, each of these languages is a `#lang`. A file in any of them is an ordinary module: it is
-compiled — and checked in that language's terms — by `raco make`, and it `provide`s values. So one
-program can `require` a profile, a map, a value set, a CQL library and a view the way it requires any
-other module, and combine them with plain Racket:
+Language-oriented programming turns that around: give each language a `#lang`, and a file in it is an
+ordinary module. It is compiled, and checked in that language's terms, when the program that uses it
+compiles; it `provide`s values; and one program can `require` a profile, a map, a value set, a CQL
+library, a view and a server declaration the way it requires any other module, and combine them with
+plain Racket. This directory is one such program.
 
 ```racket
 (require (only-in "profile.fsh"    [compiled clinic])            ; FHIR Shorthand
          (only-in "forms.fhir6"    [->json forms])                ; FHIR R6 resources
-         (only-in "intake.fml"     [transform intake->reading])   ; FHIR Mapping Language
+         (only-in "intake.fml"     [transform intake->reading] [fml bp-intake])   ; FHIR Mapping Language
          (only-in "bp-panels.vcl"  [valueset bp-panels])          ; ValueSet Compose Language
          (only-in "screening.cql"  [evaluate screen])             ; CQL
          (only-in "readings.sof"   [->json view-definitions]))    ; SQL on FHIR
 ```
 
-What each module gives the program:
-
 | file | language | provides | used as |
 |---|---|---|---|
 | `profile.fsh` | FHIR Shorthand | `compiled`: the profile, patients, clinic readings (FHIR JSON) | the data contract and the existing records |
 | `forms.fhir6` | `#lang fhir/r6` | `->json`: the intake forms | data, checked against FHIR R6 at compile time |
-| `intake.fml` | FHIR Mapping Language | `transform`: form → Observation | a procedure |
+| `intake.fml` | FHIR Mapping Language | `transform`: form → Observation; `fml`: the map | a procedure, and a map to check |
 | `bp-panels.vcl` | VCL | `valueset` | input to `$expand` |
 | `screening.cql` | CQL | `evaluate`: the library over a patient's data | a procedure: define-name → value |
 | `readings.sof` | SQL on FHIR | `->json`: the ViewDefinition | input to the view engine |
+| `app.rkt` | `#lang fhir/capability` | `app`: the composition as a FHIR server | served over HTTP; `/metadata` derived |
 
-And the glue is FHIR's own operations, applied like functions (`fhir/operation`), with `~>` threading a
+The glue is FHIR's own operations, applied like functions (`fhir/operation`), with `~>` threading a
 value through them:
 
 ```racket
@@ -52,28 +53,60 @@ ann      2026-10-02  148       92        yes
 bo       2026-10-03  124       79        no
 ```
 
-## Why it works
+## What a `#lang` gives each language
 
-- **Every language compiles to a module.** The reader of each `#lang` parses the language; its module
-  language turns it into Racket definitions. Requiring `"screening.cql"` compiles CQL to ELM; requiring
-  `"profile.fsh"` compiles FSH to FHIR resources. Errors in any of them are compile errors of this
-  program, positioned in the source file of that language.
-- **They share one currency: FHIR.** Every module's outputs are FHIR resources (JSON) or procedures over
-  them, so nothing needs converting between languages.
-- **Each language checks what it knows.** The forms are checked against the FHIR R6 model as they
-  compile (a QuestionnaireResponse without `questionnaire` does not compile); the view against the SQL
-  on FHIR IG's model; a reading the map produces is validated against the profile FSH defined — while
-  writing this example, a map that wrote the panel code without its display was rejected by the profile.
-- **Operations are procedures.** `$expand`, `$validate` and `$sql-run` are applied by reference with
-  keyword parameters checked against their OperationDefinitions; the same values serve over HTTP.
+- **A reader and a module language.** The reader parses the language (brag grammars ported from the
+  official ANTLR grammars where they exist); the module language turns the parse into Racket
+  definitions. Requiring `"screening.cql"` compiles CQL to ELM; requiring `"profile.fsh"` compiles FSH to
+  FHIR resources; requiring `"intake.fml"` lowers the map to its AST with real FHIRPath inside.
+- **Errors are compile errors of this program**, positioned in the source file of that language:
+  `file:line:col`, the line, a caret, in the same `fhir/diagnostic` shape for every language.
+- **One currency: FHIR.** Every module's values are FHIR resources (JSON) or procedures over them, so
+  nothing is converted between languages, and FHIR's operations are the function calls between them.
+
+## The seams are checked too
+
+A program in several languages is only as sound as the places where they meet. Here each seam is a
+check, and each check is positioned in the language where the fix belongs:
+
+- **The map against the structures.** `intake.fml` names the profile `profile.fsh` defines as its
+  target structure, by canonical. Before any form is mapped, `main.rkt` runs `check-map` on it: an
+  element the structure lacks, a value of the wrong type, a required element no rule assigns, each
+  reported on its line in `intake.fml`. (`raco test` plants a misspelt element and checks the line.)
+- **The mapped data against the profile.** Each reading the map produces is validated under the
+  profile FSH defined (`ensure-valid`); a reading that does not conform stops the program with an
+  OperationOutcome saying which element. While writing this example, a map that wrote the panel code
+  without its display was rejected by the profile.
+- **Data against the model.** The forms are checked against the FHIR R6 model as they compile (a
+  QuestionnaireResponse without `questionnaire` does not compile); the view against the SQL on FHIR
+  IG's model.
+- **The module registry is the canonical registry.** Requiring `intake.fml` registers its map under
+  its url, so `(apply-operation "StructureMap/$transform" form #:source "http://…/bp-intake")`
+  resolves it; the same holds for the map served by `app.rkt`.
+
+## The seventh language: the composition, served
+
+`app.rkt` is a `#lang fhir/capability` module. It *declares* what a server supports — the profile's
+Observations, the map as `StructureMap/$transform`, `$validate`, `$expand` — and the language
+*derives* the CapabilityStatement from the declarations, so `/metadata` cannot drift from what runs.
+`racket screening/app.rkt` prints it; `raco fhir-server serve screening/app.rkt 8080` serves it, and a
+POST to `/StructureMap/$transform` with `source = http://example.org/StructureMap/bp-intake` answers
+exactly what `intake->reading` answers in the program. `raco test main.rkt` drives it through the
+router.
 
 ## The files
 
 - `profile.fsh` — `ScreeningBloodPressure` (an Observation: LOINC panel code, a subject, a time, a
   systolic and a diastolic component in mm[Hg]), two patients, one clinic reading.
 - `forms.fhir6` — two QuestionnaireResponses (systolic / diastolic answers).
-- `intake.fml` — the map; `cc` and `qty` build the coded and quantity values.
+- `intake.fml` — the map, targeting the profile by canonical; `cc` and `qty` build the coded and
+  quantity values.
 - `bp-panels.vcl` — `(http://loinc.org)(85354-9;55284-4)`.
 - `screening.cql` — `Readings` (by panel code), `Highest Systolic`, `Hypertensive` (≥ 140).
 - `readings.sof` — one row per reading: patient, date, systolic, diastolic (FHIRPath paths).
-- `main.rkt` — the program; `raco test main.rkt` checks its results.
+- `app.rkt` — the composition as a FHIR server.
+- `main.rkt` — the program; `raco test main.rkt` checks its results, the seams and the server.
+
+The same idea at the scale of a project rather than a program: `../examples/intake-maps/`, where
+structures (FSH) and the map between them (FML) are checked and packed as one package by
+`raco fsh check` and `raco fsh --pack`.

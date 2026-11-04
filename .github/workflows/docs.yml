@@ -40,8 +40,8 @@ jobs:
             "https://github.com/oloveluck/fsh.git" \
             "https://github.com/oloveluck/fhir.git?path=fhir-server" \
             "https://github.com/oloveluck/sql-on-fhir.git"
-      - name: Test the worked project of structures and maps
-        run: raco test tests/intake-maps-test.rkt
+      - name: Test the worked project of structures and maps, and the screening program
+        run: raco test tests/intake-maps-test.rkt screening/main.rkt examples/pipeline.rkt
       - name: Build the documentation
         run: |
           raco scribble +m --html --dest site --dest-name index.html --redirect-main https://docs.racket-lang.org/ scribblings/fhir-examples.scrbl
