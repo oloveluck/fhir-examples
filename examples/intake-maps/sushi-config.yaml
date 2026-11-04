@@ -1,0 +1,7 @@
+id: example.intake
+canonical: http://example.org/intake
+name: IntakeMaps
+title: "Intake forms mapped to screening observations"
+status: draft
+version: 0.1.0
+fhirVersion: 5.0.0

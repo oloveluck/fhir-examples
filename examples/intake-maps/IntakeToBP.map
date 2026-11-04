@@ -1,0 +1,17 @@
+/// url = 'http://example.org/intake/StructureMap/IntakeToBP'
+/// name = 'IntakeToBP'
+/// title = 'Intake form to screening blood pressure'
+
+// The arrow between the two structures: an IntakeForm becomes a ScreeningBP Observation.
+uses "http://example.org/intake/StructureDefinition/IntakeForm" alias Intake as source
+uses "http://example.org/intake/StructureDefinition/ScreeningBP" alias BP as target
+
+group IntakeToBP(source src : Intake, target tgt : BP) {
+  src -> tgt.status = 'final', tgt.code = cc('http://loinc.org', '85354-9', 'Blood pressure panel') "panel";
+  src.patientId as id -> tgt.subject as s, s.reference = append('Patient/', id) "subject";
+  src.measured as m -> tgt.effective = m "when";
+  src.systolic as v -> tgt.component as c, c.code = cc('http://loinc.org', '8480-6', 'Systolic blood pressure'),
+                       c.value = qty(v, 'mm[Hg]', 'http://unitsofmeasure.org', 'mm[Hg]') "systolic";
+  src.diastolic as v -> tgt.component as c, c.code = cc('http://loinc.org', '8462-4', 'Diastolic blood pressure'),
+                        c.value = qty(v, 'mm[Hg]', 'http://unitsofmeasure.org', 'mm[Hg]') "diastolic";
+}
