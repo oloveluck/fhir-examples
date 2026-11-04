@@ -29,7 +29,8 @@ plain Racket. This directory is one such program.
 | `bp-panels.vcl` | VCL | `valueset` | input to `$expand` |
 | `screening.cql` | CQL | `evaluate`: the library over a patient's data | a procedure: define-name → value |
 | `readings.sof` | SQL on FHIR | `->json`: the ViewDefinition | input to the view engine |
-| `app.rkt` | `#lang fhir/capability` | `app`: the composition as a FHIR server | served over HTTP; `/metadata` derived |
+| `pipeline.rkt` | Racket | the composition: `intake-readings`, `screening`, `readings` | the program |
+| `app.rkt` | `#lang fhir/capability` | `app`: the composition as a FHIR server; `$screen`: the pipeline as an operation value | served over HTTP, `/metadata` derived; applied in-process |
 
 The glue is FHIR's own operations, applied like functions (`fhir/operation`), with `~>` threading a
 value through them:
@@ -80,19 +81,26 @@ check, and each check is positioned in the language where the fix belongs:
 - **Data against the model.** The forms are checked against the FHIR R6 model as they compile (a
   QuestionnaireResponse without `questionnaire` does not compile); the view against the SQL on FHIR
   IG's model.
-- **The module registry is the canonical registry.** Requiring `intake.fml` registers its map under
-  its url, so `(apply-operation "StructureMap/$transform" form #:source "http://…/bp-intake")`
-  resolves it; the same holds for the map served by `app.rkt`.
+- **The module system is the FHIR registry.** Requiring a module registers what it defines, by
+  canonical (`fhir/registry`): `profile.fsh` its profile, so `ensure-valid #:profile` and the map's
+  `uses` find it with no data source to set up; `intake.fml` its map, so
+  `(apply-operation "StructureMap/$transform" form #:source "http://…/bp-intake")` resolves it;
+  `bp-panels.vcl` its value set. The only `current-data-source` left in the program is the data the
+  rule and the view run over.
+- **A failure at run time points at its rule.** A `check` in a map that does not hold raises a
+  diagnostic positioned in `intake.fml`, and `$transform` returns it as an OperationOutcome with the
+  line, exactly as a parse error is reported.
 
 ## The seventh language: the composition, served
 
 `app.rkt` is a `#lang fhir/capability` module. It *declares* what a server supports — the profile's
-Observations, the map as `StructureMap/$transform`, `$validate`, `$expand` — and the language
-*derives* the CapabilityStatement from the declarations, so `/metadata` cannot drift from what runs.
-`racket screening/app.rkt` prints it; `raco fhir-server serve screening/app.rkt 8080` serves it, and a
-POST to `/StructureMap/$transform` with `source = http://example.org/StructureMap/bp-intake` answers
-exactly what `intake->reading` answers in the program. `raco test main.rkt` drives it through the
-router.
+Observations, the map as `StructureMap/$transform`, `$validate`, `$expand`, and the pipeline itself
+as `$screen` — and the language *derives* the CapabilityStatement from the declarations, so
+`/metadata` cannot drift from what runs. An inline declaration is also an operation *value*: `$screen`
+is defined, registered by its canonical and provided, so `main.rkt` applies it in-process
+(`($screen #:patient "ann")`, `(apply-operation "$screen" …)`) and a client POSTs to `/$screen`, through
+one handler. `racket screening/app.rkt` prints the CapabilityStatement; `raco fhir-server serve
+screening/app.rkt 8080` serves it; `raco test main.rkt` drives it through the router.
 
 ## The files
 
@@ -104,8 +112,11 @@ router.
 - `bp-panels.vcl` — `(http://loinc.org)(85354-9;55284-4)`.
 - `screening.cql` — `Readings` (by panel code), `Highest Systolic`, `Hypertensive` (≥ 140).
 - `readings.sof` — one row per reading: patient, date, systolic, diastolic (FHIRPath paths).
-- `app.rkt` — the composition as a FHIR server.
-- `main.rkt` — the program; `raco test main.rkt` checks its results, the seams and the server.
+- `pipeline.rkt` — the composition: the map checked against the structures, the forms mapped and
+  validated, the value set expanded, the rule and the view.
+- `app.rkt` — the composition as a FHIR server, and the pipeline as the operation `$screen`.
+- `main.rkt` — the program; `raco test main.rkt` checks its results, the seams, the operation in
+  process and the server.
 
 The same idea at the scale of a project rather than a program: `../examples/intake-maps/`, where
 structures (FSH) and the map between them (FML) are checked and packed as one package by
