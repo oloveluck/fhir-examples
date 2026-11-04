@@ -13,7 +13,7 @@ Each example directory has a README with its results.
 @section{Run them}
 
 @verbatim{
-raco pkg install --link --auto fhir/fhir fhir/fhir-spec fhirpath vcl fhir/fhir-validation cql fml fsh fhir/fhir-server sql-on-fhir fhir-examples
+raco pkg install --link --auto fhir/fhir fhir/fhir-spec fhirpath vcl fhir/fhir-tx fhir/fhir-validation cql fml fsh fhir/fhir-server sql-on-fhir fhir-examples
 racket screening/main.rkt                      six languages, one program
 racket examples/pipeline.rkt                   operations as procedures
 racket notes-to-fhir/main.rkt --replay notes-to-fhir/results/2026-11-03T2336-brief

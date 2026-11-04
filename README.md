@@ -51,7 +51,7 @@ answer had one `check` error; the second round fixed it from the diagnostic.
 From source, with the family's repos side by side:
 
 ```sh
-raco pkg install --link --auto fhir/fhir fhir/fhir-spec fhirpath vcl fhir/fhir-validation cql fml fsh fhir/fhir-server sql-on-fhir fhir-examples
+raco pkg install --link --auto fhir/fhir fhir/fhir-spec fhirpath vcl fhir/fhir-tx fhir/fhir-validation cql fml fsh fhir/fhir-server sql-on-fhir fhir-examples
 ```
 
 License: MIT. The IGs used as tasks keep their own licenses (mCODE: CC0-1.0).
