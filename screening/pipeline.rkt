@@ -20,6 +20,7 @@
          (only-in fml/check check-map)
          (only-in fhir/diagnostic diagnostic->string)
          (only-in fhir/conformance/operations ensure-valid)
+         (only-in fhirpath/decimal fp-decimal? decimal->exact)
          (only-in fhir/terminology/operations $expand)
          (only-in sql-on-fhir/operations view-rows))
 
@@ -55,7 +56,9 @@
   (define facts
     (screen (cons patient ((data-source-of-patient data) "Observation" patient-id))
             #:parameters (hash "Panel Codes" panel-codes)))
-  (hash 'patient patient-id 'highest (hash-ref facts "Highest Systolic") 'hypertensive (hash-ref facts "Hypertensive")))
+  (hash 'patient patient-id 'highest (number-of (hash-ref facts "Highest Systolic")) 'hypertensive (hash-ref facts "Hypertensive")))
+;; a CQL number is a FHIRPath decimal; the program wants a Racket integer
+(define (number-of v) (if (fp-decimal? v) (let ([x (decimal->exact v)]) (if (integer? x) (inexact->exact x) x)) v))
 
 ;; 4. The table (SQL on FHIR), with the rule's verdict alongside each patient's readings.
 (define readings
