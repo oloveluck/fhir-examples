@@ -15,7 +15,8 @@
 (define license 'MIT)
 (define deps '("base" "fhir" "fhir-spec" "fhir-validation" "fhir-server" "fhirpath" "fsh" "fml" "cql" "vcl"
                "sql-on-fhir" "net-lib"))
-(define build-deps '("rackunit-lib"))
+(define build-deps '("rackunit-lib" "scribble-lib" "racket-doc"))
+(define scribblings '(("scribblings/fhir-examples.scrbl" ())))
 (define raco-commands
   '(("spec-bench" (submod fhir-examples/cli main) "make prose -> FSH tasks from a published IG, run a model on them, score the answers" #f)))
-(define test-omit-paths '("results" "ig-servers/packages" "ig-servers/main.rkt"))
+(define test-omit-paths '("results" "ig-servers/packages" "ig-servers/main.rkt" "scribblings"))
