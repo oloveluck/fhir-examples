@@ -10,63 +10,63 @@ Each example directory has a README with its results.
 
 @table-of-contents[]
 
-@section{Run them}
+@section{Quick start}
+
+Install the whole family (the packages are not on the Racket package server yet; clone the
+repositories side by side):
 
 @verbatim{
 raco pkg install --link --auto fhir/fhir fhir/fhir-spec fhirpath vcl fhir/fhir-tx fhir/fhir-validation cql fml fsh fhir/fhir-server sql-on-fhir fhir-examples
-racket screening/main.rkt                      seven languages, one program; raco test screening/main.rkt checks the seams
-racket screening/app.rkt                       the composition's CapabilityStatement; raco fhir-server serve screening/app.rkt 8080
-racket examples/pipeline.rkt                   operations as procedures
-raco fsh check examples/intake-maps            structures, a map, an example: checked as one project
-racket notes-to-fhir/main.rkt --replay notes-to-fhir/results/2026-11-03T2336-brief
-    recorded model runs, no model
-racket ig-servers/main.rkt -v hl7.fhir.uv.ipa  one IG's server, every failure printed
-raco test -p fhir-examples                     the recorded results as floors
 }
+
+Then run an example:
+
+@tabular[#:style 'boxed #:sep @hspace[2]
+(list (list @tt{racket screening/main.rkt} "seven languages, one program")
+      (list @tt{raco fhir-server serve screening/app.rkt 8080} "the same composition served")
+      (list @tt{racket examples/pipeline.rkt} "operations applied as procedures, no server")
+      (list @tt{raco fsh check examples/intake-maps} "structures, a map and an example, checked as one project")
+      (list @tt{racket notes-to-fhir/main.rkt --replay notes-to-fhir/results/2026-11-03T2336-brief} "recorded model runs, no model needed")
+      (list @tt{racket ig-servers/main.rkt -v hl7.fhir.uv.ipa} "one IG's generated server checked against the IG")
+      (list @tt{raco test -p fhir-examples} "the recorded results as floors"))]
 
 @section{The examples}
 
 @itemlist[
-@item{@tt{screening/}: language-oriented programming with FHIR's languages. A blood pressure
-screening in seven @hash-lang[]s (FHIR Shorthand, FHIR R6 resources, the FHIR Mapping Language, VCL,
-CQL, SQL on FHIR, and a capability app that serves the composition), each file a module, composed by
-one Racket program. Each language checks its file as the program compiles; the modules' values are
-FHIR resources and procedures over them, joined by FHIR operations; and the seams are checked too:
-the map against the structures FSH defined (@tt{check-map}, positioned in the FML), each mapped
-reading against the profile, and the module registry doubling as the canonical registry
-(@tt{$transform #:source} finds the map a required module registered).
+@item{@bold{@tt{screening/}: one program, seven languages.} A blood pressure screening in FHIR
+Shorthand, FHIR R6 resources, the FHIR Mapping Language, VCL, CQL, SQL on FHIR, and a capability app
+that serves the composition. Each file is a module checked as the program compiles; the modules'
+values are FHIR resources and procedures over them, joined by FHIR operations. The seams are checked
+too: the map against the structures FSH defined, each mapped reading against the profile, the
+module registry doubling as the canonical registry.
 @racketblock[
 (require (only-in "profile.fsh" [compiled clinic])
          (only-in "intake.fml" [transform intake->reading])
          (only-in "bp-panels.vcl" [valueset bp-panels])
          (only-in "screening.cql" [evaluate screen])
          (only-in "readings.sof" [->json view-definitions]))
-(code:comment "FML, then the FSH profile")
-(~> form intake->reading (ensure-valid #:profile profile))
-(code:comment "the VCL value set, expanded")
-($expand #:valueSet bp-panels)
-(code:comment "CQL over one patient")
-(screen patient-data #:parameters (hash "Panel Codes" codes))
-(view-rows view)                                                    (code:comment "SQL on FHIR over the same data")]}
-@item{@tt{examples/pipeline.rkt}: FHIR operations applied as procedures, no server. A
-QuestionnaireResponse becomes a Patient through @tt{$transform}, is validated, and its gender is
-checked with @tt{ValueSet/$validate-code}.}
-@item{@tt{examples/intake-maps/}: structures and the map between them as one project. A logical
-model (the front desk's intake form) and a profile (the clinic's screening Observation) in FSH, the
-map from one to the other in FML, and an example form. @tt{raco fsh check} compiles the structures,
-checks the map against them and transforms the example into a valid Observation; @tt{--pack} writes
-one package holding both structures and the StructureMap; @tt{(structure-map url)} then applies the
-map by canonical from that package as a typed procedure (@tt{tests/intake-maps-test.rkt}). The
-fml document walks through it.}
-@item{@tt{notes-to-fhir/}: clinic notes (text) become FHIR with a model, held to a small IG written
-in FSH by @tt{$validate}, each issue fed back by resource and path until the data conforms; then the
-screening rule runs over it. @litchar{--brief} leaves the FSH out of the prompt; @litchar{--replay} re-checks a
-recorded run without a model.}
-@item{@tt{ig-servers/}: servers generated from six published IGs (IPA, AU Core, Plan-Net, Drug
-Formulary, CARIN Blue Button, SDC), checked against nothing but each IG: every example accepted, read
-back, found by every advertised search parameter and include; every example made invalid refused;
-every requirement of the CapabilityStatement met. Packages are fetched into @tt{ig-servers/packages/}
-and locked.}]
+(~> form intake->reading (ensure-valid #:profile profile))   (code:comment "FML, then the FSH profile")
+($expand #:valueSet bp-panels)                               (code:comment "the VCL value set, expanded")
+(screen patient-data #:parameters (hash "Panel Codes" codes)) (code:comment "CQL over one patient")
+(view-rows view)                                             (code:comment "SQL on FHIR over the same data")]}
+@item{@bold{@tt{examples/pipeline.rkt}: operations as procedures.} A QuestionnaireResponse becomes a
+Patient through @tt{$transform}, is validated, and its gender is checked with
+@tt{ValueSet/$validate-code}. No server.}
+@item{@bold{@tt{examples/intake-maps/}: structures and the map between them as one project.} A
+logical model (an intake form) and a profile (a screening Observation) in FSH, the map from one to
+the other in FML, and an example form. @tt{raco fsh check} compiles the structures, checks the map
+against them and transforms the example into a valid Observation; @tt{--pack} writes one package
+holding all three; @tt{(structure-map url)} then applies the map by canonical from that package.
+The fml document walks through it.}
+@item{@bold{@tt{notes-to-fhir/}: free text to conforming FHIR, with a model.} Clinic notes become
+FHIR, held to a small IG written in FSH by @tt{$validate}, each issue fed back by resource and path
+until the data conforms; then the screening rule runs over it. @litchar{--brief} leaves the FSH out of
+the prompt; @litchar{--replay} re-checks a recorded run without a model.}
+@item{@bold{@tt{ig-servers/}: servers generated from six published IGs} (IPA, AU Core, Plan-Net,
+Drug Formulary, CARIN Blue Button, SDC), checked against nothing but each IG: every example accepted,
+read back, found by every advertised search parameter and include; every example made invalid
+refused; every requirement of the CapabilityStatement met. Packages are fetched into
+@tt{ig-servers/packages/} and locked.}]
 
 @section{The benchmark}
 @defmodule[fhir-examples/bench]
