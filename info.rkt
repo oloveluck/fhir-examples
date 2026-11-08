@@ -10,7 +10,7 @@
 
 (define collection "fhir-examples")
 (define version "0.1")
-(define pkg-desc "Examples for the Racket FHIR family: FHIR operations applied as procedures, and a spec-driven development benchmark (prose -> FSH -> checked, scored against the published IG; raco spec-bench)")
+(define pkg-desc "Examples for the fhir family of FHIR languages and tools: FHIR operations applied as procedures, and a spec-driven development benchmark (prose -> FSH -> checked, scored against the published IG; raco spec-bench)")
 (define pkg-authors '(oloveluck))
 (define license 'MIT)
 (define deps '("base" "fhir" "fhir-spec" "fhir-tx" "fhir-validation" "fhir-server" "fhirpath" "fsh" "fml" "cql" "vcl"

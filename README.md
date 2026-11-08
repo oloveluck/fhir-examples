@@ -1,6 +1,6 @@
 # fhir-examples
 
-Examples for the [fhir](https://github.com/oloveluck/fhir) family of Racket packages, and a benchmark
+Examples for the [fhir](https://github.com/oloveluck/fhir) family of FHIR languages and tools, and a benchmark
 for writing FHIR profiles from prose with a model.
 Reference: [oloveluck.github.io/fhir-examples](https://oloveluck.github.io/fhir-examples/).
 

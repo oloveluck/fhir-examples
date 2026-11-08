@@ -4,8 +4,8 @@
 
 @title{fhir-examples}
 
-Worked examples for the @hyperlink["https://github.com/oloveluck/fhir"]{fhir} family of Racket
-packages, and @tt{raco spec-bench}, a benchmark for writing FHIR profiles from prose with a model.
+Worked examples for the @hyperlink["https://github.com/oloveluck/fhir"]{fhir} family of FHIR
+languages and tools, and @tt{raco spec-bench}, a benchmark for writing FHIR profiles from prose with a model.
 Each example directory has a README with its results.
 
 @table-of-contents[]
