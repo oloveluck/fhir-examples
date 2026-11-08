@@ -2,7 +2,7 @@
 
 ;;; bench-r4-test.rkt — the spec benchmark's own oracle: a task made from mCODE's TumorSize, scored
 ;;; with the IG's own FSH (the ceiling our compiler allows) and with nothing (the floor). The model
-;;; runs themselves are not tests (they need a model); README.md and results/ record them.
+;;; runs themselves are not tests (they need a model); TESTING.md and results/ record them.
 
 (require rackunit racket/file
          (only-in fhir/spec-package spec-package-path)
