@@ -4,6 +4,10 @@ Examples for the [fhir](https://github.com/oloveluck/fhir) family of Racket pack
 for writing FHIR profiles from prose with a model.
 Reference: [oloveluck.github.io/fhir-examples](https://oloveluck.github.io/fhir-examples/).
 
+These are Racket programs, written in the family's `#lang`s. To use the languages from the command
+line without Racket (`fsh`, `cql`, `fml`, `vcl`, `fhirpath`, `sql-on-fhir`, the validator and the
+servers), see [Command-line tools](https://github.com/oloveluck/fhir#command-line-tools).
+
 | directory | what | run |
 |---|---|---|
 | [`screening/`](screening/) | language-oriented programming with FHIR's languages: one program in seven `#lang`s (FSH, FHIR R6, FML, VCL, CQL, SQL on FHIR, a capability app), the seams between them checked | `racket screening/main.rkt`; `raco test screening/main.rkt` |
