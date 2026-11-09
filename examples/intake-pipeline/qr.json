@@ -1,0 +1,6 @@
+{"resourceType": "QuestionnaireResponse", "id": "intake-1", "status": "completed",
+ "item": [
+   {"linkId": "name", "answer": [{"valueString": "Ana Rivera"}]},
+   {"linkId": "gender", "answer": [{"valueCoding": {"system": "http://hl7.org/fhir/administrative-gender", "code": "female"}}]},
+   {"linkId": "birthDate", "answer": [{"valueDate": "1950-05-01"}]}
+ ]}
