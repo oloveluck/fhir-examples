@@ -13,4 +13,4 @@
 (check-equal? old? "true")
 ;; without a birth date the Patient breaks IntakePatient, and the error says so
 (define no-birth (hash-set qr 'item (filter (lambda (i) (not (equal? (hash-ref i 'linkId) "birthDate"))) (hash-ref qr 'item))))
-(check-exn #rx"invalid Patient:.*birthDate" (lambda () (intake no-birth)))
+(check-exn #rx"invalid Patient against [^ ]*/StructureDefinition/[^:]*:.*birthDate" (lambda () (intake no-birth)))
