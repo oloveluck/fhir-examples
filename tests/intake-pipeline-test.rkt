@@ -13,5 +13,5 @@
 (check-equal? old? "true")
 ;; without a birth date the Patient breaks IntakePatient, and the error names the map's birthDate rule
 (define no-birth (hash-set qr 'item (filter (lambda (i) (not (equal? (hash-ref i 'linkId) "birthDate"))) (hash-ref qr 'item))))
-(check-exn #rx"the map's Patient is invalid:\n  [^\n]*qr2patient[.]map:[0-9]+:[0-9]+: fml validate error: Patient[.]birthDate: minimum required = 1"
+(check-exn #rx"the map's Patient is invalid:\n  [^\n]*qr2patient[.]map:[0-9]+:[0-9]+: fml validate error: Patient[.]birthDate: minimum required = 1, but found 0 [(]the rule here wrote nothing: its source matched nothing in the input[)]"
            (lambda () (intake no-birth)))
