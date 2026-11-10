@@ -7,6 +7,9 @@
 ;;; an unknown function in the library, fail `raco make` at their lines) and registers what it defines
 ;;; by canonical, so validation finds the profile with no setup.
 ;;;   racket main.rkt qr.json [--now 2026-01-01]
+;;; FHIR versions: the map and the validation read R5, the CQL library FHIR 4.0.1 (`using FHIR version
+;;; '4.0.1'`). A Patient's name, gender and birthDate are the same in both; an element R5 renamed or
+;;; added would be read leniently by the CQL side (the fhir-authoring skill's version table).
 
 (require json
          (only-in fhir/serialize/fhir-json write-fhir-json)        ; resourceType first, indented
