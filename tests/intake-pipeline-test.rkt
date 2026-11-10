@@ -25,3 +25,15 @@
 (define bad (errors-of (check-fsh-project (build-path dir "fsh-invalid") #:context (list (build-path dir "fsh")))))
 (check-equal? (length bad) 1)
 (check-regexp-match #rx"intake-bad: Patient.birthDate: minimum required = 1" (diagnostic-message (car bad)))
+
+;; the fhir-authoring skill shows main.rkt whole: the same forms as the file (a rerun's agent copied the
+;; skill's partial snippet and had to guess how to read the file and print the answer)
+(require racket/file racket/port)
+(define skill (let ([fhir (collection-file-path "main.rkt" "fhir")])
+                (let-values ([(d n _) (split-path fhir)]) (simplify-path (build-path d 'up ".claude" "skills" "fhir-authoring" "SKILL.md")))))
+(define (forms text) (with-input-from-string (regexp-replace #rx"^#lang [^\n]*\n" text "") (lambda () (port->list read))))
+(when (file-exists? skill)
+  (define block (for/first ([m (in-list (regexp-match* #px"```racket\n(.*?)```" (file->string skill) #:match-select cadr))]
+                            #:when (regexp-match? #rx"\"qr2patient.map\"" m))
+                  m))
+  (check-equal? (forms block) (forms (file->string (build-path dir "main.rkt")))))
