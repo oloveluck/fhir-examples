@@ -14,8 +14,3 @@ InstanceOf: IntakePatient
 * name.given = "Ana"
 * gender = #female
 * birthDate = "1950-05-01"
-
-Instance: intake-bad
-InstanceOf: IntakePatient
-* name.family = "Nobody"
-* gender = #male

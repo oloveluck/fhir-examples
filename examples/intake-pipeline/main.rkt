@@ -12,7 +12,7 @@
          fhir/operation
          (only-in fhir/conformance/operations)               ; loading it registers $validate
          (only-in cql/value render)
-         (only-in "intake.fsh" canonical-of)                  ; the profile's url, by name
+         (only-in "fsh/intake.fsh" canonical-of)                  ; the profile's url, by name
          (only-in "qr2patient.map" transform)                 ; QuestionnaireResponse JSON -> Patient JSON
          (only-in "Intake.cql" evaluate))                     ; the library over one patient's resources
 

@@ -3,7 +3,9 @@
 ;;; intake-pipeline-test.rkt — the fhir-authoring skill's multi-language example runs as it says:
 ;;; a QuestionnaireResponse mapped by FML, validated against an FSH profile, judged by CQL.
 
-(require rackunit racket/runtime-path json)
+(require rackunit racket/runtime-path json
+         (only-in fsh/check check-fsh-project check-report-diagnostics)
+         (only-in fhir/diagnostic diagnostic-message diagnostic-severity))
 (define-runtime-path dir "../examples/intake-pipeline")
 (define intake (dynamic-require (build-path dir "main.rkt") 'intake))
 (define qr (call-with-input-file (build-path dir "qr.json") read-json))
@@ -13,5 +15,13 @@
 (check-equal? old? "true")
 ;; without a birth date the Patient breaks IntakePatient, and the error names the map's birthDate rule
 (define no-birth (hash-set qr 'item (filter (lambda (i) (not (equal? (hash-ref i 'linkId) "birthDate"))) (hash-ref qr 'item))))
-(check-exn #rx"the map's Patient is invalid:\n  [^\n]*qr2patient[.]map:[0-9]+:[0-9]+: fml validate error: Patient[.]birthDate: minimum required = 1, but found 0 [(]the rule here wrote nothing: its source matched nothing in the input[)]"
+(check-exn #rx"the map's Patient is invalid against IntakePatient [(][^)]*[)] [(]FHIR R5 [(]5.0.0[)][)]:\n  [^\n]*qr2patient[.]map:[0-9]+:[0-9]+: fml validate error: Patient[.]birthDate: minimum required = 1, but found 0 [(]the rule here wrote nothing: its source matched nothing in the input[)]"
            (lambda () (intake no-birth)))
+
+;; the layout the docs recommend, as a template: the project checks clean, and the example meant to
+;; fail is reported, apart (`raco fsh check fsh-invalid --context fsh`)
+(define (errors-of r) (filter (lambda (d) (eq? (diagnostic-severity d) 'error)) (check-report-diagnostics r)))
+(check-equal? (errors-of (check-fsh-project (build-path dir "fsh"))) '())
+(define bad (errors-of (check-fsh-project (build-path dir "fsh-invalid") #:context (list (build-path dir "fsh")))))
+(check-equal? (length bad) 1)
+(check-regexp-match #rx"intake-bad: Patient.birthDate: minimum required = 1" (diagnostic-message (car bad)))
