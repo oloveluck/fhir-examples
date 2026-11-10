@@ -5,12 +5,16 @@
 ;;; its line, the map's result holds to the profile, and main.rkt answers on either side of the
 ;;; 65th birthday. Each step is the command fhir-authoring runs by hand, here as a check.
 
-(require rackunit racket/runtime-path json
+(require rackunit racket/runtime-path json racket/file racket/string
          (only-in fsh/check check-fsh-project check-report-diagnostics)
          (only-in fhir/diagnostic diagnostic-message diagnostic-severity diagnostic-loc loc-line))
 
 (define-runtime-path here ".")
 (define (at . parts) (apply build-path here parts))
+;; line-of : file text -> line   where a line starts with the text (so the check holds when the file's
+;; header comments change: a copied tests.rkt failed on a hard-coded line number)
+(define (line-of file text)
+  (for/first ([l (in-list (file->lines file))] [i (in-naturals 1)] #:when (string-prefix? l text)) i))
 (define (errors-of report) (filter (lambda (d) (eq? (diagnostic-severity d) 'error)) (check-report-diagnostics report)))
 
 ;; raco fsh check fsh: the profile and its valid example, no error
@@ -20,7 +24,7 @@
 (define bad (errors-of (check-fsh-project (at "fsh-invalid") #:context (list (at "fsh")))))
 (check-equal? (length bad) 1)
 (check-regexp-match #rx"intake-bad: Patient[.]birthDate: minimum required = 1" (diagnostic-message (car bad)))
-(check-equal? (loc-line (diagnostic-loc (car bad))) 3)
+(check-equal? (loc-line (diagnostic-loc (car bad))) (line-of (at "fsh-invalid" "bad.fsh") "Instance: intake-bad"))
 
 ;; main.rkt: the map, validated against IntakePatient, then CQL — on either side of the birthday
 (define intake (dynamic-require (at "main.rkt") 'intake))
