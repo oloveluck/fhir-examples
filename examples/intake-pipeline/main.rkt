@@ -6,7 +6,7 @@
 ;;; Each language file is a module: requiring it compiles and checks it (a misspelt element in the map,
 ;;; an unknown function in the library, fail `raco make` at their lines) and registers what it defines
 ;;; by canonical, so validation finds the profile with no setup.
-;;;   racket main.rkt qr.json
+;;;   racket main.rkt qr.json [--now 2026-01-01]
 
 (require json
          (only-in fhir/serialize/fhir-json write-fhir-json)        ; resourceType first, indented
@@ -26,7 +26,9 @@
 
 (module+ main
   (require racket/cmdline)
-  (define file (command-line #:args (questionnaire-response.json) questionnaire-response.json))
-  (define-values (patient old?) (intake (call-with-input-file file read-json)))
+  (define now (make-parameter #f))                              ; --now 2026-01-01 fixes "today"
+  (define file (command-line #:once-each [("--now") date "the day the answer is for" (now date)]
+                             #:args (questionnaire-response.json) questionnaire-response.json))
+  (define-values (patient old?) (intake (call-with-input-file file read-json) #:now (now)))
   (write-fhir-json patient #:indent 2) (newline)
   (printf "65 or older: ~a\n" old?))
