@@ -8,9 +8,10 @@
 (define intake (dynamic-require (build-path dir "main.rkt") 'intake))
 (define qr (call-with-input-file (build-path dir "qr.json") read-json))
 
-(define-values (patient old?) (intake qr))
+(define-values (patient old?) (intake qr #:now "2026-01-01"))
 (check-equal? (hash-ref patient 'birthDate) "1950-05-01")
 (check-equal? old? "true")
-;; without a birth date the Patient breaks IntakePatient, and the error says so
+;; without a birth date the Patient breaks IntakePatient, and the error names the map's birthDate rule
 (define no-birth (hash-set qr 'item (filter (lambda (i) (not (equal? (hash-ref i 'linkId) "birthDate"))) (hash-ref qr 'item))))
-(check-exn #rx"invalid Patient against [^ ]*/StructureDefinition/[^:]*:.*birthDate" (lambda () (intake no-birth)))
+(check-exn #rx"the map's Patient is invalid:\n  [^\n]*qr2patient[.]map:[0-9]+:[0-9]+: fml validate error: Patient[.]birthDate: minimum required = 1"
+           (lambda () (intake no-birth)))

@@ -10,7 +10,7 @@
 
 (require racket/list json
          fhir/operation
-         (only-in fhir/conformance/operations ensure-valid)  ; loading it registers $validate
+         (only-in fhir/conformance/operations)               ; loading it registers $validate
          (only-in cql/value render)
          (only-in "intake.fsh" canonical-of)                  ; the profile's url, by name
          (only-in "qr2patient.map" transform)                 ; QuestionnaireResponse JSON -> Patient JSON
@@ -18,11 +18,12 @@
 
 (provide intake)
 
-;; intake : QuestionnaireResponse -> (values Patient answer)   or exn:fail:operation listing every
-;; way the Patient breaks IntakePatient
-(define (intake qr)
-  (define patient (ensure-valid (transform qr) #:profile (canonical-of "IntakePatient")))
-  (values patient (render (hash-ref (evaluate (list patient)) "Is 65 Or Older"))))
+;; intake : QuestionnaireResponse [#:now date] -> (values Patient answer)   or exn:fail:user listing
+;; every way the Patient breaks IntakePatient, each at the map's rule that wrote (or should have
+;; written) the element; `#:now` fixes CQL's Today() (the answer depends on the day otherwise)
+(define (intake qr #:now [now #f])
+  (define patient (transform qr #:validate (canonical-of "IntakePatient")))
+  (values patient (render (evaluate (list patient) #:define "Is 65 Or Older" #:now now))))
 
 (module+ main
   (require racket/cmdline)
