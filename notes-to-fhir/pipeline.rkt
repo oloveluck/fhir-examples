@@ -242,7 +242,7 @@
                                                (if (equal? (hash-ref (hash-ref e 'resource) 'id) "htn")
                                                    (hasheq 'resource (hash-set (hash-ref e 'resource) 'code (cc "http://snomed.info/sct" "59621000" "Essential hypertension")))
                                                    e)))))
-  (check-true (for/or ([i (in-list (check-bundle invented))]) (regexp-match? #rx"Condition/htn: Condition.code: code not in required value set" i)))
+  (check-true (for/or ([i (in-list (check-bundle invented))]) (regexp-match? #rx"Condition/htn: Condition.code: code `[^`]+`(, `[^`]+`)* not in required value set" i)))
   ;; a Patient without its required fields; the others' subject is no longer the Bundle's Patient
   (check-true (for/or ([i (in-list (check-bundle (hash-update ok 'entry (lambda (es) (cons (hasheq 'resource (hasheq 'resourceType "Patient" 'id "x" 'meta (prof "note-patient"))) (cdr es))))))])
                 (regexp-match? #rx"Patient.birthDate: minimum required" i))))
