@@ -9,6 +9,7 @@
 ;;;   racket main.rkt qr.json
 
 (require json
+         (only-in fhir/serialize/fhir-json write-fhir-json)        ; resourceType first, indented
          (only-in cql/value render)
          (only-in "fsh/intake.fsh" canonical-of)                  ; the profile's url, by name
          (only-in "qr2patient.map" transform)                 ; QuestionnaireResponse JSON -> Patient JSON
@@ -27,5 +28,5 @@
   (require racket/cmdline)
   (define file (command-line #:args (questionnaire-response.json) questionnaire-response.json))
   (define-values (patient old?) (intake (call-with-input-file file read-json)))
-  (write-json patient) (newline)
+  (write-fhir-json patient #:indent 2) (newline)
   (printf "65 or older: ~a\n" old?))
