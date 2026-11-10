@@ -8,9 +8,7 @@
 ;;; by canonical, so validation finds the profile with no setup.
 ;;;   racket main.rkt qr.json
 
-(require racket/list json
-         fhir/operation
-         (only-in fhir/conformance/operations)               ; loading it registers $validate
+(require json
          (only-in cql/value render)
          (only-in "fsh/intake.fsh" canonical-of)                  ; the profile's url, by name
          (only-in "qr2patient.map" transform)                 ; QuestionnaireResponse JSON -> Patient JSON
