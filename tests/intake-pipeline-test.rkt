@@ -37,3 +37,18 @@
                             #:when (regexp-match? #rx"\"qr2patient.map\"" m))
                   m))
   (check-equal? (forms block) (forms (file->string (build-path dir "main.rkt")))))
+
+;; `raco fhir new pipeline <dir>` copies the template (without its compiled/ folders); a second time it
+;; refuses (the copy command the docs gave was a `racket -e` inside `cp`)
+(let ()
+  (local-require racket/file racket/system compiler/find-exe racket/port)
+  (define tmp (make-temporary-directory "new-pipeline-~a"))
+  (define to (build-path tmp "p"))
+  (define (raco-new) (parameterize ([current-output-port (open-output-nowhere)] [current-error-port (open-output-nowhere)])
+                       (system*/exit-code (find-exe) "-l-" "raco" "fhir" "new" "pipeline" (path->string to))))
+  (check-equal? (raco-new) 0)
+  (for ([f '("main.rkt" "qr2patient.map" "Intake.cql" "qr.json" "tests.rkt" "fsh/intake.fsh")])
+    (check-true (file-exists? (build-path to f)) f))
+  (check-false (directory-exists? (build-path to "compiled")))
+  (check-equal? (raco-new) 2)
+  (delete-directory/files tmp))
