@@ -13,6 +13,7 @@
 
 (require json
          (only-in fhir/serialize/fhir-json write-fhir-json)        ; resourceType first, indented
+         (only-in fhir/operation exn:fail:operation?)        ; the error an invalid result raises
          (only-in cql/value render)
          (only-in "fsh/intake.fsh" canonical-of)                  ; the profile's url, by name
          (only-in "qr2patient.map" transform)                 ; QuestionnaireResponse JSON -> Patient JSON
@@ -32,6 +33,8 @@
   (define now (make-parameter #f))                              ; --now 2026-01-01 fixes "today"
   (define file (command-line #:once-each [("--now") date "the day the answer is for" (now date)]
                              #:args (questionnaire-response.json) questionnaire-response.json))
-  (define-values (patient old?) (intake (call-with-input-file file read-json) #:now (now)))
-  (write-fhir-json patient #:indent 2) (newline)
-  (printf "65 or older: ~a\n" old?))
+  ;; an invalid Patient (the map's rule named) is a message and exit 1, not a stack trace
+  (with-handlers ([exn:fail:operation? (lambda (e) (eprintf "~a\n" (exn-message e)) (exit 1))])
+    (define-values (patient old?) (intake (call-with-input-file file read-json) #:now (now)))
+    (write-fhir-json patient #:indent 2) (newline)
+    (printf "65 or older: ~a\n" old?)))
