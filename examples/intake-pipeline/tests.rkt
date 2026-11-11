@@ -17,21 +17,41 @@
 
 (define-runtime-path here ".")
 (define (at . parts) (apply build-path here parts))
-;; each name above must be there: one line saying which and how to set it (a project with other folder
-;; names failed with a raw `directory-list: could not open directory`)
-(for ([name (list profiles-folder invalid-folder input-file main-file)]
-      [dir? (list #t #t #f #f)])
-  (unless (if dir? (directory-exists? (at name)) (file-exists? (at name)))
-    (raise-user-error 'tests.rkt "no ~a ~a beside tests.rkt: set the name at the top of tests.rkt to your layout"
-                      (if dir? "folder" "file") name)))
+;; a name that is not there is looked for: the one folder whose .fsh files declare a Profile, the one
+;; other folder whose .fsh files hold Instances, the one .json beside naming a QuestionnaireResponse
+;; (each said in one line); else one line saying which name to set (a project with other folder names
+;; failed with a raw `directory-list: could not open directory`, and agents edited it with sed)
+(define (fsh-texts d) (for/list ([f (in-directory d)] #:when (regexp-match? #rx"[.]fsh$" (path->string f))) (file->string f)))
+(define (subfolders) (for/list ([d (in-list (directory-list here))] #:when (directory-exists? (at d))
+                                #:unless (member (path->string d) '("compiled"))) (path->string d)))
+(define (declares? d rx) (for/or ([t (in-list (fsh-texts (at d)))]) (regexp-match? rx t)))
+(define (candidates kind)
+  (case kind
+    [(profiles) (filter (lambda (d) (declares? d #px"(?m:^Profile:)")) (subfolders))]
+    [(invalid) (filter (lambda (d) (and (declares? d #px"(?m:^Instance:)") (not (declares? d #px"(?m:^Profile:)")))) (subfolders))]
+    [(input) (for/list ([f (in-list (directory-list here))] #:when (regexp-match? #rx"[.]json$" (path->string f))
+                        #:when (regexp-match? #rx"QuestionnaireResponse" (file->string (at f))))
+               (path->string f))]
+    [else '()]))
+(define (resolved name kind dir?)
+  (cond
+    [(if dir? (directory-exists? (at name)) (file-exists? (at name))) name]
+    [(let ([c (candidates kind)]) (and (= 1 (length c)) (car c)))
+     => (lambda (found) (eprintf "tests.rkt: no ~a ~a, using ~a\n" (if dir? "folder" "file") name found) found)]
+    [else (raise-user-error 'tests.rkt "no ~a ~a beside tests.rkt: set the name at the top of tests.rkt to your layout"
+                            (if dir? "folder" "file") name)]))
+(define profiles (resolved profiles-folder 'profiles #t))
+(define invalid (resolved invalid-folder 'invalid #t))
+(define input (resolved input-file 'input #f))
+(define main-module (resolved main-file 'main #f))
 (define (errors-of report) (filter (lambda (d) (eq? (diagnostic-severity d) 'error)) (check-report-diagnostics report)))
 
 ;; raco fsh check fsh: the profile and its valid example, no error
-(check-equal? (map diagnostic-message (errors-of (check-fsh-project (at profiles-folder)))) '())
+(check-equal? (map diagnostic-message (errors-of (check-fsh-project (at profiles)))) '())
 
 ;; raco fsh check fsh-invalid --context fsh: the example meant to fail fails, at an instance of that
 ;; folder (read from the files, so a project of your own needs no edit here)
-(define invalid-files (for/list ([f (in-list (directory-list (at invalid-folder) #:build? #t))]
+(define invalid-files (for/list ([f (in-list (directory-list (at invalid) #:build? #t))]
                                  #:when (regexp-match? #rx"[.]fsh$" (path->string f)))
                         f))
 (define invalid-instances          ; (name . line) of each Instance in fsh-invalid/
@@ -39,9 +59,9 @@
               [l+i (in-list (for/list ([l (in-list (file->lines f))] [i (in-naturals 1)]) (cons l i)))]
               #:when (regexp-match? #rx"^Instance:" (car l+i)))
     (cons (string-trim (substring (car l+i) 9)) (cdr l+i))))
-(define bad (errors-of (check-fsh-project (at invalid-folder) #:context (list (at profiles-folder)))))
-(check-true (pair? bad) (format "an example in ~a/ should break the profile" invalid-folder))
-(check-true (pair? invalid-instances) (format "~a/ should hold an Instance" invalid-folder))
+(define bad (errors-of (check-fsh-project (at invalid) #:context (list (at profiles)))))
+(check-true (pair? bad) (format "an example in ~a/ should break the profile" invalid))
+(check-true (pair? invalid-instances) (format "~a/ should hold an Instance" invalid))
 (check-not-false (for/or ([inst (in-list invalid-instances)])
                    (regexp-match? (regexp (string-append (regexp-quote (car inst)) ": ")) (diagnostic-message (car bad))))
                  (diagnostic-message (car bad)))
@@ -49,12 +69,12 @@
 
 ;; main.rkt: the map, validated against IntakePatient, then CQL — on either side of the 65th
 ;; birthday, the birth date read from qr.json (the answer written as a date, whatever its linkId)
-(define intake (dynamic-require (at main-file) 'intake (lambda () #f)))
+(define intake (dynamic-require (at main-module) 'intake (lambda () #f)))
 ;; the shape this file drives, said when main.rkt lacks it (a renamed function failed as a raw
 ;; `dynamic-require: name is not provided`)
 (unless intake
   (raise-user-error 'tests.rkt "main.rkt must provide `intake`: (provide intake) and (define (intake qr #:now [now #f]) …) answering (values patient answer-text) — the Patient as FHIR JSON and the answer as text"))
-(define qr (call-with-input-file (at input-file) read-json))
+(define qr (call-with-input-file (at input) read-json))
 (define (date-answer? i) (for/or ([a (in-list (hash-ref i 'answer '()))]) (hash-has-key? a 'valueDate)))
 (define birth-item (findf date-answer? (hash-ref qr 'item)))
 (define born (hash-ref (car (hash-ref birth-item 'answer)) 'valueDate))
