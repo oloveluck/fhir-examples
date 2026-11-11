@@ -36,7 +36,11 @@
 
 ;; main.rkt: the map, validated against IntakePatient, then CQL — on either side of the 65th
 ;; birthday, the birth date read from qr.json (the answer written as a date, whatever its linkId)
-(define intake (dynamic-require (at "main.rkt") 'intake))
+(define intake (dynamic-require (at "main.rkt") 'intake (lambda () #f)))
+;; the shape this file drives, said when main.rkt lacks it (a renamed function failed as a raw
+;; `dynamic-require: name is not provided`)
+(unless intake
+  (raise-user-error 'tests.rkt "main.rkt must provide `intake`: (provide intake) and (define (intake qr #:now [now #f]) …) answering (values patient answer-text) — the Patient as FHIR JSON and the answer as text"))
 (define qr (call-with-input-file (at "qr.json") read-json))
 (define (date-answer? i) (for/or ([a (in-list (hash-ref i 'answer '()))]) (hash-has-key? a 'valueDate)))
 (define birth-item (findf date-answer? (hash-ref qr 'item)))

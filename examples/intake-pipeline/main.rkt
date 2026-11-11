@@ -31,8 +31,17 @@
 (module+ main
   (require racket/cmdline)
   (define now (make-parameter #f))                              ; --now 2026-01-01 fixes "today"
-  (define file (command-line #:once-each [("--now") date "the day the answer is for" (now date)]
+  ;; options before or after the file: `qr.json --now 2015-04-30` reads as `--now 2015-04-30 qr.json`
+  (define argv (vector->list (current-command-line-arguments)))
+  (define-values (opts rest)
+    (let loop ([as argv] [opts '()] [rest '()])
+      (cond [(null? as) (values (reverse opts) (reverse rest))]
+            [(and (equal? (car as) "--now") (pair? (cdr as))) (loop (cddr as) (list* (cadr as) (car as) opts) rest)]
+            [else (loop (cdr as) opts (cons (car as) rest))])))
+  (define file (command-line #:argv (append opts rest)
+                             #:once-each [("--now") date "the day the answer is for" (now date)]
                              #:args (questionnaire-response.json) questionnaire-response.json))
+  (unless (file-exists? file) (eprintf "main.rkt: no file ~a\n" file) (exit 2))
   ;; an invalid Patient (the map's rule named) is a message and exit 1, not a stack trace
   (with-handlers ([exn:fail:operation? (lambda (e) (eprintf "~a\n" (exn-message e)) (exit 1))])
     (define-values (patient old?) (intake (call-with-input-file file read-json) #:now (now)))
