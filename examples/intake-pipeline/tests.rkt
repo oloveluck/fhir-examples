@@ -68,4 +68,4 @@
 
 ;; a response with no birth date breaks the profile, and says so at the map's rule
 (define no-birth (hash-set qr 'item (remq birth-item (hash-ref qr 'item))))
-(check-exn #rx"[.]map:[0-9]+:[0-9]+: .*Patient[.]birthDate: minimum required = 1" (lambda () (intake no-birth)))
+(check-exn #rx"[.](map|fml):[0-9]+:[0-9]+: .*Patient[.]birthDate: minimum required = 1" (lambda () (intake no-birth)))
