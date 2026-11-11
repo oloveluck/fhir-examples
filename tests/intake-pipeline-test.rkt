@@ -92,3 +92,17 @@
   (check-regexp-match #rx"qr2patient[.]map:[0-9]+:[0-9]+: .*`gendr` is not an element of Patient" err)
   (check-regexp-match #rx"3 files checked, 3 with a problem" out)
   (delete-directory/files d))
+
+;; tests.rkt beside a project with other folder names: one line naming the folder and what to set (it
+;; was `directory-list: could not open directory`)
+(let ()
+  (local-require racket/file racket/port racket/system compiler/find-exe)
+  (define d (make-temporary-directory "tests-rkt-~a"))
+  (copy-file (build-path dir "tests.rkt") (build-path d "tests.rkt"))
+  (make-directory (build-path d "profiles"))
+  (define err (open-output-string))
+  (define code (parameterize ([current-output-port (open-output-nowhere)] [current-error-port err] [current-directory d])
+                 (system*/exit-code (find-exe) "-l-" "raco" "test" "tests.rkt")))
+  (check-not-equal? code 0)
+  (check-regexp-match #rx"tests[.]rkt: no folder fsh beside tests[.]rkt: set the name at the top of tests[.]rkt to your layout" (get-output-string err))
+  (delete-directory/files d))
