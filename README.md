@@ -1,5 +1,8 @@
 # fhir-examples
 
+> Examples for [fhir](https://github.com/oloveluck/fhir), a FHIR implementation designed to be used by
+> AI agents.
+
 Worked examples for the [fhir](https://github.com/oloveluck/fhir) family of FHIR languages and
 tools, from a short program that applies FHIR operations like functions to one written in seven of
 FHIR's languages. Also a benchmark: a language model is asked to write a FHIR profile from the prose
