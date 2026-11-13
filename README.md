@@ -1,29 +1,44 @@
 # fhir-examples
 
-Worked examples for the [fhir](https://github.com/oloveluck/fhir) family of FHIR languages and tools,
-and a benchmark for writing FHIR profiles from prose with a model. The examples are programs written
-in the family's `#lang`s; to use the languages from the command line instead, see
-[the command-line tools](https://github.com/oloveluck/fhir#command-line-tools).
+Worked examples for the [fhir](https://github.com/oloveluck/fhir) family of FHIR languages and
+tools, from a short program that applies FHIR operations like functions to one written in seven of
+FHIR's languages. Also a benchmark: a language model is asked to write a FHIR profile from the prose
+that describes it, and the answer is scored against the profile HL7 published.
 
-| Directory | What | Run |
+```
+$ racket screening/main.rkt
+intake: 2 forms mapped and valid against http://example.org/StructureDefinition/screening-blood-pressure
+panel codes (from bp-panels.vcl): 85354-9, 55284-4
+
+patient  date        systolic  diastolic  hypertensive
+ann      2026-09-14  152       96        yes
+ann      2026-10-02  148       92        yes
+bo       2026-10-03  124       79        no
+```
+
+| What | Shows | Run |
 |---|---|---|
-| [`screening/`](screening/) | one program in seven languages (FSH, FHIR R6, FML, VCL, CQL, SQL on FHIR, a capability app), the seams between them checked | `racket screening/main.rkt` |
-| [`examples/pipeline.rkt`](examples/pipeline.rkt) | FHIR operations applied as procedures (`$transform`, `$validate`, `$validate-code`), no server | `racket examples/pipeline.rkt` |
-| [`examples/intake-maps/`](examples/intake-maps/) | a logical model, a profile and the map between them as one project | `raco fsh check examples/intake-maps` |
-| [`notes-to-fhir/`](notes-to-fhir/) | clinic notes turned into FHIR by a model, held to an FSH IG by `$validate` | `racket notes-to-fhir/main.rkt --replay notes-to-fhir/results/2026-11-03T2336-brief` |
-| [`ig-servers/`](ig-servers/) | servers generated from six published IGs, checked against nothing but the IGs | `racket ig-servers/main.rkt` |
-| `bench.rkt` | the spec-driven benchmark: prose to FSH, scored against the published IG | `raco spec-bench` |
-
-Each directory's README has its results. [TESTING.md](TESTING.md) covers the tests and the
-benchmark's method and results.
+| [`examples/pipeline.rkt`](examples/pipeline.rkt) | FHIR operations applied like functions, no server | `racket examples/pipeline.rkt` |
+| [`examples/intake-pipeline/`](examples/intake-pipeline/) | one form through a map, a profile and a rule | `racket examples/intake-pipeline/main.rkt examples/intake-pipeline/qr.json` |
+| [`examples/intake-maps/`](examples/intake-maps/) | two structures and the map between them, checked as one project | `raco fsh check examples/intake-maps` |
+| [`screening/`](screening/) | one program in seven languages | `racket screening/main.rkt` |
+| [`notes-to-fhir/`](notes-to-fhir/) | clinic notes turned into FHIR by a model, held to a specification | `racket notes-to-fhir/main.rkt --replay notes-to-fhir/results/2026-11-03T2336-brief` |
+| [`ig-servers/`](ig-servers/) | servers generated from six published guides, checked against them (needs the network) | `racket ig-servers/main.rkt` |
+| `bench.rkt` | the benchmark: prose to a profile, scored | `raco spec-bench list ../fsh/tests/vendor/mcode-4.0.0` |
 
 ## Install
 
-From source, with the family's repositories side by side:
+The examples are Racket programs. Install the [fhir family](https://github.com/oloveluck/fhir#install)
+with Racket, clone this repository beside the others, add it with
+`raco pkg install --link --auto fhir-examples`, and run the commands above from this directory.
 
-```sh
-raco pkg install --link --auto fhir/fhir fhir/fhir-spec fhirpath vcl fhir/fhir-tx fhir/fhir-validation cql fml fsh fhir/fhir-server sql-on-fhir fhir-examples
-raco test fhir-examples
-```
+## Documentation
 
-License: MIT. The IGs used as tasks keep their own licenses (mCODE: CC0-1.0).
+**[oloveluck.github.io/fhir-examples](https://oloveluck.github.io/fhir-examples/)** walks through
+the examples, smallest first, and explains the benchmark and its four scores.
+
+- The tests and the benchmark's recorded results: [TESTING.md](TESTING.md); each directory's README
+  has its own results. How it is built: [CLAUDE.md](CLAUDE.md).
+
+Part of the [fhir](https://github.com/oloveluck/fhir) family. License: MIT. The guides used as
+benchmark tasks keep their own licenses (mCODE: CC0-1.0).
