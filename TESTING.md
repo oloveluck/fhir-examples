@@ -47,6 +47,20 @@ the IG's own FSH through this compiler.
 | CancerDiseaseStatus | 2 | 16/20 (14/20) | 0/3 | 0/1 |
 | ECOGPerformanceStatus | 1 | 6/8 (5/8) | 2/2 | 1/1 |
 
+These are the scores of 2026-11-03, with the compiler as it was that day. Two things have moved
+since, so a recorded answer scored again today does not give the same numbers:
+
+- **The baseline rose.** The IG's own FSH through this compiler now agrees on every facet: 34/34,
+  20/20 and 8/8 (`raco spec-bench score task/ --oracle`), where the table's parentheses say 28/34,
+  14/20 and 5/8.
+- **The compiler writes what SUSHI writes.** A differential now states only what differs from the
+  profile's own Parent. The recorded CancerDiseaseStatus answer chose another Parent than the
+  published profile (`USCoreObservationSimple`, which already marks `status`, `code`, `subject` and
+  `value[x]` must-support), so its `MS` rules no longer appear in its differential and it agrees on
+  10/20 facets instead of 16/20. Fidelity compares differentials, so it rewards the published
+  Parent as well as the published constraints. TumorSize is still 30/34 and ECOG 7/8 (was 6/8);
+  each now also counts one `check` error, a duplicate example id the checker has reported since.
+
 Every rejected example comes down to the code the published profile fixes (TumorSize: LOINC 21889-1,
 where the answer chose SNOMED 246116008), which the prompt does not state. CancerDiseaseStatus's first
 answer had one `check` error; the second round fixed it from the diagnostic.
