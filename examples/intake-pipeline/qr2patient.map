@@ -1,16 +1,18 @@
 #lang fml
-map "http://example.org/StructureMap/qr2patient" = "QR2Patient"
+/// url = 'http://example.org/StructureMap/qr2patient'
+/// name = 'QR2Patient'
+
 uses "http://hl7.org/fhir/StructureDefinition/QuestionnaireResponse" as source
 uses "http://hl7.org/fhir/StructureDefinition/Patient" as target
 
 group main(source src : QuestionnaireResponse, target tgt : Patient) {
-  src.item as item where linkId = 'name' then {
+  src.item as item where (linkId = 'name') then {
     item.answer as a -> tgt.name as n then {
       a.value as v -> n.text = v "name-text";
     } "name";
   } "name-item";
-  src.item as item where linkId = 'gender' -> tgt.gender = (item.answer.value.code) "gender";
-  src.item as item where linkId = 'birthDate' then {
+  src.item as item where (linkId = 'gender') -> tgt.gender = (item.answer.value.code) "gender";
+  src.item as item where (linkId = 'birthDate') then {
     item.answer as a -> tgt.birthDate = (a.value) "birthDate";
   } "birthDate-item";
 }

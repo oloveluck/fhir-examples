@@ -15,7 +15,7 @@
 (check-equal? old? "true")
 ;; without a birth date the Patient breaks IntakePatient, and the error names the map's birthDate rule
 (define no-birth (hash-set qr 'item (filter (lambda (i) (not (equal? (hash-ref i 'linkId) "birthDate"))) (hash-ref qr 'item))))
-(check-exn #rx"the map's Patient is invalid against IntakePatient [(][^)]*[)] [(]FHIR R5 [(]5.0.0[)][)]:\n  [^\n]*qr2patient[.]map:[0-9]+:[0-9]+: fml validate error: Patient[.]birthDate: minimum required = 1, but found 0 [(]the rule here wrote nothing: its source matched 2 items, but `where linkId = 'birthDate'` held for none [(]the linkId there: name, gender[)][)]"
+(check-exn #rx"the map's Patient is invalid against IntakePatient [(][^)]*[)] [(]FHIR R5 [(]5.0.0[)][)]:\n  [^\n]*qr2patient[.]map:[0-9]+:[0-9]+: fml validate error: Patient[.]birthDate: minimum required = 1, but found 0 [(]the rule here wrote nothing: its source matched 2 items, but `where [(]linkId = 'birthDate'[)]` held for none [(]the linkId there: name, gender[)][)]"
            (lambda () (intake no-birth)))
 
 ;; the layout the docs recommend, as a template: the project checks clean, and the example meant to

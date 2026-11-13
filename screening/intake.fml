@@ -3,7 +3,9 @@
 // screening blood pressure. The target structure is the PROFILE profile.fsh defines, named by its
 // canonical: the map is checked against it (main.rkt), and its results validated under it.
 
-map "http://example.org/StructureMap/bp-intake" = "BpIntake"
+/// url = 'http://example.org/StructureMap/bp-intake'
+/// name = 'BpIntake'
+
 
 uses "http://hl7.org/fhir/StructureDefinition/QuestionnaireResponse" alias QuestionnaireResponse as source
 uses "http://example.org/StructureDefinition/screening-blood-pressure" alias ScreeningBP as target
@@ -14,8 +16,8 @@ group BpIntake(source src : QuestionnaireResponse, target tgt : ScreeningBP) {
   src -> tgt.code = cc('http://loinc.org', '85354-9', 'Blood pressure panel') "code";
   src.subject as s -> tgt.subject = s "subject";
   src.authored as a -> tgt.effective = a "when";
-  src.item as item where linkId = 'systolic' -> tgt.component as c, c.code = cc('http://loinc.org', '8480-6', 'Systolic blood pressure') then reading(item, c) "systolic";
-  src.item as item where linkId = 'diastolic' -> tgt.component as c, c.code = cc('http://loinc.org', '8462-4', 'Diastolic blood pressure') then reading(item, c) "diastolic";
+  src.item as item where (linkId = 'systolic') -> tgt.component as c, c.code = cc('http://loinc.org', '8480-6', 'Systolic blood pressure') then reading(item, c) "systolic";
+  src.item as item where (linkId = 'diastolic') -> tgt.component as c, c.code = cc('http://loinc.org', '8462-4', 'Diastolic blood pressure') then reading(item, c) "diastolic";
 }
 
 group reading(source item, target c) {
