@@ -8,6 +8,9 @@
 ;;;   rest-hapi       curl against the benchmark's own server (HAPI FHIR, from its Docker image)
 ;;;   rest-ours       curl against this family's fhir-server over the same data
 ;;;   workspace       the fhir-mcp workspace verbs (`raco fhir-mcp call …`) over the same data
+;;;   mcp             the same verbs as MCP tools (`raco fhir-mcp` as the agent's MCP server)
+;;; The agent arms share the built-in tools (Bash, Read, Write) and the closing instruction; the
+;;; workspace arms get the reading card (`raco fhir guide data`) and may write a POST as FSH.
 ;;;   official-hapi   the benchmark's own protocol (below) against HAPI
 ;;;   official-ours   … against our server
 ;;; In the agent arms a POST is recorded, not sent (`./mab post`), and the answers end the task
@@ -32,33 +35,42 @@
 
 How to act here:
 - {access}
-- A POST is recorded, not sent: write the JSON payload to a file (with the Write tool), then run `./mab post <url> <file>`, for example `./mab post {api_base}Observation payload.json`. Make only the POSTs the question calls for, before you finish.
-- When you have the answers and have done what was asked, run `./mab finish '<JSON list>'`, the equivalent of FINISH([answer1, answer2, ...]): the list must be JSON-loadable, and holds the answers themselves (values), not sentences. That ends the task.
+- A POST is recorded, not sent: write the payload to a file (with the Write tool), then run `./mab post <url> <file>`, for example `./mab post {api_base}Observation payload.json`.{fsh} Make only the POSTs the question calls for, before you finish.
+- When you have the answers and have done what was asked, run `./mab finish '<JSON list>'`, the equivalent of FINISH([answer1, answer2, ...]): the list must be JSON-loadable, and holds the answers themselves (values), not sentences. That ends the task: end with one short line, no summary.
 Use only the access described here; do not look for the benchmark's files or answers.
 EOF
   )
 
 (define (access kind base)
-  (if (eq? kind 'workspace)
-      (string-append "Read the EHR through the FHIR workspace in this directory with `raco fhir-mcp call …` "
-                     "(`raco fhir guide workspace` explains the verbs; e.g. "
-                     "raco fhir-mcp call query language=search text='Observation?patient=S1234567&code=MG'). "
-                     "There is no other access to the EHR.")
-      (format "Read the EHR with curl, for example: curl -s '~aPatient?identifier=S1234567'. Any FHIR search the server supports works; answers are JSON." base)))
+  (case kind
+    [(workspace)
+     (string-append "Read the EHR through the FHIR workspace in this directory, from the shell; there is no other access to the EHR. "
+                    "For example: raco fhir-mcp call query language=search text='Observation?patient=S1234567&code=MG'\n\n" (reading-card) "\n")]
+    [(mcp)
+     (string-append "Read the EHR through the FHIR workspace's tools (mcp__fhir__…); there is no other access to the EHR. "
+                    "The card below writes a call as the shell does: `describe ref=X as=fsh` is the describe tool with ref and as.\n\n" (reading-card) "\n")]
+    [else (format "Read the EHR with curl, for example: curl -s '~aPatient?identifier=S1234567'. Any FHIR search the server supports works; answers are JSON." base)]))
+
+;; fsh-note : kind -> string   the workspace arms may write a payload as FSH (the reading card's language)
+(define (fsh-note kind)
+  (if (memq kind '(workspace mcp))
+      " The payload may be one FSH Instance in a `.fsh` file instead (FHIR R4: `Instance: p` / `InstanceOf: Observation` / `* status = #final` / …): `./mab post` compiles it and records the JSON, or says where it is wrong."
+      ""))
 
 ;; the official prompt's opening (up to its three response formats) is not the agent's: an agent acts
 ;; through tools, so it gets the question, the functions and the context, then how to act here
 (define (agent-prompt kind base t)
   (define official (official-prompt base t))
-  (define tail (cadr (regexp-match #rx"(?s:Here is a list of functions.*)$" official)))
+  (define tail (car (regexp-match #rx"(?s:Here is a list of functions.*)$" official)))
   (string-append "You are an expert in using FHIR functions to assist medical professionals. You are given a question and a set of possible functions. Based on the question, you will need to make one or more function/tool calls to achieve the purpose.\n\n"
                  tail
-                 (string-replace (string-replace agent-template "{access}" (access kind base)) "{api_base}" base)))
+                 (string-replace (string-replace (string-replace agent-template "{access}" (access kind base)) "{fsh}" (fsh-note kind)) "{api_base}" base)))
 
 (define (tools kind)
-  (append (if (eq? kind 'workspace)
-              '("Bash(raco fhir-mcp:*)" "Bash(raco fhir guide:*)")
-              '("Bash(curl:*)"))
+  (append (case kind
+            [(workspace) '("Bash(raco fhir-mcp:*)" "Bash(raco fhir guide:*)")]
+            [(mcp) '("mcp__fhir" "Bash(raco fhir guide:*)")]
+            [else '("Bash(curl:*)")])
           '("Bash(./mab:*)" "Bash(python3:*)" "Bash(jq:*)" "Read" "Write")))
 
 (define (run-agent-task kind base model out t)
@@ -66,9 +78,10 @@ EOF
   (define (prepare)
     (copy-file mab-script (build-path work "mab"))
     (file-or-directory-permissions (build-path work "mab") #o755)
-    (when (eq? kind 'workspace)
+    (when (memq kind '(workspace mcp))
       (display-to-file (format "fhirVersion: 4.0.1\ndata: ~a\n" (env-path "MAB_STORE")) (build-path work "workspace.yaml"))))
-  (define rec (run-item (hash-ref t 'id) (agent-prompt kind base t) work model (tools kind) #:prepare prepare))
+  (define rec (run-item (hash-ref t 'id) (agent-prompt kind base t) work model (tools kind) #:prepare prepare
+                        #:builtin builtin-tools #:mcp (and (eq? kind 'mcp) (workspace-mcp work))))
   ;; the workspace's warm process ends with the task
   (void (system* (find-executable-path "pkill") "-f" (format "mcp-daemon.*~a" work)))
   (define bad (audit rec (list "refsol" "test_data" "funcs_v1" "medagentbench" (path->string out))))
@@ -143,12 +156,13 @@ EOF
   (define dir (path->complete-path out))
   (make-directory* dir)
   (define tasks (select-tasks (mab-tasks) ids per-kind))
-  (write-json-file (build-path dir "run.json") (hasheq 'arm arm 'model model 'base base 'tasks (length tasks)))
+  (write-json-file (build-path dir "run.json") (hasheq 'arm arm 'model model 'base base 'tasks (length tasks) 'harness 2))
   (define run-one
     (case arm
       [("rest-hapi" "rest-ours") (lambda (t) (run-agent-task 'rest base model dir t))]
       [("workspace") (lambda (t) (run-agent-task 'workspace base model dir t))]
+      [("mcp") (lambda (t) (run-agent-task 'mcp base model dir t))]
       [("official-hapi" "official-ours") (lambda (t) (run-official-task base model dir t))]
-      [else (raise-user-error 'run (format "unknown arm ~a: rest-hapi rest-ours workspace official-hapi official-ours" arm))]))
+      [else (raise-user-error 'run (format "unknown arm ~a: rest-hapi rest-ours workspace mcp official-hapi official-ours" arm))]))
   (define costs (in-parallel parallel tasks run-one))
   (printf "total $~a\n" (/ (round (* 100 (apply + (filter real? costs)))) 100.0)))

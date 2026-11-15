@@ -12,7 +12,7 @@
 ;;; for 90 minutes after the model exited), with its arguments passed directly — prompts are full of
 ;;; quotes — and its process group killed past the timeout.
 
-(require racket/contract racket/file racket/list racket/string racket/port json)
+(require racket/contract racket/file racket/list racket/string racket/port racket/system json)
 
 ;; A Record is a hasheq:
 ;;   id answer final_message status error seconds turns cost_usd input_tokens output_tokens
@@ -20,9 +20,13 @@
 (provide
  (contract-out
   ;; run-item : id prompt workdir model tools -> Record
+  ;; #:builtin: the built-in tools the agent has at all (`--tools`; #f = Claude Code's default set,
+  ;; whose definitions are most of every turn's context); #:mcp: an MCP configuration (JSON text),
+  ;; its servers the only ones the agent sees
   [run-item (->* (string? string? path-string? string? (listof string?))
                  (#:prepare (or/c #f (-> any)) #:timeout real? #:max-turns exact-positive-integer?
-                  #:env (listof (cons/c string? string?)))
+                  #:env (listof (cons/c string? string?))
+                  #:builtin (or/c #f (listof string?)) #:mcp (or/c #f string?))
                  hash?)]
   ;; claude-turn : dir text model [session] -> (values reply session cost)   one turn of a conversation
   ;; with no tools (the model only writes text), resumed when a session is given
@@ -34,7 +38,25 @@
   [in-parallel (-> exact-positive-integer? list? (-> any/c any/c) list?)]
   [read-json-file (-> path-string? any/c)]
   [read-answer (-> path? any/c)]
-  [write-json-file (-> path-string? any/c void?)]))
+  [write-json-file (-> path-string? any/c void?)]
+  ;; reading-card : -> string   the workspace's one page on reading a store (`raco fhir guide data`),
+  ;; as the product ships it: what the workspace arms are given where the rest arms get curl lines
+  [reading-card (-> string?)]
+  ;; workspace-mcp : dir -> string   an MCP configuration: the workspace in dir as the agent's server
+  [workspace-mcp (-> path-string? string?)]
+  ;; builtin-tools : every arm's built-in tools
+  [builtin-tools (listof string?)]))
+
+(define builtin-tools '("Bash" "Read" "Write"))
+(define card #f)
+(define (reading-card)
+  (unless card
+    (define text (string-trim (with-output-to-string (lambda () (system* (find-executable-path "raco") "fhir" "guide" "data")))))
+    (when (string=? text "") (error 'reading-card "raco fhir guide data printed nothing"))
+    (set! card text))
+  card)
+(define (workspace-mcp work)
+  (jsexpr->string (hasheq 'mcpServers (hasheq 'fhir (hasheq 'command "raco" 'args (list "fhir-mcp" "--workspace" (path->string (path->complete-path work))))))))
 
 (define disallowed '("Task" "Agent" "WebFetch" "WebSearch" "NotebookEdit"))
 ;; what the agent's environment must not carry over from this session
@@ -79,12 +101,13 @@
   (call-with-output-file f #:exists 'truncate (lambda (o) (write-json v o))))
 
 (define (run-item id prompt workdir model tools
-                  #:prepare [prepare #f] #:timeout [timeout 1200] #:max-turns [max-turns 60] #:env [env-extra '()])
+                  #:prepare [prepare #f] #:timeout [timeout 1200] #:max-turns [max-turns 60] #:env [env-extra '()]
+                  #:builtin [builtin #f] #:mcp [mcp #f])
   (define work (path->complete-path workdir))
   (when (directory-exists? work) (delete-directory/files work))
   (make-directory* work)
   (when prepare (prepare))
-  (define-values (status seconds out err) (run-claude work prompt model tools timeout max-turns env-extra))
+  (define-values (status seconds out err) (run-claude work prompt model tools timeout max-turns env-extra builtin mcp))
   (define meta (with-handlers ([exn:fail? (lambda (_) (hasheq))]) (string->jsexpr out)))
   (define answer (read-answer work))
   (define usage (if (hash? meta) (hash-ref meta 'usage (hasheq)) (hasheq)))
@@ -117,10 +140,12 @@
   (values (hash-ref meta 'result "") (hash-ref meta 'session_id) (let ([c (hash-ref meta 'total_cost_usd 0)]) (if (real? c) c 0))))
 
 ;; run-claude : dir prompt model tools timeout max-turns env -> (values status seconds stdout stderr)
-(define (run-claude work prompt model tools timeout max-turns env-extra)
+(define (run-claude work prompt model tools timeout max-turns env-extra [builtin #f] [mcp #f])
   (claude work prompt (append (list "-p" "--model" model "--output-format" "json"
-                                    "--max-turns" (number->string max-turns) "--allowedTools")
-                              tools (list "--disallowedTools") disallowed)
+                                    "--max-turns" (number->string max-turns))
+                              (if builtin (list "--tools" (string-join builtin ",")) '())
+                              (if mcp (list "--mcp-config" mcp "--strict-mcp-config") '())
+                              (list "--allowedTools") tools (list "--disallowedTools") disallowed)
           timeout env-extra))
 
 ;; claude : dir prompt args timeout env -> (values status seconds stdout stderr)   the CLI in `work`, the
@@ -173,8 +198,12 @@
                   [c (in-value (hash-ref (hash-ref e 'message (hasheq)) 'content #f))]
                   #:when (list? c)
                   [b (in-list c)]
-                  #:when (and (hash? b) (equal? (hash-ref b 'type #f) "tool_use") (equal? (hash-ref b 'name #f) "Bash")))
-        (hash-ref (hash-ref b 'input (hasheq)) 'command ""))))
+                  #:when (and (hash? b) (equal? (hash-ref b 'type #f) "tool_use")
+                              (or (equal? (hash-ref b 'name #f) "Bash") (regexp-match? #rx"^mcp__" (hash-ref b 'name "")))))
+        ;; an MCP call is recorded as the shell call it stands for: `mcp__fhir__query {…}`
+        (if (equal? (hash-ref b 'name #f) "Bash")
+            (hash-ref (hash-ref b 'input (hasheq)) 'command "")
+            (format "~a ~a" (hash-ref b 'name) (jsexpr->string (hash-ref b 'input (hasheq))))))))
 
 (define (audit rec forbidden)
   (for/list ([c (in-list (hash-ref rec 'commands '()))]

@@ -7,10 +7,14 @@
 ;;; Arms (how the agent reaches the data; the instructions are otherwise the same):
 ;;;   rest       curl against a plain FHIR R4 REST server over the store (serve-store.rkt, FAB_REST)
 ;;;   workspace  the fhir-mcp workspace verbs (`raco fhir-mcp call …`) over the same store (FAB_STORE)
+;;;   mcp        the same verbs as MCP tools (`raco fhir-mcp` as the agent's MCP server)
+;;; Every arm has the same built-in tools (Bash, Read, Write: `--tools`), and the same closing
+;;; instruction; the workspace arms get the reading card (`raco fhir guide data`) where the rest
+;;; arm gets its curl lines.
 ;;; Each agent writes answer.json {"answer", "resources": ["Type/id", …]}; the run writes
 ;;; agent_results.json in the benchmark's input format for its evaluation_metrics.py (score.sh).
 
-(require racket/cmdline racket/file racket/list racket/string racket/system json
+(require racket/cmdline racket/file racket/list racket/string racket/system racket/port json
          "../run-agent.rkt")
 
 (define common #<<EOF
@@ -22,7 +26,7 @@ The patient: Patient/{patient_fhir_id} (the number in the question is that patie
 
 Find the answer in the data and note which resources it rests on. Answer as a clinician's assistant would: a value with its unit, a date-time, a name, a count, yes/no — or "none" when the data holds nothing that answers the question (a legitimate answer; do not guess). "Hospital visit", "hospital stay" and "hospital encounter" mean an inpatient hospital admission; "ICU visit" an intensive-care stay; "current hospital visit" one that has not ended at the assumed current time.
 
-When done, write {answer_file}: {"answer": "<your answer>", "resources": ["Type/id", ...the resources the answer rests on]}.
+When done, write {answer_file}: {"answer": "<your answer>", "resources": ["Type/id", ...the resources the answer rests on]}. Once it is written you are done: end with one short line, no summary.
 
 {access}
 Use only that access to read the data; you may use python3 or jq to compute over what it returned. Do not look for the benchmark's files or answers.
@@ -30,17 +34,20 @@ EOF
   )
 
 (define (access arm rest)
-  (if (equal? arm "workspace")
-      (string-append "Access: the FHIR workspace in this directory, from the shell:\n"
-                     "  raco fhir-mcp call <verb> key=value ...      (verbs: check, query, run, explain, describe, write, apply)\n"
-                     "  raco fhir-mcp tools                          the verbs and their arguments\n"
-                     "  raco fhir guide workspace                    the guide written for agents (read it first)\n"
-                     "The workspace's data is this dataset (a store).")
+  (case arm
+    [("workspace")
+     (string-append "Access: the FHIR workspace in this directory, from the shell. Its data is this dataset (a store).\n\n"
+                    (reading-card))]
+    [("mcp")
+     (string-append "Access: the FHIR workspace's tools (mcp__fhir__…: query, describe, explain, run, check, …), over this dataset. "
+                    "The card below writes a call as the shell does: `describe ref=X as=fsh` is the describe tool with ref and as.\n\n"
+                    (reading-card))]
+    [else
       (string-append (format "Access: a FHIR R4 REST server, with curl. Base url: ~a\n" rest)
                      (format "  curl -s ~a/metadata                       the types and the search parameters of each\n" rest)
                      (format "  curl -s \"~a/<Type>/<id>\"                  read one resource\n" rest)
                      (format "  curl -s \"~a/<Type>?<param>=<value>&...\"   search: a Bundle (`total`, `entry`, a `next` link when it is a page)\n" rest)
-                     "Standard FHIR search applies: _count, _sort (-date descending), _summary=count, date prefixes (date=ge2130-01-01), token system|code, :text, references (patient=Patient/<id>), _include. Read and search are all it offers.")))
+                     "Standard FHIR search applies: _count, _sort (-date descending), _summary=count, date prefixes (date=ge2130-01-01), token system|code, :text, references (patient=Patient/<id>), _include. Read and search are all it offers.")]))
 
 ;; prompt : arm rest-base question answer-file -> string   the answer file named by its absolute path:
 ;; agents told "this directory" have written it to a mistyped one
@@ -50,8 +57,12 @@ EOF
     (string-replace s (format "{~a}" k) (hash-ref q k))))
 
 (define (tools arm)
-  (append (if (equal? arm "workspace") '("Bash(raco fhir-mcp:*)" "Bash(raco fhir guide:*)") '("Bash(curl:*)"))
+  (append (case arm
+            [("workspace") '("Bash(raco fhir-mcp:*)" "Bash(raco fhir guide:*)")]
+            [("mcp") '("mcp__fhir" "Bash(raco fhir guide:*)")]
+            [else '("Bash(curl:*)")])
           '("Bash(python3:*)" "Bash(jq:*)" "Read" "Write")))
+
 
 ;; resources-by-type : answer -> hash   "Type/id"s as the benchmark's {Type: [ids]}
 (define (resources-by-type ans)
@@ -101,7 +112,7 @@ EOF
      [("--limit") n "the first N questions" (set! limit (string->number n))]
      [("--collect") "run nothing: rebuild agent_results.json from the run's directories" (set! collect? #t)]
      #:args (arm sample out) (values arm sample out)))
-  (unless (member arm '("rest" "workspace")) (raise-user-error 'run "the arm is rest or workspace"))
+  (unless (member arm '("rest" "workspace" "mcp")) (raise-user-error 'run "the arm is rest, workspace or mcp"))
   (define rest (or (getenv "FAB_REST") "http://localhost:8765"))
   (define qs (let ([all (read-json-file sample-file)]) (if limit (take all (min limit (length all))) all)))
   (define dir (path->complete-path out))
@@ -110,11 +121,11 @@ EOF
     (define id (hash-ref q 'question_id))
     (define work (build-path dir id))
     (define (prepare)
-      (when (equal? arm "workspace")
+      (when (member arm '("workspace" "mcp"))
         (display-to-file (format "fhirVersion: 4.0.1\ndata: ~a\n" (or (getenv "FAB_STORE") (error 'run "set FAB_STORE")))
                          (build-path work "workspace.yaml"))))
     (define rec (run-item id (prompt arm rest q (path->string (build-path work "answer.json"))) work model (tools arm)
-                          #:prepare prepare))
+                          #:prepare prepare #:builtin builtin-tools #:mcp (and (equal? arm "mcp") (workspace-mcp work))))
     (void (system* (find-executable-path "pkill") "-f" (format "mcp-daemon.*~a" work)))
     ;; the benchmark's files, and the other questions' directories (an agent's own is its cwd)
     (define others (for/list ([o (in-list qs)] #:unless (equal? (hash-ref o 'question_id) id))
@@ -129,7 +140,7 @@ EOF
     (if collect?
         (for/list ([q (in-list qs)]) (collected-record dir q))
         (begin
-          (write-json-file (build-path dir "run.json") (hasheq 'arm arm 'model model 'questions (length qs)))
+          (write-json-file (build-path dir "run.json") (hasheq 'arm arm 'model model 'questions (length qs) 'harness 2))
           (for/list ([q qs] [r (in-parallel parallel qs one)]) (if (hash? r) r (failed-record q r))))))
   (write-json-file (build-path dir "agent_results.json") (agent-results qs recs))
   (printf "~a answered of ~a; total $~a\n" (count (lambda (r) (hash? (hash-ref r 'answer))) recs) (length recs)
