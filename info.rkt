@@ -19,4 +19,4 @@
 (define scribblings '(("scribblings/fhir-examples.scrbl" ())))
 (define raco-commands
   '(("spec-bench" (submod fhir-examples/cli main) "make prose -> FSH tasks from a published IG, run a model on them, score the answers" #f)))
-(define test-omit-paths '("results" "ig-servers/packages" "ig-servers/main.rkt" "scribblings"))
+(define test-omit-paths '("results" "ig-servers/packages" "ig-servers/main.rkt" "scribblings" "agent-bench/serve-store.rkt"))
