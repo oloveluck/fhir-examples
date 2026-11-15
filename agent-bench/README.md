@@ -20,13 +20,21 @@ What changes between arms is only how the agent reaches the data.
 - **rest** — curl against a plain FHIR R4 REST server over the store (`serve-store.rkt`: read and
   search with the R4 core SearchParameters). For MedAgentBench also **rest-hapi**: curl against the
   benchmark's own HAPI server.
-- **workspace** — the fhir-mcp workspace verbs (`raco fhir-mcp call …`) over the same store, with
-  `raco fhir guide workspace`.
+- **workspace** — the fhir-mcp workspace verbs (`raco fhir-mcp call …`) over the same store. Its
+  prompt carries the product's one-page reading card (`raco fhir guide data`) where the rest arms'
+  carry their curl lines.
+- **mcp** — the same verbs as MCP tools: `raco fhir-mcp` is the agent's MCP server.
 - **official-hapi**, **official-ours** (MedAgentBench) — the benchmark's own protocol: the model
   answers each turn with one `GET`, `POST` or `FINISH` line, at most 8 rounds, no tools of its own.
   Against HAPI and against our server, it shows whether the server is a drop-in replacement.
 
-In MedAgentBench a POST is recorded, not sent (`mab post`), as the benchmark's harness does.
+In MedAgentBench a POST is recorded, not sent (`mab post`), as the benchmark's harness does. The
+workspace arms may write the payload as one FSH Instance (`./mab post <url> p.fsh`: compiled by
+`raco fsh` for R4, its problems said at their lines, recorded as the JSON).
+
+Every agent arm has the same built-in tools (Bash, Read, Write — `--tools`; Claude Code's default
+set is most of each turn's context) and is told to end with one line once it has answered (harness
+2, in each run's `run.json`; the baseline of 2026-11-15 ran with the default tools).
 
 ## Running
 ```sh
@@ -38,7 +46,7 @@ raco fhir-server load mab/fhir.db mab/ndjson --fhir-version 4.0.1
 racket serve-store.rkt mab/fhir.db 8766 Patient Observation Condition MedicationRequest Procedure ServiceRequest
 
 # MedAgentBench (MAB_TASKS, MAB_FUNCS: the benchmark's data files; MAB_REFSOL_DIR: refsol.py + utils.py)
-$B/mab/run --model sonnet workspace runs/r1/mab-workspace          # also rest-hapi rest-ours official-hapi official-ours
+$B/mab/run --model sonnet workspace runs/r1/mab-workspace          # also mcp rest-hapi rest-ours official-hapi official-ours
 $B/mab/grade runs/r1/mab-workspace                                 # graded against HAPI
 
 # FHIR-AgentBench: the fixed sample (fab/valid-150.json: 150 valid questions over 62 templates)
@@ -48,4 +56,5 @@ FAB_REPO=… bash fab/score.sh runs/r1/fab-workspace sonnet           # their ev
 
 $B/report runs/r1                                                  # both benchmarks, one table
 ```
-Iterate on the valid split; the test split is for reporting (`fab/make-sample.rkt` draws others).
+Iterate on the valid split; the test split is for reporting: `fab/test-150.json` (150 questions over
+59 templates, seed 20261115) was drawn before any run on it (`fab/make-sample.rkt` draws others).
