@@ -31,7 +31,8 @@ In MedAgentBench a POST is recorded, not sent (`mab post`), as the benchmark's h
 ## Running
 ```sh
 B=racket\ -l-\ fhir-examples/agent-bench
-# data: MedAgentBench's server exported (searched patient by patient, in parallel) and loaded
+# data: MedAgentBench's server exported (searched patient by patient, 8 at once: 785,902 resources in 72 s from
+# its HAPI server, where paging each type whole took ~14 min) and loaded (1 min 52 s)
 $B/mab/export-server --parallel 8 http://localhost:8080/fhir/ mab/ndjson
 raco fhir-server load mab/fhir.db mab/ndjson --fhir-version 4.0.1
 racket serve-store.rkt mab/fhir.db 8766 Patient Observation Condition MedicationRequest Procedure ServiceRequest

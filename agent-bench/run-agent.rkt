@@ -33,6 +33,7 @@
   ;; process), results in the items' order
   [in-parallel (-> exact-positive-integer? list? (-> any/c any/c) list?)]
   [read-json-file (-> path-string? any/c)]
+  [read-answer (-> path? any/c)]
   [write-json-file (-> path-string? any/c void?)]))
 
 (define disallowed '("Task" "Agent" "WebFetch" "WebSearch" "NotebookEdit"))
@@ -61,6 +62,19 @@
   (vector->list results))
 
 (define (read-json-file f) (call-with-input-file f read-json))
+
+;; read-answer : dir -> jsexpr | #f   the item's answer.json — also where an agent that mistyped its own
+;; directory put it: agents have written `/tmp/x/-home-user-abc/…` for `/tmp/x/-home-user/abc/…` (the
+;; form of Claude Code's project-directory names), one `/` turned into a `-`, so those paths are tried
+(define (read-answer work)
+  (for/or ([dir (in-list (cons (path->string work) (slip-variants (path->string work))))])
+    (define f (build-path dir "answer.json"))
+    (and (file-exists? f) (with-handlers ([exn:fail? (lambda (_) #f)]) (read-json-file f)))))
+
+;; slip-variants : string -> (listof string)   the path with one of its `/` (not the first) made `-`
+(define (slip-variants p)
+  (for/list ([i (in-range 1 (string-length p))] #:when (char=? (string-ref p i) #\/))
+    (string-append (substring p 0 i) "-" (substring p (add1 i)))))
 (define (write-json-file f v)
   (call-with-output-file f #:exists 'truncate (lambda (o) (write-json v o))))
 
@@ -72,7 +86,7 @@
   (when prepare (prepare))
   (define-values (status seconds out err) (run-claude work prompt model tools timeout max-turns env-extra))
   (define meta (with-handlers ([exn:fail? (lambda (_) (hasheq))]) (string->jsexpr out)))
-  (define answer (with-handlers ([exn:fail? (lambda (_) #f)]) (read-json-file (build-path work "answer.json"))))
+  (define answer (read-answer work))
   (define usage (if (hash? meta) (hash-ref meta 'usage (hasheq)) (hasheq)))
   (define (u k) (hash-ref usage k 0))
   (define session (and (hash? meta) (hash-ref meta 'session_id #f)))
@@ -171,4 +185,5 @@
   (require rackunit)
   (check-equal? (audit (hasheq 'commands '("curl x" "cat /a/refsol.py")) '("refsol")) '("cat /a/refsol.py"))
   (check-equal? (session-commands #f) '())
+  (check-equal? (slip-variants "/a/b/c") '("/a-b/c" "/a/b-c"))
   (check-equal? (in-parallel 3 '(1 2 3 4 5) (lambda (x) (sleep (* 0.01 (- 6 x))) (* x x))) '(1 4 9 16 25)))
