@@ -99,18 +99,18 @@ EOF
   (define work (build-path out (hash-ref t 'id)))
   (make-directory* work)
   (define first (official-prompt base t))
-  (let loop ([msg first] [session #f] [cost 0] [history (list (hasheq 'role "user" 'content first))] [round 0])
+  (let loop ([msg first] [session #f] [cost 0] [history (list (hasheq 'role "user" 'content first))] [turns 0])
     (define (finish result status cost history)
       (write-json-file (build-path work "history.json") (reverse history))
       (write-json-file (build-path work "answer.json") (hasheq 'finish (or result (json-null)) 'status status 'cost_usd cost))
       (printf "~a ~a $~a\n" (hash-ref t 'id) status (/ (round (* 1000 cost)) 1000.0)) (flush-output)
       cost)
-    (if (= round 8)
+    (if (= turns 8)
         (finish #f "TASK_LIMIT_REACHED" cost history)
         (let*-values ([(reply session c) (claude-turn work msg model session)]
                       [(history) (cons (hasheq 'role "agent" 'content reply) history)]
                       [(r) (string-trim (string-replace (string-replace reply "```tool_code" "") "```" ""))])
-          (define (next m) (loop m session (+ cost c) (cons (hasheq 'role "user" 'content m) history) (add1 round)))
+          (define (next m) (loop m session (+ cost c) (cons (hasheq 'role "user" 'content m) history) (add1 turns)))
           (cond
             [(string-prefix? r "GET")
              (define-values (body err) (http-get (string-append (string-trim (substring r 3)) "&_format=json")))
@@ -151,4 +151,4 @@ EOF
       [("official-hapi" "official-ours") (lambda (t) (run-official-task base model dir t))]
       [else (raise-user-error 'run (format "unknown arm ~a: rest-hapi rest-ours workspace official-hapi official-ours" arm))]))
   (define costs (in-parallel parallel tasks run-one))
-  (printf "total $~a\n" (/ (round (* 100 (apply + costs))) 100.0)))
+  (printf "total $~a\n" (/ (round (* 100 (apply + (filter real? costs)))) 100.0)))

@@ -48,7 +48,12 @@
                 (let loop ()
                   (define job (channel-get work))
                   (when job
-                    (vector-set! results (car job) (f (cdr job)))
+                    ;; an item that fails is said and recorded; the worker goes on to the next
+                    (vector-set! results (car job)
+                                 (with-handlers ([exn:fail? (lambda (e)
+                                                              (eprintf "item ~a failed: ~a\n" (car job) (exn-message e))
+                                                              e)])
+                                   (f (cdr job))))
                     (loop)))))))
   (for ([x (in-list items)] [i (in-naturals)]) (channel-put work (cons i x)))
   (for ([_ (in-list workers)]) (channel-put work #f))

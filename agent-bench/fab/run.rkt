@@ -92,7 +92,12 @@ EOF
             (if (hash? (hash-ref rec 'answer)) "answered" "NO ANSWER") (if (null? bad) "" "  AUDIT"))
     (flush-output)
     rec)
-  (define recs (in-parallel parallel qs one))
+  ;; a question whose run failed (an exception, said on stderr) is a record with that error and no answer
+  (define recs (for/list ([q qs] [r (in-parallel parallel qs one)])
+                 (if (hash? r) r
+                     (hasheq 'id (hash-ref q 'question_id) 'answer (json-null) 'final_message (json-null)
+                             'error (exn-message r) 'seconds 0 'turns (json-null) 'cost_usd 0
+                             'input_tokens 0 'output_tokens 0))))
   (write-json-file
    (build-path dir "agent_results.json")
    (for/list ([q (in-list qs)] [r (in-list recs)])
