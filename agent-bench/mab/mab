@@ -1,32 +1,3 @@
-#!/usr/bin/env python3
-"""The agent's two MedAgentBench actions besides reading: a POST (recorded, not sent — as in the
-benchmark, whose harness answers "POST request accepted" without executing it) and FINISH.
-
-  ./mab post <url> payload.json        record a POST of the JSON payload in that file to that url
-  ./mab post <url>  < payload.json     (or on stdin)
-  ./mab finish '<JSON list>'           the answers, as FINISH([answer1, ...]); ends the task
-"""
-import json, pathlib, sys
-
-here = pathlib.Path.cwd()
-if len(sys.argv) in (3, 4) and sys.argv[1] == "post":
-    url = sys.argv[2]
-    text = pathlib.Path(sys.argv[3]).read_text() if len(sys.argv) == 4 else sys.stdin.read()
-    try:
-        payload = json.loads(text)
-    except Exception as e:
-        print(f"Invalid POST request: the payload is not JSON ({e})"); sys.exit(1)
-    with open(here / "posts.jsonl", "a") as f:
-        f.write(json.dumps({"url": url, "payload": payload}) + "\n")
-    print("POST request accepted and executed successfully.")
-elif len(sys.argv) == 3 and sys.argv[1] == "finish":
-    text = sys.argv[2].strip()
-    try:
-        value = json.loads(text)
-        assert isinstance(value, list)
-    except Exception:
-        print("FINISH needs a JSON list, e.g. ./mab finish '[\"S1234567\"]'"); sys.exit(1)
-    (here / "answer.json").write_text(json.dumps({"finish": text}))
-    print("Finished.")
-else:
-    print(__doc__); sys.exit(2)
+#!/bin/sh
+# the agent's MedAgentBench actions (mab.rkt): ./mab post <url> [payload.json] | ./mab finish '<JSON list>'
+exec racket -l- fhir-examples/agent-bench/mab/mab "$@"
