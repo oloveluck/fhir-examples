@@ -30,5 +30,14 @@
    (check-true (>= (car (hash-ref oracle 'fidelity)) 28) "the oracle's fidelity regressed (the compiler's ceiling)")
    (check-false (hash-ref empty 'profile_compiled))
    (check-equal? (car (hash-ref empty 'fidelity)) 0)
+   ;; the representation's own oracle — the published StructureDefinition and examples as JSON —
+   ;; scores as the DSL's does: the comparison of the two formats rests on that; the JSON prompt
+   ;; differs from the FSH one only in what it asks for, and leaks no pinned code either
+   (define json-prompt (file->string (build-path task "prompt-json.md")))
+   (check-false (regexp-match? #rx"33728-7|21889-1" json-prompt))
+   (define joracle (score-task task (json-oracle task) #:format 'json))
+   (for ([k '(check_errors fidelity accepts_published_examples examples_conform_to_published)])
+     (check-equal? (hash-ref joracle k) (hash-ref oracle k) (format "the JSON oracle's ~a" k)))
+   (check-false (hash-ref (score-task task "" #:format 'json) 'profile_compiled))
    (printf "  spec-bench TumorSize: oracle fidelity ~a, empty ~a\n" (hash-ref oracle 'fidelity) (hash-ref empty 'fidelity))
    (delete-directory/files dir)])

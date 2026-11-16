@@ -36,7 +36,7 @@
          (only-in fhir/package read-package)
          fsh/check
          (only-in "model.rkt" ask extract-block)
-         (only-in fsh/project compile-project project-located project-texts find-config fsh-files)
+         (only-in fsh/project compile-project project-located project-texts project-artifacts find-config fsh-files)
          (only-in fsh/ig-config read-ig-config ig-config-canonical ig-config-dependencies ig-config-fhir-version
                   ig-config-title ig-config-name dependency-packages)
          (only-in fsh/pack pack-package!)
@@ -49,8 +49,13 @@
  (contract-out
   [list-tasks  (-> path-string? (listof (list/c string? string? exact-nonnegative-integer?)))]
   [make-task!  (-> path-string? path-string? string? path-string? path?)]
-  [score-task  (-> path-string? string? hash?)]
-  [run-task!   (->* (path-string? string?) (#:rounds exact-positive-integer? #:timeout (and/c real? positive?)) (listof hash?))]
+  ;; #:format: the candidate is FSH (the DSL) or FHIR JSON (the representation FSH compiles to)
+  [score-task  (->* (path-string? string?) (#:format (or/c 'fsh 'json)) hash?)]
+  [run-task!   (->* (path-string? string?) (#:rounds exact-positive-integer? #:timeout (and/c real? positive?)
+                                            #:format (or/c 'fsh 'json))
+                    (listof hash?))]
+  ;; json-oracle : task-dir -> string   the published StructureDefinition and examples, as the JSON arm's ceiling
+  [json-oracle (-> path-string? string?)]
   ;; a published package by path, file name in fhir-spec, or package name (`hl7.fhir.us.mcode-4.0.0`)
   [published-package (-> string? path?)]))
 
@@ -104,8 +109,13 @@
                                        #:when (equal? (hash-ref (cdr r) 'url #f) url))
                              (cdr r))
                            (raise-user-error 'spec-bench "~a is not in ~a" url published)))
-  (call-with-output-file (build-path out "prompt.md")
-    (lambda (o) (write-string (prompt-text cfg prof url published-sd located removed) o)))
+  ;; the IG's other definitions by name and canonical: FSH can cite a name, JSON needs the url, so
+  ;; both prompts carry both
+  (define urls (for/hash ([a (in-list (project-artifacts p))] #:when (and (hash-ref a 'name #f) (hash-ref a 'url #f)))
+                 (values (hash-ref a 'name) (hash-ref a 'url))))
+  (for ([fmt (in-list '(fsh json))])
+    (call-with-output-file (build-path out (if (eq? fmt 'fsh) "prompt.md" "prompt-json.md")) #:exists 'truncate
+      (lambda (o) (write-string (prompt-text cfg prof url published-sd located removed urls fmt) o))))
   (call-with-output-file (build-path out "task.rktd")
     (lambda (o) (write (hash 'ig (path->string (path->complete-path ig)) 'published (path->string (path->complete-path published))
                              'profile name 'id (profile-id prof) 'url url 'oracle oracle
@@ -126,28 +136,39 @@
     (define to (if (< (add1 i) (length sorted)) (sub1 (loc-line (cdr (list-ref sorted (add1 i))))) (length lines)))
     (values (car l) (string-join (take (drop lines from) (- to from)) "\n"))))
 
-;; prompt-text : … -> string   the task in words
-(define (prompt-text cfg prof url sd located removed)
+;; prompt-text : … urls format -> string   the task in words; the two formats differ only in the
+;; language asked for and its reply block
+(define (prompt-text cfg prof url sd located removed urls fmt)
   (define (txt e k) (let ([v (hash-ref e k #f)]) (and (string? v) (string-normalize-spaces v))))
   (define elements (hash-ref (hash-ref sd 'differential (hash)) 'element '()))
   (define names
     (for/list ([l (in-list located)] #:unless (memq (car l) removed)
                #:when (or (fsh-profile? (car l)) (fsh-extension? (car l)) (fsh-valueset? (car l)) (fsh-codesystem? (car l))))
       (define e (car l))
-      (format "~a ~a" (cond [(fsh-profile? e) "Profile"] [(fsh-extension? e) "Extension"] [(fsh-valueset? e) "ValueSet"] [else "CodeSystem"])
-              (cond [(fsh-profile? e) (fsh-profile-name e)] [(fsh-extension? e) (fsh-extension-name e)]
-                    [(fsh-valueset? e) (fsh-valueset-name e)] [else (fsh-codesystem-name e)]))))
+      (define name (cond [(fsh-profile? e) (fsh-profile-name e)] [(fsh-extension? e) (fsh-extension-name e)]
+                         [(fsh-valueset? e) (fsh-valueset-name e)] [else (fsh-codesystem-name e)]))
+      (format "~a ~a~a" (cond [(fsh-profile? e) "Profile"] [(fsh-extension? e) "Extension"] [(fsh-valueset? e) "ValueSet"] [else "CodeSystem"])
+              name (let ([u (hash-ref urls name #f)]) (if u (format " = ~a" u) "")))))
   (define aliases (for/list ([l (in-list located)] #:when (fsh-alias? (car l)))
                     (format "Alias: ~a = ~a" (fsh-alias-name (car l)) (fsh-alias-value (car l)))))
   (string-append
-   (format "# Task: write one FHIR Shorthand (FSH) profile for ~a\n\n" (or (ig-config-title cfg) (ig-config-name cfg) "this IG"))
+   (format "# Task: write one FHIR ~a for ~a\n\n"
+           (if (eq? fmt 'fsh) "Shorthand (FSH) profile" "profile, as a StructureDefinition in FHIR JSON")
+           (or (ig-config-title cfg) (ig-config-name cfg) "this IG"))
    (format "The IG targets FHIR ~a and depends on: ~a. Its canonical is ~a.\n\n"
            (ig-config-fhir-version cfg)
            (string-join (for/list ([d (in-list (ig-config-dependencies cfg))]) (format "~a#~a" (car d) (cdr d))) ", ")
            (ig-config-canonical cfg))
-   (format "Write `Profile: ~a` with `Id: ~a` (its url will be ~a), and at least one example `Instance` of it "
-           (fsh-profile-name prof) (profile-id prof) url)
-   "that is valid against it. Use the IG's existing names below where they fit. Reply with ONE ```fsh code block holding all of it.\n\n"
+   (if (eq? fmt 'fsh)
+       (string-append
+        (format "Write `Profile: ~a` with `Id: ~a` (its url will be ~a), and at least one example `Instance` of it "
+                (fsh-profile-name prof) (profile-id prof) url)
+        "that is valid against it. Use the IG's existing names below where they fit. Reply with ONE ```fsh code block holding all of it.\n\n")
+       (string-append
+        (format "Write the StructureDefinition with `name` ~a, `id` ~a and `url` ~a (a constraint on its base: `derivation` constraint, the rules in its `differential`), "
+                (fsh-profile-name prof) (profile-id prof) url)
+        "and at least one example resource that claims it (`meta.profile`) and is valid against it. Use the IG's existing definitions below (by their urls) where they fit. "
+        "Reply with ONE ```json code block holding a JSON array of all of them.\n\n"))
    "## What the IG says about this profile\n\n"
    (format "~a\n\n" (or (txt sd 'description) ""))
    (if (txt sd 'purpose) (format "Purpose: ~a\n\n" (txt sd 'purpose)) "")
@@ -166,32 +187,32 @@
 ;; ---- scoring --------------------------------------------------------------------------------------
 (define (read-task dir) (call-with-input-file (build-path dir "task.rktd") read))
 
-;; score-task : task-dir candidate-fsh -> (hash …)
-(define (score-task dir candidate)
+;; score-task : task-dir candidate [#:format] -> (hash …)
+;; A Front is what a format's own checks make of a candidate: the artifacts (the IG's and the
+;; candidate's resources), the errors (all, and in the candidate), and their text for the next round.
+;; Everything after it is the same for both formats: what is scored is FHIR.
+(struct front (artifacts errors in-candidate text))
+
+(define (score-task dir candidate #:format [fmt 'fsh])
   (define t (read-task dir))
   (define url (hash-ref t 'url))
   (define work (make-temporary-directory "spec-bench-~a"))
   (define proj (build-path work "project"))
   (copy-directory/files (build-path dir "project") proj)
-  (define cand-file (build-path proj "input" "fsh" "zz-candidate.fsh"))
-  (make-directory* (build-path proj "input" "fsh"))
-  (call-with-output-file cand-file (lambda (o) (write-string candidate o)))
-  (define r (check-fsh-project proj))
-  (define in-candidate
-    (for/list ([d (in-list (check-report-diagnostics r))]
-               #:when (let ([l (diagnostic-loc d)]) (and l (string? (loc-source l)) (string-suffix? (loc-source l) "zz-candidate.fsh"))))
-      d))
-  (define errors (for/sum ([d (in-list (check-report-diagnostics r))]) (if (eq? (diagnostic-severity d) 'error) 1 0)))
-  (define artifacts (check-report-artifacts r))
-  (define cand-sd (findf (lambda (a) (and (equal? (hash-ref a 'resourceType #f) "StructureDefinition") (equal? (hash-ref a 'url #f) url))) artifacts))
-  (define published (hash-ref t 'published))
-  (define pub-sd (for/first ([x (in-list (let-values ([(_m rs _e) (read-package published)]) rs))] #:when (equal? (hash-ref (cdr x) 'url #f) url)) (cdr x)))
-  (define-values (fid-ok fid-total extra) (fidelity pub-sd cand-sd))
   ;; the packages: the IG's dependencies and core
   (define cfg (read-ig-config (find-config proj)))
   (define-values (deps _missing) (dependency-packages (ig-config-dependencies cfg)))
   (define core (spec-package-path (if (regexp-match? #rx"^4" (ig-config-fhir-version cfg)) "hl7.fhir.r4.core.tgz" "hl7.fhir.r5.core.tgz")))
-  (define (claims? js) (let ([m (hash-ref js 'meta #f)]) (and (hash? m) (member url (hash-ref m 'profile '())) #t)))
+  (define own (build-path work "candidate.tgz"))
+  (define f (if (eq? fmt 'fsh)
+                (fsh-front proj candidate)
+                (json-front proj candidate url cfg own deps core)))
+  (define artifacts (front-artifacts f))
+  (define cand-sd (findf (lambda (a) (and (equal? (hash-ref a 'resourceType #f) "StructureDefinition") (equal? (hash-ref a 'url #f) url))) artifacts))
+  (define published (hash-ref t 'published))
+  (define pub-sd (for/first ([x (in-list (let-values ([(_m rs _e) (read-package published)]) rs))] #:when (equal? (hash-ref (cdr x) 'url #f) url)) (cdr x)))
+  (define-values (fid-ok fid-total extra) (fidelity pub-sd cand-sd))
+  (define (claims? js) (let ([m (hash-ref js 'meta #f)]) (and (hash? m) (list? (hash-ref m 'profile '())) (member url (hash-ref m 'profile '())) #t)))
   (define rejections '())                            ; why examples failed: (file-or-id path message)
   (define (errors-of js [label (hash-ref js 'id "?")])
     (define es (for/list ([i (in-list (validate-issues (strip-jnum js)))] #:when (member (issue-severity i) '("error" "fatal"))) i))
@@ -200,8 +221,7 @@
     (length es))
   ;; accepts: the IG's published examples of this profile against the candidate's profile
   (define pub-examples (for/list ([x (in-list (let-values ([(_m _r xs) (read-package published)]) xs))] #:when (claims? (cdr x))) (cdr x)))
-  (define own (build-path work "candidate.tgz"))
-  (pack-package! own cfg artifacts (hash))
+  (unless (file-exists? own) (pack-package! own cfg artifacts (hash)))
   (define accepted
     (if cand-sd
         (parameterize ([current-sd-packages (append (list own) deps (list core))])
@@ -212,21 +232,80 @@
   (define conforming
     (parameterize ([current-sd-packages (append (list published) deps (list core))])
       (for/sum ([x (in-list cand-examples)]) (if (zero? (errors-of x (format "candidate ~a" (hash-ref x 'id "?")))) 1 0))))
-  (define diag-text (with-output-to-string
-                      (lambda () (parameterize ([current-error-port (current-output-port)])
-                                   (emit-diagnostics in-candidate #:format 'text
-                                                     #:text-of (lambda (s) (and s (hash-ref (check-report-texts r) s #f))))))))
   (delete-directory/files work #:must-exist? #f)
   (hasheq 'task (hash-ref t 'profile)
-          'check_errors errors
-          'candidate_diagnostics (length in-candidate)
+          'format (symbol->string fmt)
+          'check_errors (front-errors f)
+          'candidate_diagnostics (front-in-candidate f)
           'profile_compiled (and cand-sd #t)
           'fidelity (list fid-ok fid-total)
           'extra_constrained_elements extra
           'accepts_published_examples (list accepted (length pub-examples))
           'examples_conform_to_published (list conforming (length cand-examples))
           'rejections (reverse rejections)
-          'diagnostics_text (string-replace diag-text (path->string proj) "")))
+          'diagnostics_text (string-replace (front-text f) (path->string proj) "")))
+
+;; fsh-front : project-dir fsh -> Front   the candidate as a file of the project, `fsh check`ed
+(define (fsh-front proj candidate)
+  (define cand-file (build-path proj "input" "fsh" "zz-candidate.fsh"))
+  (make-directory* (build-path proj "input" "fsh"))
+  (call-with-output-file cand-file (lambda (o) (write-string candidate o)))
+  (define r (check-fsh-project proj))
+  (define in-candidate
+    (for/list ([d (in-list (check-report-diagnostics r))]
+               #:when (let ([l (diagnostic-loc d)]) (and l (string? (loc-source l)) (string-suffix? (loc-source l) "zz-candidate.fsh"))))
+      d))
+  (define errors (for/sum ([d (in-list (check-report-diagnostics r))]) (if (eq? (diagnostic-severity d) 'error) 1 0)))
+  (define text (with-output-to-string
+                 (lambda () (parameterize ([current-error-port (current-output-port)])
+                              (emit-diagnostics in-candidate #:format 'text
+                                                #:text-of (lambda (s) (and s (hash-ref (check-report-texts r) s #f))))))))
+  (front (check-report-artifacts r) errors (length in-candidate) text))
+
+;; candidate-resources : json-text -> (values (listof resource) (listof string))   a JSON array of
+;; resources, a Bundle's entries or one resource; what is not, said
+(define (candidate-resources text)
+  (define js (with-handlers ([exn:fail? (lambda (e) (exn-message e))]) (string->jsexpr text)))
+  (define (resource? v) (and (hash? v) (string? (hash-ref v 'resourceType #f))))
+  (cond [(string? js) (values '() (list (format "the answer is not JSON: ~a" js)))]
+        [(and (list? js) (andmap resource? js)) (values js '())]
+        [(and (resource? js) (equal? (hash-ref js 'resourceType) "Bundle"))
+         (values (for/list ([e (in-list (hash-ref js 'entry '()))] #:when (and (hash? e) (resource? (hash-ref e 'resource #f)))) (hash-ref e 'resource)) '())]
+        [(resource? js) (values (list js) '())]
+        [else (values '() (list "the answer is not a JSON array of FHIR resources"))]))
+
+;; json-front : project-dir json url cfg own deps core -> Front   the candidate's resources beside the
+;; IG's own (compiled from its FSH), each validated as FHIR — the profile against StructureDefinition,
+;; the examples against the base types and the profiles they claim, the candidate's among them — the
+;; checks `fsh check` makes of an FSH candidate, made of the representation itself
+(define (json-front proj candidate url cfg own deps core)
+  (define-values (resources problems) (candidate-resources candidate))
+  (define ig (project-artifacts (compile-project proj)))
+  (define cand-urls (for/list ([r (in-list resources)] #:when (hash-ref r 'url #f)) (hash-ref r 'url)))
+  (define artifacts (append (filter (lambda (a) (not (member (hash-ref a 'url #f) cand-urls))) ig) resources))
+  (pack-package! own cfg artifacts (hash))
+  (define lines
+    (append problems
+            (if (or (pair? problems) (findf (lambda (r) (equal? (hash-ref r 'url #f) url)) resources)) '()
+                (list (format "no StructureDefinition with url ~a in the answer" url)))
+            (parameterize ([current-sd-packages (append (list own) deps (list core))])
+              (for*/list ([r (in-list resources)]
+                          [i (in-list (validate-issues (strip-jnum r)))]
+                          #:when (member (issue-severity i) '("error" "fatal")))
+                (format "~a/~a: ~a: ~a" (hash-ref r 'resourceType) (hash-ref r 'id "?") (issue-path i) (issue-msg i))))))
+  (front artifacts (length lines) (length lines) (string-append* (map (lambda (l) (string-append l "\n")) lines))))
+
+;; json-oracle : task-dir -> string   the published profile (its differential, no snapshot or text) and
+;; the published examples that claim it, as a JSON array: what a perfect JSON answer would be
+(define (json-oracle dir)
+  (define t (read-task dir))
+  (define url (hash-ref t 'url))
+  (define-values (_m rs xs) (read-package (hash-ref t 'published)))
+  (define sd (for/first ([x (in-list rs)] #:when (equal? (hash-ref (cdr x) 'url #f) url)) (cdr x)))
+  (define examples (for/list ([x (in-list xs)]
+                              #:when (let ([m (hash-ref (cdr x) 'meta #f)]) (and (hash? m) (member url (hash-ref m 'profile '())))))
+                     (cdr x)))
+  (jsexpr->string (cons (hash-remove (hash-remove sd 'snapshot) 'text) examples)))
 
 ;; ---- fidelity: facets of a differential element -----------------------------------------------------
 ;; fidelity : published-sd candidate-sd|#f -> (values matched total extra)
@@ -260,34 +339,56 @@
      (if (hash? s) (list (cons 'slicing (list (hash-ref s 'discriminator '()) (hash-ref s 'rules #f)))) '()))))
 
 ;; ---- running a model ---------------------------------------------------------------------------------
-;; run-task! : task-dir shell-command [#:rounds n #:timeout s] -> (listof score)
+;; run-task! : task-dir shell-command [#:rounds n #:timeout s #:format f] -> (listof score)
 ;; Each run gets runs/<stamp>/ with round-N.prompt.md, round-N.answer.txt, round-N.err.txt and
-;; round-N.fsh; every round's score (with seconds, exit code, timeout) is appended to results.jsonl.
-;; Rounds stop when the candidate checks clean, the model times out or fails, or at `rounds`.
-(define (run-task! dir cmd #:rounds [rounds 3] #:timeout [timeout 1200])
-  (define base (file->string (build-path dir "prompt.md")))
-  (define run-dir (build-path dir "runs" (number->string (current-seconds))))
+;; round-N.fsh (or .json); every round's score (with seconds, exit code, timeout, tokens) is appended
+;; to results.jsonl. Rounds stop when the candidate checks clean, the model times out or fails, or at
+;; `rounds`. A command that answers with Claude Code's JSON (`claude -p --output-format json`) is
+;; unwrapped: its `result` is the answer, its `usage` the round's tokens.
+(define (run-task! dir cmd #:rounds [rounds 3] #:timeout [timeout 1200] #:format [fmt 'fsh])
+  (define lang (symbol->string fmt))
+  (define base (file->string (build-path dir (if (eq? fmt 'fsh) "prompt.md" "prompt-json.md"))))
+  (define run-dir (build-path dir "runs" (format "~a-~a" (current-seconds) lang)))
   (make-directory* run-dir)
   (let loop ([round 1] [prompt base] [acc '()])
     (define (file ext) (build-path run-dir (format "round-~a.~a" round ext)))
     (call-with-output-file (file "prompt.md") (lambda (o) (write-string prompt o)))
     (define-values (code seconds timed-out?) (ask cmd (file "prompt.md") (file "answer.txt") (file "err.txt") timeout))
-    (define fsh (extract-block (file->string (file "answer.txt")) "fsh"))
-    (call-with-output-file (file "fsh") (lambda (o) (write-string fsh o)))
-    (define answered? (and (eqv? code 0) (not timed-out?) (positive? (string-length (string-trim fsh)))))
-    (define s (hash-set* (if answered? (score-task dir fsh) (hasheq 'task (hash-ref (read-task dir) 'profile)))
+    (define-values (answer usage) (unwrapped (file->string (file "answer.txt"))))
+    (define text (extract-block answer lang))
+    (call-with-output-file (file lang) (lambda (o) (write-string text o)))
+    (define answered? (and (eqv? code 0) (not timed-out?) (positive? (string-length (string-trim text)))))
+    (define s (hash-set* (if answered? (score-task dir text #:format fmt) (hasheq 'task (hash-ref (read-task dir) 'profile) 'format lang))
                          'round round 'model_command cmd 'seconds seconds 'exit_code code
-                         'timed_out timed-out? 'answered answered? 'run (path->string run-dir)))
+                         'timed_out timed-out? 'answered answered? 'run (path->string run-dir)
+                         'answer_chars (string-length text)
+                         'input_tokens (hash-ref usage 'input_tokens (json-null))
+                         'output_tokens (hash-ref usage 'output_tokens (json-null))))
     (call-with-output-file (build-path dir "results.jsonl") #:exists 'append
-      (lambda (o) (write-json (hash-set s 'candidate fsh) o) (newline o)))
+      (lambda (o) (write-json (hash-set s 'candidate text) o) (newline o)))
     (define acc* (append acc (list s)))
     (if (or (not answered?) (= round rounds) (zero? (hash-ref s 'candidate_diagnostics)))
         acc*
         (loop (add1 round)
-              (string-append base "\n\n## Your previous answer\n\n```fsh\n" fsh "\n```\n\n"
-                             "## `fsh check` reported (zz-candidate.fsh is your answer)\n\n```\n" (hash-ref s 'diagnostics_text) "```\n\n"
-                             "Fix these and reply with the complete corrected FSH in ONE ```fsh block.\n")
+              (string-append base "\n\n## Your previous answer\n\n```" lang "\n" text "\n```\n\n"
+                             (if (eq? fmt 'fsh)
+                                 "## `fsh check` reported (zz-candidate.fsh is your answer)\n\n```\n"
+                                 "## Validating these resources reported\n\n```\n")
+                             (hash-ref s 'diagnostics_text) "```\n\n"
+                             (format "Fix these and reply with the complete corrected answer in ONE ```~a block.\n" lang))
               acc*))))
+
+;; unwrapped : text -> (values answer usage)   Claude Code's `--output-format json` reply taken apart
+;; (`usage`: input tokens counted with the cache's, and output tokens); any other text is the answer
+(define (unwrapped text)
+  (define js (with-handlers ([exn:fail? (lambda (_) #f)]) (string->jsexpr text)))
+  (cond [(and (hash? js) (string? (hash-ref js 'result #f)) (hash? (hash-ref js 'usage #f)))
+         (define u (hash-ref js 'usage))
+         (define (n k) (let ([v (hash-ref u k 0)]) (if (real? v) v 0)))
+         (values (hash-ref js 'result)
+                 (hasheq 'input_tokens (+ (n 'input_tokens) (n 'cache_read_input_tokens) (n 'cache_creation_input_tokens))
+                         'output_tokens (n 'output_tokens)))]
+        [else (values text (hasheq))]))
 
 (module+ test
   (require rackunit)
@@ -297,4 +398,12 @@
   (define-values (ok total extra)
     (fidelity (hasheq 'differential (hasheq 'element (list (hasheq 'id "O.a" 'min 1 'max "1") (hasheq 'id "O.b" 'mustSupport #t))))
               (hasheq 'differential (hasheq 'element (list (hasheq 'id "O.a" 'min 1) (hasheq 'id "O.c" 'max "0"))))))
-  (check-equal? (list ok total extra) '(1 3 1)))
+  (check-equal? (list ok total extra) '(1 3 1))
+  ;; Claude Code's JSON reply is unwrapped, its tokens kept; other text is the answer
+  (let-values ([(a u) (unwrapped "{\"result\":\"```fsh\\nX\\n```\",\"usage\":{\"input_tokens\":3,\"cache_read_input_tokens\":10,\"output_tokens\":7}}")])
+    (check-equal? (list a (hash-ref u 'input_tokens) (hash-ref u 'output_tokens)) '("```fsh\nX\n```" 13 7)))
+  (let-values ([(a u) (unwrapped "plain")]) (check-equal? (list a u) (list "plain" (hasheq))))
+  ;; a candidate's resources: an array, a Bundle's entries, one resource; anything else said
+  (let-values ([(rs ps) (candidate-resources "[{\"resourceType\":\"Patient\"}]")]) (check-equal? (list (length rs) ps) '(1 ())))
+  (let-values ([(rs ps) (candidate-resources "{\"resourceType\":\"Bundle\",\"entry\":[{\"resource\":{\"resourceType\":\"Patient\"}}]}")]) (check-equal? (length rs) 1))
+  (let-values ([(rs ps) (candidate-resources "not json")]) (check-equal? (length ps) 1)))

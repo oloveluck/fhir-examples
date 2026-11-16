@@ -4,8 +4,10 @@
 ;;;
 ;;;   raco spec-bench list <ig-dir>                                   profiles that can be taken out
 ;;;   raco spec-bench make <ig-dir> <published-package> <Profile> <task-dir>
-;;;   raco spec-bench score <task-dir> (--oracle | --empty | <candidate.fsh>)
-;;;   raco spec-bench run <task-dir> --model '<shell command>' [--rounds n] [--timeout seconds]
+;;;   raco spec-bench score <task-dir> (--oracle | --empty | <candidate.fsh|.json>) [--format fsh|json]
+;;;   raco spec-bench run <task-dir> --model '<shell command>' [--rounds n] [--timeout seconds] [--format fsh|json]
+;;; --format json: the candidate is FHIR JSON (the StructureDefinition and examples) instead of FSH,
+;;; scored the same way — the DSL against the representation it compiles to.
 ;;; The model command reads the prompt on stdin and answers on stdout (e.g. `claude -p`).
 
 (require racket/list racket/match
@@ -15,8 +17,18 @@
 (define usage-text
   (string-append "usage: raco spec-bench list <ig-dir>\n"
                  "       raco spec-bench make <ig-dir> <published-package> <Profile> <task-dir>\n"
-                 "       raco spec-bench score <task-dir> (--oracle | --empty | <candidate.fsh>)\n"
-                 "       raco spec-bench run <task-dir> --model '<shell command>' [--rounds n] [--timeout seconds]\n"))
+                 "       raco spec-bench score <task-dir> (--oracle | --empty | <candidate.fsh|.json>) [--format fsh|json]\n"
+                 "       raco spec-bench run <task-dir> --model '<shell command>' [--rounds n] [--timeout seconds] [--format fsh|json]\n"))
+;; format-of : args -> 'fsh | 'json   --format, else fsh
+(define (format-of args)
+  (match (member "--format" args)
+    [(list _ (or "fsh" "json") _ ...) (string->symbol (cadr (member "--format" args)))]
+    [#f 'fsh]
+    [_ (usage 2 "--format takes fsh or json")]))
+(define (without-format args)
+  (match args
+    [(list a ... "--format" _ b ...) (append a b)]
+    [_ args]))
 (define (usage [code 2] [msg #f])
   (when msg (eprintf "spec-bench: ~a\n" msg))
   ((if (zero? code) printf eprintf) usage-text)
@@ -40,18 +52,19 @@
 (module+ main
   (define args (vector->list (current-command-line-arguments)))
   (when (ormap (lambda (a) (member a '("-h" "--help"))) args) (usage 0))
-  (match args
+  (define fmt (format-of args))
+  (match (without-format args)
     [(list "list" ig)
      (for ([t (in-list (list-tasks ig))]) (printf "~a\t~a\t~a examples\n" (first t) (second t) (third t)))]
     [(list "make" ig published profile out)
      (printf "~a\n" (make-task! ig (published-package published) profile out))]
     [(list "score" dir which)
      (define t (call-with-input-file (build-path dir "task.rktd") read))
-     (define fsh (cond [(equal? which "--oracle") (hash-ref t 'oracle)]
+     (define fsh (cond [(equal? which "--oracle") (if (eq? fmt 'json) (json-oracle dir) (hash-ref t 'oracle))]
                        [(equal? which "--empty") ""]
                        [(file-exists? which) (file->string which)]
                        [else (usage 2 (format "no such file: ~a" which))]))
-     (define s (score-task dir fsh))
+     (define s (score-task dir fsh #:format fmt))
      (show-score s)
      (for ([r (in-list (hash-ref s 'rejections))]) (printf "  rejected: ~a\n" r))
      (unless (string=? (hash-ref s 'diagnostics_text) "") (display (hash-ref s 'diagnostics_text)))]
@@ -61,6 +74,6 @@
          (cond [(not m) default]
                [(and (pair? (cdr m)) (string->number (cadr m))) => values]
                [else (usage 2 (format "~a needs a number" name))])))
-     (for ([s (in-list (run-task! dir cmd #:rounds (opt "--rounds" 3) #:timeout (opt "--timeout" 1200)))])
+     (for ([s (in-list (run-task! dir cmd #:rounds (opt "--rounds" 3) #:timeout (opt "--timeout" 1200) #:format fmt))])
        (show-score s))]
     [_ (usage)]))
