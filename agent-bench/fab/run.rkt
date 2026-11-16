@@ -8,13 +8,17 @@
 ;;;   rest       curl against a plain FHIR R4 REST server over the store (serve-store.rkt, FAB_REST)
 ;;;   workspace  the fhir-mcp workspace verbs (`raco fhir-mcp call …`) over the same store (FAB_STORE)
 ;;;   mcp        the same verbs as MCP tools (`raco fhir-mcp` as the agent's MCP server)
+;;;   tables     the benchmark's relational schema, defined over the store by an agent beforehand
+;;;              (setup-tables.rkt; FAB_TABLES is that workspace): the question is answered in SQL
+;;;              over those tables, from the worked example of its kind (FAB_EXAMPLES, a file made
+;;;              by make-examples.rkt from the train split)
 ;;; Every arm has the same built-in tools (Bash, Read, Write: `--tools`), and the same closing
 ;;; instruction; the workspace arms get the reading card (`raco fhir guide data`) where the rest
 ;;; arm gets its curl lines.
 ;;; Each agent writes answer.json {"answer", "resources": ["Type/id", …]}; the run writes
 ;;; agent_results.json in the benchmark's input format for its evaluation_metrics.py (score.sh).
 
-(require racket/cmdline racket/file racket/list racket/string racket/system racket/port json
+(require racket/cmdline racket/file racket/list racket/string racket/system racket/port racket/runtime-path json
          "../run-agent.rkt")
 
 (define common #<<EOF
@@ -38,6 +42,16 @@ EOF
     [("workspace")
      (string-append "Access: the FHIR workspace in this directory, from the shell. Its data is this dataset (a store).\n\n"
                     (reading-card))]
+    [("tables")
+     (string-append
+      "Access: the dataset as the tables of a relational schema, in this directory's workspace (the tables are defined over the FHIR data):\n"
+      "  raco fhir-mcp call query language=sql text=\"SELECT …\"      one SQLite statement; rows come back as JSON\n\n"
+      (tables-schema) "\n\n"
+      "`examples.md` in this directory has one worked example per kind of question: the kind (its slots in braces), a question of that kind, what it assumes, and the query that answers it. Work like this:\n"
+      "1. `grep -n '^###' examples.md` lists the kinds. Find yours — the nearest, when none fits exactly — and read it (`grep -A3 -F '<the heading's first words>' examples.md`).\n"
+      "2. Write your query the same way: the same tables, the same way of choosing the visit (first, last, current) and of counting time from the assumed current time, with your question's patient, names and dates. A name (a lab test, a drug, a care unit, a specimen) is in the tables as the hospital writes it, capitals included; the question gives it in lower case, so look it up first (`SELECT DISTINCT label FROM d_labitems WHERE lower(label) = 'creatinine'`).\n"
+      "3. Run it. The answer is what it returns. No rows means the answer is \"none\" (0 for a count, no for a yes/no question): do not look for another reading of the question that would return something.\n"
+      "For `resources`: every table has a `fhir_id` column (`Type/id`, the FHIR resource a row comes from); give the fhir_id of the rows the answer rests on (select it beside the answer, or in a second query).")]
     [("mcp")
      (string-append "Access: the FHIR workspace's tools (mcp__fhir__…: query, describe, explain, run, check, …), over this dataset. "
                     "The card below writes a call as the shell does: `describe ref=X as=fsh` is the describe tool with ref and as.\n\n"
@@ -56,9 +70,30 @@ EOF
             ([k '(question assumption patient_fhir_id)])
     (string-replace s (format "{~a}" k) (hash-ref q k))))
 
+;; ---- the `tables` arm ---------------------------------------------------------------------------
+;; tables-schema : -> string   the schema's tables and columns (schema.md's table), for the prompt
+(define-runtime-path schema-file "schema.md")
+(define (tables-schema)
+  (string-append "The schema (a time is text, `YYYY-MM-DD HH:MM:SS`; an identifier an integer):\n"
+                 (string-join (filter (lambda (l) (regexp-match? #rx"^[|]" l)) (file->lines schema-file)) "\n")))
+
+;; tables-workspace! : dir -> void   the question's workspace: the tables the setup agent defined
+;; (FAB_TABLES: its views and `.sql` files), the rows it already computed (a link to its kept
+;; views: a view over the Observations takes minutes to compute), and the worked examples
+(define (tables-workspace! work)
+  (define from (or (getenv "FAB_TABLES") (error 'run "set FAB_TABLES to the workspace setup-tables wrote")))
+  (define examples (or (getenv "FAB_EXAMPLES") (error 'run "set FAB_EXAMPLES to the file make-examples wrote")))
+  (for ([f (in-list (directory-list from))]
+        #:when (regexp-match? #rx"[.](view[.]json|sql|yaml)$" (path->string f)))
+    (copy-file (build-path from f) (build-path work f) #t))
+  (copy-file examples (build-path work "examples.md") #t)
+  (make-directory* (build-path work ".fhir-mcp"))
+  (make-file-or-directory-link (path->complete-path (build-path from ".fhir-mcp" "views.db")) (build-path work ".fhir-mcp" "views.db")))
+
 (define (tools arm)
   (append (case arm
             [("workspace") '("Bash(raco fhir-mcp:*)" "Bash(raco fhir guide:*)")]
+            [("tables") '("Bash(raco fhir-mcp:*)" "Bash(grep:*)")]
             [("mcp") '("mcp__fhir" "Bash(raco fhir guide:*)")]
             [else '("Bash(curl:*)")])
           '("Bash(python3:*)" "Bash(jq:*)" "Read" "Write")))
@@ -113,7 +148,7 @@ EOF
      [("--collect") "run nothing: rebuild agent_results.json from the run's directories" (set! collect? #t)]
      [("--resume") "skip the items that already have a record (a killed run, resumed)" (current-resume? #t)]
      #:args (arm sample out) (values arm sample out)))
-  (unless (member arm '("rest" "workspace" "mcp")) (raise-user-error 'run "the arm is rest, workspace or mcp"))
+  (unless (member arm '("rest" "workspace" "mcp" "tables")) (raise-user-error 'run "the arm is rest, workspace, mcp or tables"))
   (define rest (or (getenv "FAB_REST") "http://localhost:8765"))
   (define qs (let ([all (read-json-file sample-file)]) (if limit (take all (min limit (length all))) all)))
   (define dir (path->complete-path out))
@@ -124,7 +159,8 @@ EOF
     (define (prepare)
       (when (member arm '("workspace" "mcp"))
         (display-to-file (format "fhirVersion: 4.0.1\ndata: ~a\n" (or (getenv "FAB_STORE") (error 'run "set FAB_STORE")))
-                         (build-path work "workspace.yaml"))))
+                         (build-path work "workspace.yaml")))
+      (when (equal? arm "tables") (tables-workspace! work)))
     (define rec (run-item id (lambda (real) (prompt arm rest q (path->string (build-path real "answer.json")))) work model (tools arm)
                           #:prepare prepare #:builtin builtin-tools #:mcp (and (equal? arm "mcp") (workspace-mcp work))))
     (void (system* (find-executable-path "pkill") "-f" (format "mcp-daemon.*~a" work)))
