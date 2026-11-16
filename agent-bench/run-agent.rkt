@@ -61,8 +61,13 @@
     (when (string=? text "") (error 'reading-card "raco fhir guide data printed nothing"))
     (set! card text))
   card)
+;; The benchmarks only read through the workspace (a POST is `./mab post`, an answer a file), so the
+;; server offers the two reading verbs: every tool definition is in every turn's context, and the
+;; nine cost ~3.2k tokens a turn where these two cost ~0.9k (`raco fhir-mcp --verbs`).
+(define mcp-verbs "query,describe")
 (define (workspace-mcp work)
-  (jsexpr->string (hasheq 'mcpServers (hasheq 'fhir (hasheq 'command "raco" 'args (list "fhir-mcp" "--workspace" (path->string (path->complete-path work))))))))
+  (jsexpr->string (hasheq 'mcpServers (hasheq 'fhir (hasheq 'command "raco" 'args (list "fhir-mcp" "--workspace" (path->string (path->complete-path work))
+                                                                                          "--verbs" mcp-verbs))))))
 
 (define disallowed '("Task" "Agent" "WebFetch" "WebSearch" "NotebookEdit"))
 ;; what the agent's environment must not carry over from this session
