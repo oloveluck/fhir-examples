@@ -36,6 +36,20 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   by side over every run. The design prompt measures guessing (70% of its misses are shared by
   both formats) and names elements by ElementDefinition id, which favours JSON; the requirements
   prompt measures the encoding. Results: `results/2026-11-16-dsl-vs-json.md`.
+- **Sizes and edits** (2026-11-16): `dsl-sizes.rkt [--count '<model command>']` sets each language
+  beside the JSON it compiles to over published material (IPS and mCODE profiles, examples, value
+  sets; fml's corpus maps; cql's corpus libraries), in characters and in the tokens the command
+  reports (its input tokens less an empty prompt's); instances also with code systems aliased
+  once (`aliased`) and as instances of their profile (`of-its-profile`: entries by slice, a lone
+  `[0]` and what the compiler fills left out, each step kept only when the text compiles to
+  exactly the resource). `edit-bench.rkt --model c --out d` is the paired test for instances: one
+  change in words (status, date, note, quantity; `changes-of`) to a published example the
+  languages round-trip, four arms (`fsh`, `fsh-rules` — the rules that change, compiled after the
+  instance's own —, `json`, `json-patch`), one round, the changed resource compared whole.
+  Findings: CQL is 13% of its ELM in tokens, VCL 28% of a compose, FML 52% of a StructureMap; an
+  FSH instance is 96% of compact JSON as decompiled and 75% as an instance of its profile with
+  aliases; every edit arm 60/60, the rules-only answer 26 tokens against 535 for the whole JSON
+  (a JSON Patch: 50). Round 4 of the agent benchmarks: `agent-bench/results/2026-11-16-round4.md`.
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.

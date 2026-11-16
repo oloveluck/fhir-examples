@@ -2,11 +2,12 @@
 
 ;;; edit-bench.rkt — one change to a published resource, read and answered in FSH or in FHIR JSON.
 ;;;
-;;;   racket edit-bench.rkt --model '<command>' --out <dir> [--tasks n] [--jobs n] [--arms fsh,fsh-rules,json]
+;;;   racket edit-bench.rkt --model '<command>' --out <dir> [--tasks n] [--jobs n] [--arms fsh,fsh-rules,json,json-patch]
 ;;;
 ;;; The paired test of a language against the representation it compiles to, for INSTANCES: a
 ;;; model is shown one resource and asked for one change, stated in words; one arm reads and
-;;; writes FSH, one reads FSH and answers with the rules that change, one reads and writes JSON.
+;;; writes FSH, one reads FSH and answers with the rules that change, one reads and writes JSON,
+;;; one reads JSON and answers with a JSON Patch.
 ;;; One oracle: the resource the change gives, compared whole.
 ;;;
 ;;; A Task is (task id resource change expected): `resource` an example of IPS 2.0.1 or mCODE 4.0.0
@@ -25,6 +26,8 @@
 ;;;   fsh-rules  shown as FSH, only the rules that change answered; they are laid over the instance
 ;;;              (compiled after its own rules: a later assignment replaces, `[+]` appends)
 ;;;   json       shown as compact JSON, the whole resource answered
+;;;   json-patch shown as compact JSON, a JSON Patch (RFC 6902) answered and applied: what JSON has
+;;;              for "only what changes"
 ;;; One round, no feedback: what is measured is reading and writing, not repair.
 ;;; Recorded per task and arm under --out: prompt, answer, and a results.jsonl line; --resume keeps
 ;;; what is there. The command answers with Claude Code's JSON, whose tokens are recorded.
@@ -37,6 +40,7 @@
          (only-in fhir/serialize/fhir-json fhir-json->string)
          (only-in fsh/decompile fhir->fsh)
          (only-in fsh/compile fsh->fhir fsh-fhir-version)
+         (only-in fhir/capability/json-patch apply-json-patch)
          "model.rkt")
 
 (struct task (id resource change expected) #:transparent)
@@ -137,7 +141,13 @@
    (arm "json" (lambda (j) (fhir-json->string j)) "json"
         "Below is a FHIR resource as JSON. Reply with the whole updated resource, as JSON, in ONE ```json code block."
         (lambda (t answer) (with-handlers ([exn:fail? (lambda (_) #f)])
-                             (let ([j (string->jsexpr answer)]) (and (hash? j) j)))))))
+                             (let ([j (string->jsexpr answer)]) (and (hash? j) j)))))
+   (arm "json-patch" (lambda (j) (fhir-json->string j)) "json"
+        (string-append "Below is a FHIR resource as JSON. Reply with ONLY a JSON Patch (RFC 6902: a JSON array of operations) "
+                       "that changes it, in ONE ```json code block.")
+        (lambda (t answer) (with-handlers ([exn:fail? (lambda (_) #f)])
+                             (let ([ops (string->jsexpr answer)])
+                               (and (list? ops) (apply-json-patch (task-resource t) ops))))))))
 
 ;; prompt : Task Arm -> string
 (define (prompt t a)
@@ -232,7 +242,7 @@
   (define out (make-parameter #f))
   (define n (make-parameter 60))
   (define jobs (make-parameter 6))
-  (define chosen (make-parameter '("fsh" "fsh-rules" "json")))
+  (define chosen (make-parameter '("fsh" "fsh-rules" "json" "json-patch")))
   (command-line #:program "edit-bench"
                 #:once-each
                 [("--model") c "the model command (answers with Claude Code's JSON)" (model c)]
