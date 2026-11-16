@@ -1,12 +1,12 @@
 # fhir-examples
 
-> Examples for [fhir](https://github.com/oloveluck/fhir), a FHIR implementation designed to be used by
-> AI agents.
+> Examples and measurements for [fhir](https://github.com/oloveluck/fhir), a toolkit for AI agents
+> on FHIR.
 
 Worked examples for the [fhir](https://github.com/oloveluck/fhir) family of FHIR languages and
 tools, from a short program that applies FHIR operations like functions to one written in seven of
-FHIR's languages. Also a benchmark: a language model is asked to write a FHIR profile from the prose
-that describes it, and the answer is scored against the profile HL7 published.
+FHIR's languages — and the measurements behind the toolkit's claims: agents on two published
+benchmarks, and a model writing FHIR in its languages against writing the JSON they compile to.
 
 ```
 $ racket screening/main.rkt
@@ -28,6 +28,17 @@ bo       2026-10-03  124       79        no
 | [`notes-to-fhir/`](notes-to-fhir/) | clinic notes turned into FHIR by a model, held to a specification | `racket notes-to-fhir/main.rkt --replay notes-to-fhir/results/2026-11-03T2336-brief` |
 | [`ig-servers/`](ig-servers/) | servers generated from six published guides, checked against them (needs the network) | `racket ig-servers/main.rkt` |
 | `bench.rkt` | the benchmark: prose to a profile, scored | `raco spec-bench list ../fsh/tests/vendor/mcode-4.0.0` |
+
+## Measurements
+
+Each has its harness here, its runs' results in the directory named, and its misses listed by cause.
+
+| What is measured | Result | Where |
+|---|---|---|
+| Agents on [MedAgentBench](https://github.com/stanfordmlgroup/MedAgentBench) and [FHIR-AgentBench](https://github.com/glee4810/FHIR-AgentBench): the workspace's tools against plain REST calls on the same data, by right answers and by tokens | 297 and 294 of 300 at 38k tokens a task; 118 of 150 at 55k tokens a question against 109 at 69k | [`agent-bench/`](agent-bench/), `agent-bench/results/` |
+| Each language beside the JSON it compiles to, in a model's tokens | CQL 13%, VCL 28%, the mapping language 52%, an FSH instance of its profile 75% | `dsl-sizes.rkt`, [`results/2026-11-16-dsl-vs-json.md`](results/2026-11-16-dsl-vs-json.md) |
+| A profile written from stated requirements, as FSH and as JSON, one oracle | 1427 and 1431 of 1431 constraints; 0.9k and 1.8k answer tokens | `bench.rkt`, `dsl-report.rkt`, the same write-up |
+| One change to a stored resource, answered whole or as what changes | every arm 60 of 60; 535 tokens as JSON, 26 as FSH rules | `edit-bench.rkt`, the same write-up |
 
 ## Install
 

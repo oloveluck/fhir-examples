@@ -40,9 +40,9 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   beside the JSON it compiles to over published material (IPS and mCODE profiles, examples, value
   sets; fml's corpus maps; cql's corpus libraries), in characters and in the tokens the command
   reports (its input tokens less an empty prompt's); instances also with code systems aliased
-  once (`aliased`) and as instances of their profile (`of-its-profile`: entries by slice, a lone
-  `[0]` and what the compiler fills left out, each step kept only when the text compiles to
-  exactly the resource). `edit-bench.rkt --model c --out d` is the paired test for instances: one
+  once (`aliased`) and as instances of their profile (fsh's `fhir->fsh/of-profile`: entries by
+  slice, a lone `[0]` and what the compiler fills left out, each step kept only when the text
+  compiles to exactly the resource). `edit-bench.rkt --model c --out d` is the paired test for instances: one
   change in words (status, date, note, quantity; `changes-of`) to a published example the
   languages round-trip, four arms (`fsh`, `fsh-rules` — the rules that change, compiled after the
   instance's own —, `json`, `json-patch`), one round, the changed resource compared whole.

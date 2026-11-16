@@ -31,7 +31,8 @@
          (only-in fhir/serialize/fhir-json fhir-json->string)
          (only-in fhir/result/result ok? ok-value)
          (only-in fsh/decompile fhir->fsh)
-         (only-in fsh/compile fsh->fhir fsh-fhir-version)
+         (only-in fsh/compile fsh-fhir-version)
+         (only-in fsh/instance-of fhir->fsh/of-profile)
          (only-in vcl/decompile compose->vcl)
          (only-in fml/parser/parse parse-fml)
          (only-in fml/structuremap fml->structuremap)
@@ -112,44 +113,6 @@
       (regexp-replace* (pregexp (string-append "(?<=[ (=])" (regexp-quote (car p)) "(?=[|#])")) t (regexp-replace-quote (cdr p)))))
   (cons (string-join (for/list ([p (in-list names)]) (format "Alias: ~a = ~a" (cdr p) (car p))) "\n") (map rename texts)))
 
-;; of-its-profile : resource fsh-text (url -> name | #f) (url -> (listof (cons path slice))) -> fsh-text
-;; the instance as an instance OF the one profile it claims, stated with what is its own: entries
-;; named by the profile's slices, a lone `[0]` left unwritten, and no rule the compiler writes by
-;; itself from the profile (its fixed and required values, meta.profile). Every step is kept only
-;; when the text still compiles to exactly the resource, so the answer is the resource.
-(define (of-its-profile j text profile-name profile-slices)
-  (define (compiles-to-it? ls)
-    (define rs (attempt (lambda () (fsh->fhir (string-join ls "\n")))))
-    (and (pair? rs) (ormap (lambda (r) (equal? r j)) rs)))
-  ;; keep-if : lines lines -> lines   the new lines when they still say the resource
-  (define (keep-if new old) (if (and (not (equal? new old)) (compiles-to-it? new)) new old))
-  (define (rewrite ls from to) (for/list ([l (in-list ls)]) (string-replace l from to)))
-  (define profiles (hash-ref (hash-ref j 'meta (hasheq)) 'profile '()))
-  (define name (and (= (length profiles) 1) (profile-name (car profiles))))
-  (define started
-    (and name
-         (for/list ([l (in-list (string-split text "\n"))] #:unless (regexp-match? #rx"^[*] meta[.]profile" l))
-           (if (regexp-match? #rx"^InstanceOf:" l) (string-append "InstanceOf: " name) l))))
-  (cond
-    [(not (and started (compiles-to-it? started))) text]
-    [else
-     ;; entries by slice: `component[0]` as `component[<slice>]`, the first slice that says the same
-     (define sliced
-       (for*/fold ([ls started]) ([ps (in-list (profile-slices (car profiles)))]
-                                  [i (in-range 8)])
-         (define from (format "* ~a[~a]" (car ps) i))
-         (if (ormap (lambda (l) (string-prefix? l from)) ls)
-             (keep-if (rewrite ls from (format "* ~a[~a]" (car ps) (cdr ps))) ls)
-             ls)))
-     ;; a lone first entry needs no index
-     (define unindexed
-       (for/fold ([ls sliced]) ([m (in-list (remove-duplicates (append-map (lambda (l) (regexp-match* #px"[A-Za-z.]+\\[0\\]" l)) sliced)))])
-         (keep-if (rewrite ls m (substring m 0 (- (string-length m) 3))) ls)))
-     (string-join
-      (for/fold ([kept unindexed]) ([l (in-list unindexed)] #:when (regexp-match? #rx"^([*] |Usage:)" l))
-        (keep-if (remove l kept) kept))
-      "\n")]))
-
 ;; ---- sizes ---------------------------------------------------------------------------------------
 
 ;; forms : Pair -> (list dsl compact indented)
@@ -207,25 +170,6 @@
   (define core (spec-package-path "hl7.fhir.r4.core.tgz"))
   (define cql-root (collection-path "cql"))
   (define contexts (list ips mcode (spec-package-path "hl7.fhir.us.core-6.1.0.tgz") core))
-  ;; profile-name : url -> name | #f   a profile of the two guides by its canonical
-  (define profile-name
-    (let ([names (for*/hash ([tgz (in-list (list ips mcode))]
-                             [e (in-list (let-values ([(_m rs _e) (read-package tgz)]) rs))]
-                             #:when (equal? (hash-ref (cdr e) 'resourceType #f) "StructureDefinition"))
-                   (values (hash-ref (cdr e) 'url) (hash-ref (cdr e) 'name)))])
-      (lambda (url) (hash-ref names (car (string-split url "|")) #f))))
-  ;; profile-slices : url -> (listof (cons path slice))   the slices a profile's snapshot names, by
-  ;; their element's path under the resource (`component` . `tumorLongestDimension`)
-  (define profile-slices
-    (let ([slices (for*/hash ([tgz (in-list (list ips mcode))]
-                              [e (in-list (let-values ([(_m rs _e) (read-package tgz)]) rs))]
-                              #:when (equal? (hash-ref (cdr e) 'resourceType #f) "StructureDefinition"))
-                    (values (hash-ref (cdr e) 'url)
-                            (for/list ([el (in-list (hash-ref (hash-ref (cdr e) 'snapshot (hasheq)) 'element '()))]
-                                       #:when (and (hash-ref el 'sliceName #f)
-                                                   (not (regexp-match? #rx":.*[.:]|\\[x\\]" (hash-ref el 'id "")))))
-                              (cons (string-join (cdr (string-split (hash-ref el 'path) ".")) ".") (hash-ref el 'sliceName)))))])
-      (lambda (url) (hash-ref slices (car (string-split url "|")) '()))))
   (define pairs
     (filter values
             (append
@@ -256,7 +200,7 @@
   (define instances (sample (filter (lambda (p) (equal? (pair*-kind p) "instance")) pairs) (cap)))
   (define plain (map pair*-dsl instances))
   (define own (parameterize ([current-sd-packages contexts] [fsh-fhir-version "4.0.1"])
-                (for/list ([p (in-list instances)]) (of-its-profile (pair*-json p) (pair*-dsl p) profile-name profile-slices))))
+                (for/list ([p (in-list instances)]) (fhir->fsh/of-profile (pair*-json p)))))
   (define variants
     (list (cons "FSH as decompiled" plain)
           (cons "FSH, code systems aliased once" (aliased plain))
