@@ -6,6 +6,8 @@
 ;;;   raco spec-bench make <ig-dir> <published-package> <Profile> <task-dir>
 ;;;   raco spec-bench score <task-dir> (--oracle | --empty | <candidate.fsh|.json>) [--format fsh|json]
 ;;;   raco spec-bench run <task-dir> --model '<shell command>' [--rounds n] [--timeout seconds] [--format fsh|json]
+;;; --requirements: the prompt states every constraint in words (the model encodes a known intent);
+;;; without it the prompt gives the IG's words about the profile and the constraints are the model's.
 ;;; --format json: the candidate is FHIR JSON (the StructureDefinition and examples) instead of FSH,
 ;;; scored the same way — the DSL against the representation it compiles to.
 ;;; The model command reads the prompt on stdin and answers on stdout (e.g. `claude -p`).
@@ -18,7 +20,7 @@
   (string-append "usage: raco spec-bench list <ig-dir>\n"
                  "       raco spec-bench make <ig-dir> <published-package> <Profile> <task-dir>\n"
                  "       raco spec-bench score <task-dir> (--oracle | --empty | <candidate.fsh|.json>) [--format fsh|json]\n"
-                 "       raco spec-bench run <task-dir> --model '<shell command>' [--rounds n] [--timeout seconds] [--format fsh|json]\n"))
+                 "       raco spec-bench run <task-dir> --model '<shell command>' [--rounds n] [--timeout seconds] [--format fsh|json] [--requirements]\n"))
 ;; format-of : args -> 'fsh | 'json   --format, else fsh
 (define (format-of args)
   (match (member "--format" args)
@@ -74,6 +76,7 @@
          (cond [(not m) default]
                [(and (pair? (cdr m)) (string->number (cadr m))) => values]
                [else (usage 2 (format "~a needs a number" name))])))
-     (for ([s (in-list (run-task! dir cmd #:rounds (opt "--rounds" 3) #:timeout (opt "--timeout" 1200) #:format fmt))])
+     (define kind (if (member "--requirements" more) 'requirements 'design))
+     (for ([s (in-list (run-task! dir cmd #:rounds (opt "--rounds" 3) #:timeout (opt "--timeout" 1200) #:format fmt #:prompt kind))])
        (show-score s))]
     [_ (usage)]))

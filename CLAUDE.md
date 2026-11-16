@@ -21,6 +21,21 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   against the published differential (`facets`), the published examples against the candidate's
   profile, the candidate's examples against the published profile (fhir-validation, in the package
   context of the project / of the published IG).
+- **A DSL against the representation it compiles to** (2026-11-16): a task has four prompts —
+  `prompt.md`/`prompt-json.md` (DESIGN: the IG's words, the constraints for the model to decide) and
+  `prompt-req.md`/`prompt-req-json.md` (REQUIREMENTS: the published differential in words,
+  `requirements-text`: cardinality, must-support, types, bindings, patterns, slicing; neither FSH
+  nor ElementDefinition syntax; only the definitions the profile uses are named) — and `score-task
+  #:format 'fsh|'json`: a format's own front (`fsh-front`: `fsh check`; `json-front`: the resources
+  validated as FHIR, the examples against the candidate's profile), then one FHIR-level tail.
+  `json-oracle` (the published StructureDefinition and examples) scores as the IG's FSH does.
+  `missed_facets` lists each published facet a candidate lacks; a primitive's fixed[x] and
+  pattern[x] are one facet. `run-task! #:prompt 'requirements`, `raco spec-bench run … --format
+  json --requirements`; a `claude -p --output-format json` answer is unwrapped and its tokens
+  (thinking apart) recorded. `dsl-report.rkt --prompt requirements <task>…` sets the formats side
+  by side over every run. The design prompt measures guessing (70% of its misses are shared by
+  both formats) and names elements by ElementDefinition id, which favours JSON; the requirements
+  prompt measures the encoding. Results: `results/2026-11-16-dsl-vs-json.md`.
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.

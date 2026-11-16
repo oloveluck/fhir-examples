@@ -51,8 +51,10 @@
   [make-task!  (-> path-string? path-string? string? path-string? path?)]
   ;; #:format: the candidate is FSH (the DSL) or FHIR JSON (the representation FSH compiles to)
   [score-task  (->* (path-string? string?) (#:format (or/c 'fsh 'json)) hash?)]
+  ;; #:prompt: 'design (the IG's words about the profile; the constraints are for the model to
+  ;; decide) or 'requirements (every constraint stated in words; the model encodes them)
   [run-task!   (->* (path-string? string?) (#:rounds exact-positive-integer? #:timeout (and/c real? positive?)
-                                            #:format (or/c 'fsh 'json))
+                                            #:format (or/c 'fsh 'json) #:prompt (or/c 'design 'requirements))
                     (listof hash?))]
   ;; json-oracle : task-dir -> string   the published StructureDefinition and examples, as the JSON arm's ceiling
   [json-oracle (-> path-string? string?)]
@@ -115,7 +117,12 @@
                  (values (hash-ref a 'name) (hash-ref a 'url))))
   (for ([fmt (in-list '(fsh json))])
     (call-with-output-file (build-path out (if (eq? fmt 'fsh) "prompt.md" "prompt-json.md")) #:exists 'truncate
-      (lambda (o) (write-string (prompt-text cfg prof url published-sd located removed urls fmt) o))))
+      (lambda (o) (write-string (prompt-text cfg prof url published-sd located removed urls fmt) o)))
+    ;; the same profile as REQUIREMENTS: every constraint stated in words (requirements-text), for
+    ;; measuring how well a format encodes a known intent — the design prompt above withholds the
+    ;; constraints, so most of its misses are guesses either format makes alike
+    (call-with-output-file (build-path out (if (eq? fmt 'fsh) "prompt-req.md" "prompt-req-json.md")) #:exists 'truncate
+      (lambda (o) (write-string (requirements-prompt cfg prof url published-sd urls fmt) o))))
   (call-with-output-file (build-path out "task.rktd")
     (lambda (o) (write (hash 'ig (path->string (path->complete-path ig)) 'published (path->string (path->complete-path published))
                              'profile name 'id (profile-id prof) 'url url 'oracle oracle
@@ -184,6 +191,94 @@
    "\n## Names already defined in this IG\n\n"
    (string-join aliases "\n") "\n\n" (string-join names "\n") "\n"))
 
+;; ---- requirements: the published constraints in words -------------------------------------------
+;; requirements-prompt : cfg profile url sd urls format -> string
+(define (requirements-prompt cfg prof url sd urls fmt)
+  (string-append
+   (format "# Task: write one FHIR ~a for ~a\n\n"
+           (if (eq? fmt 'fsh) "Shorthand (FSH) profile" "profile, as a StructureDefinition in FHIR JSON")
+           (or (ig-config-title cfg) (ig-config-name cfg) "this IG"))
+   (format "The IG targets FHIR ~a. Its canonical is ~a.\n\n" (ig-config-fhir-version cfg) (ig-config-canonical cfg))
+   (if (eq? fmt 'fsh)
+       (string-append
+        (format "Write `Profile: ~a` with `Id: ~a` (its url will be ~a) that states exactly the requirements below, and at least one example `Instance` of it that is valid against it. "
+                (fsh-profile-name prof) (profile-id prof) url)
+        "A definition of this IG may be cited by its name. Reply with ONE ```fsh code block holding all of it.\n\n")
+       (string-append
+        (format "Write the StructureDefinition with `name` ~a, `id` ~a and `url` ~a (`derivation` constraint, the rules in its `differential`) that states exactly the requirements below, "
+                (fsh-profile-name prof) (profile-id prof) url)
+        "and at least one example resource that claims it (`meta.profile`) and is valid against it. "
+        "Reply with ONE ```json code block holding a JSON array of all of them.\n\n"))
+   (requirements-text sd (for/hash ([(n u) (in-hash urls)]) (values u n)))))
+
+;; requirements-text : sd (hash url -> name) -> string   what the profile requires, one line per
+;; constrained element, in words: neither FSH nor ElementDefinition JSON. An element is named by its
+;; path with a slice said as one (`component (slice tumorLongestDimension) > code`); a definition of
+;; the IG by its name and url, any other by its url.
+(define (requirements-text sd url->name)
+  (define (unver u) (if (string? u) (regexp-replace #rx"[|].*$" u "") u))
+  (define (named u) (let ([n (hash-ref url->name (unver u) #f)]) (if n (format "~a (~a)" n u) u)))
+  (define type (hash-ref sd 'type ""))
+  (define (where id)
+    (define rest (regexp-replace (regexp (string-append "^" (regexp-quote type) "[.]?")) id ""))
+    (if (string=? rest "") "the resource itself"
+        (string-join (for/list ([seg (in-list (string-split rest "."))])
+                       (define m (regexp-match #rx"^([^:]*):(.*)$" seg))
+                       (if m (format "~a (slice ~a)" (cadr m) (caddr m)) seg))
+                     " > ")))
+  (define (value-words v)
+    (define (coding c) (format "~a|~a~a" (hash-ref c 'system "") (hash-ref c 'code "")
+                               (if (hash-ref c 'display #f) (format " \"~a\"" (hash-ref c 'display)) "")))
+    (cond [(and (hash? v) (list? (hash-ref v 'coding #f)) (andmap hash? (hash-ref v 'coding)) (= (hash-count v) 1))
+           (format "a CodeableConcept with coding ~a" (string-join (map coding (hash-ref v 'coding)) " and "))]
+          [(and (hash? v) (hash-ref v 'code #f) (hash-ref v 'system #f) (andmap (lambda (k) (memq k '(system code display))) (hash-keys v)))
+           (format "the coding ~a" (coding v))]
+          [(string? v) (format "\"~a\"" v)]
+          [(boolean? v) (if v "true" "false")]
+          [(number? v) (number->string v)]
+          [else (jsexpr->string v)]))
+  (define (type-words t)
+    (define profiles (map named (hash-ref t 'profile '())))
+    (define targets (map named (hash-ref t 'targetProfile '())))
+    (string-append (hash-ref t 'code "")
+                   (if (pair? profiles) (format " conforming to ~a" (string-join profiles " or ")) "")
+                   (if (pair? targets) (format " to ~a" (string-join targets " or ")) "")))
+  (define (facet-words e)
+    (define min (hash-ref e 'min #f)) (define max (hash-ref e 'max #f))
+    (append
+     (cond [(and min max) (list (format "cardinality ~a..~a" min max))]
+           [min (list (format "minimum cardinality ~a" min))]
+           [max (list (format "maximum cardinality ~a" max))]
+           [else '()])
+     (if (hash-has-key? e 'mustSupport) (list (if (hash-ref e 'mustSupport) "must be supported" "not must-support (stated)")) '())
+     (if (pair? (hash-ref e 'type '()))
+         (list (format "type restricted to ~a" (string-join (map type-words (hash-ref e 'type)) ", or ")))
+         '())
+     (let ([b (hash-ref e 'binding #f)])
+       (if (and (hash? b) (hash-ref b 'valueSet #f))
+           (list (format "bound (~a) to the value set ~a" (hash-ref b 'strength "?") (named (hash-ref b 'valueSet))))
+           '()))
+     (for/list ([(k v) (in-hash e)] #:when (regexp-match? #rx"^(fixed|pattern)" (symbol->string k)))
+       (cond [(not (or (hash? v) (list? v))) (format "value fixed to ~a" (value-words v))]
+             [(regexp-match? #rx"^fixed" (symbol->string k)) (format "fixed to exactly ~a" (value-words v))]
+             [else (format "must match the pattern ~a (nothing more in the pattern)" (value-words v))]))
+     (let ([sl (hash-ref e 'slicing #f)])
+       (if (hash? sl)
+           (list (format "sliced by ~a, ~a~a"
+                         (string-join (for/list ([d (in-list (hash-ref sl 'discriminator '()))])
+                                        (format "~a of `~a`" (hash-ref d 'type "?") (hash-ref d 'path "?")))
+                                      " and ")
+                         (hash-ref sl 'rules "open")
+                         (if (hash-ref sl 'ordered #f) ", ordered" "")))
+           '()))))
+  (string-append
+   "## Requirements\n\n"
+   (format "A constraint on ~a (a profile of ~a). For each element below, everything stated is required and nothing else is constrained:\n\n"
+           (named (hash-ref sd 'baseDefinition "?")) type)
+   (apply string-append
+          (for/list ([e (in-list (hash-ref (hash-ref sd 'differential (hash)) 'element '()))] #:when (pair? (facets e)))
+            (format "- ~a: ~a\n" (where (hash-ref e 'id)) (string-join (facet-words e) "; "))))))
+
 ;; ---- scoring --------------------------------------------------------------------------------------
 (define (read-task dir) (call-with-input-file (build-path dir "task.rktd") read))
 
@@ -212,6 +307,7 @@
   (define published (hash-ref t 'published))
   (define pub-sd (for/first ([x (in-list (let-values ([(_m rs _e) (read-package published)]) rs))] #:when (equal? (hash-ref (cdr x) 'url #f) url)) (cdr x)))
   (define-values (fid-ok fid-total extra) (fidelity pub-sd cand-sd))
+  (define missed (missed-facets pub-sd cand-sd))
   (define (claims? js) (let ([m (hash-ref js 'meta #f)]) (and (hash? m) (list? (hash-ref m 'profile '())) (member url (hash-ref m 'profile '())) #t)))
   (define rejections '())                            ; why examples failed: (file-or-id path message)
   (define (errors-of js [label (hash-ref js 'id "?")])
@@ -240,6 +336,7 @@
           'profile_compiled (and cand-sd #t)
           'fidelity (list fid-ok fid-total)
           'extra_constrained_elements extra
+          'missed_facets missed
           'accepts_published_examples (list accepted (length pub-examples))
           'examples_conform_to_published (list conforming (length cand-examples))
           'rejections (reverse rejections)
@@ -320,6 +417,21 @@
   (define extra (for/sum ([(id e) (in-hash cand-els)]) (if (or (member id pub-ids) (null? (facets e))) 0 1)))
   (values ok total extra))
 
+;; missed-facets : published-sd candidate-sd|#f -> (listof (list element-id facet published candidate))
+;; each published facet the candidate lacks, as text: what was published, and what the candidate
+;; says of that facet there ("absent" when it says nothing; "no element" when it lacks the element)
+(define (missed-facets pub cand)
+  (define pub-els (if pub (hash-ref (hash-ref pub 'differential (hash)) 'element '()) '()))
+  (define cand-els (if cand (for/hash ([e (in-list (hash-ref (hash-ref cand 'differential (hash)) 'element '()))]) (values (hash-ref e 'id #f) e)) (hash)))
+  (define (show v) (let ([t (if (string? v) v (format "~s" (if (or (hash? v) (list? v)) (with-handlers ([exn:fail? (lambda (_) v)]) (jsexpr->string v)) v)))])
+                     (if (> (string-length t) 160) (string-append (substring t 0 160) "…") t)))
+  (for*/list ([e (in-list pub-els)] [f (in-list (facets e))]
+              #:unless (let ([c (hash-ref cand-els (hash-ref e 'id) #f)]) (and c (member f (facets c)))))
+    (define c (hash-ref cand-els (hash-ref e 'id) #f))
+    (define theirs (and c (assq (car f) (facets c))))
+    (list (hash-ref e 'id) (symbol->string (car f)) (show (cdr f))
+          (cond [(not c) "no element"] [theirs (show (cdr theirs))] [else "absent"]))))
+
 ;; facets : element -> (listof (cons name value))   the constraints, normalised (versions dropped from
 ;; canonicals, type lists sorted); text (short/definition/comment) is not a constraint
 (define (facets e)
@@ -334,7 +446,10 @@
        '())
    (let ([b (hash-ref e 'binding #f)])
      (if (and (hash? b) (hash-ref b 'valueSet #f)) (list (cons 'binding (list (hash-ref b 'strength #f) (unver (hash-ref b 'valueSet))))) '()))
-   (for/list ([(k v) (in-hash e)] #:when (regexp-match? #rx"^(fixed|pattern)" (symbol->string k))) (cons k v))
+   ;; for a primitive value fixed[x] and pattern[x] are one constraint (FHIR: a primitive matches a
+   ;; pattern only by being equal to it), so `* status = #active` and `… (exactly)` are one facet
+   (for/list ([(k v) (in-hash e)] #:when (regexp-match? #rx"^(fixed|pattern)" (symbol->string k)))
+     (cons (if (or (hash? v) (list? v)) k (string->symbol (regexp-replace #rx"^(fixed|pattern)" (symbol->string k) "value"))) v))
    (let ([s (hash-ref e 'slicing #f)])
      (if (hash? s) (list (cons 'slicing (list (hash-ref s 'discriminator '()) (hash-ref s 'rules #f)))) '()))))
 
@@ -345,10 +460,10 @@
 ;; to results.jsonl. Rounds stop when the candidate checks clean, the model times out or fails, or at
 ;; `rounds`. A command that answers with Claude Code's JSON (`claude -p --output-format json`) is
 ;; unwrapped: its `result` is the answer, its `usage` the round's tokens.
-(define (run-task! dir cmd #:rounds [rounds 3] #:timeout [timeout 1200] #:format [fmt 'fsh])
+(define (run-task! dir cmd #:rounds [rounds 3] #:timeout [timeout 1200] #:format [fmt 'fsh] #:prompt [kind 'design])
   (define lang (symbol->string fmt))
-  (define base (file->string (build-path dir (if (eq? fmt 'fsh) "prompt.md" "prompt-json.md"))))
-  (define run-dir (build-path dir "runs" (format "~a-~a" (current-seconds) lang)))
+  (define base (file->string (build-path dir (format "prompt~a~a.md" (if (eq? kind 'requirements) "-req" "") (if (eq? fmt 'fsh) "" "-json")))))
+  (define run-dir (build-path dir "runs" (format "~a-~a-~a-~a" (current-seconds) (current-milliseconds) kind lang)))
   (make-directory* run-dir)
   (let loop ([round 1] [prompt base] [acc '()])
     (define (file ext) (build-path run-dir (format "round-~a.~a" round ext)))
@@ -359,6 +474,7 @@
     (call-with-output-file (file lang) (lambda (o) (write-string text o)))
     (define answered? (and (eqv? code 0) (not timed-out?) (positive? (string-length (string-trim text)))))
     (define s (hash-set* (if answered? (score-task dir text #:format fmt) (hasheq 'task (hash-ref (read-task dir) 'profile) 'format lang))
+                         'prompt (symbol->string kind)
                          'round round 'model_command cmd 'seconds seconds 'exit_code code
                          'timed_out timed-out? 'answered answered? 'run (path->string run-dir)
                          'answer_chars (string-length text)
@@ -403,6 +519,9 @@
     (fidelity (hasheq 'differential (hasheq 'element (list (hasheq 'id "O.a" 'min 1 'max "1") (hasheq 'id "O.b" 'mustSupport #t))))
               (hasheq 'differential (hasheq 'element (list (hasheq 'id "O.a" 'min 1) (hasheq 'id "O.c" 'max "0"))))))
   (check-equal? (list ok total extra) '(1 3 1))
+  ;; fixed and pattern are one facet for a primitive, two for a complex value
+  (check-equal? (facets (hasheq 'id "O.status" 'fixedCode "final")) (facets (hasheq 'id "O.status" 'patternCode "final")))
+  (check-not-equal? (facets (hasheq 'id "O.code" 'fixedCoding (hasheq 'code "a"))) (facets (hasheq 'id "O.code" 'patternCoding (hasheq 'code "a"))))
   ;; Claude Code's JSON reply is unwrapped, its tokens kept; other text is the answer
   (let-values ([(a u) (unwrapped "{\"result\":\"```fsh\\nX\\n```\",\"usage\":{\"input_tokens\":3,\"cache_read_input_tokens\":10,\"output_tokens\":7}}")])
     (check-equal? (list a (hash-ref u 'input_tokens) (hash-ref u 'output_tokens)) '("```fsh\nX\n```" 13 7)))
