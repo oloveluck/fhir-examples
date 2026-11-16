@@ -1,0 +1,2 @@
+{"resourceType":"ViewDefinition","name":"fhir_locations","status":"active","resource":"Location",
+"select":[{"column":[{"name":"id","path":"getResourceKey()"},{"name":"name","path":"name"}]}]}

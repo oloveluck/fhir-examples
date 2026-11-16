@@ -1,0 +1,3 @@
+{"resourceType":"ViewDefinition","name":"fhir_medications","status":"active","resource":"Medication",
+"select":[{"column":[{"name":"id","path":"getResourceKey()"},
+{"name":"drug","path":"identifier.where(system.endsWith('medication-name')).value.first()"}]}]}

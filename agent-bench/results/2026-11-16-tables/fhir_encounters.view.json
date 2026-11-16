@@ -1,0 +1,11 @@
+{"resourceType":"ViewDefinition","name":"fhir_encounters","status":"active","resource":"Encounter",
+"select":[{"column":[{"name":"id","path":"getResourceKey()"},{"name":"patient_id","path":"subject.getReferenceKey(Patient)"},
+{"name":"kind","path":"identifier.system.first().substring(41)"},
+{"name":"ident","path":"identifier.value.first()"},
+{"name":"parent_id","path":"partOf.getReferenceKey(Encounter)"},
+{"name":"class","path":"class.code"},
+{"name":"priority","path":"priority.coding.code.first()"},
+{"name":"admit_source","path":"hospitalization.admitSource.coding.code.first()"},
+{"name":"service","path":"serviceType.coding.code.first()"},
+{"name":"starttime","path":"period.start.toString().substring(0,19).replace('T',' ')"},
+{"name":"endtime","path":"period.end.toString().substring(0,19).replace('T',' ')"}]}]}

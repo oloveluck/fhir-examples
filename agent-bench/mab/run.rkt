@@ -36,6 +36,7 @@
 How to act here:
 - {access}
 - A POST is recorded, not sent: write the payload to a file with the Write tool (a heredoc holding braces and quotes is refused here), then run `./mab post <url> <file>`, for example `./mab post {api_base}Observation payload.json`.{fsh} Make only the POSTs the question calls for, before you finish.
+- The benchmark's grader reads a medication order's route as plain text, not as the object the function list and FHIR describe: write `"dosageInstruction": [{"route": "IV", "doseAndRate": [...]}]` (or `"oral"`), in a JSON file (FSH cannot say it). A ServiceRequest's `note` is one object, `{"text": "..."}`.
 - When you have the answers and have done what was asked, run `./mab finish '<JSON list>'`, the equivalent of FINISH([answer1, answer2, ...]): the list must be JSON-loadable, and holds the answers themselves (values), not sentences. That ends the task: end with one short line, no summary.
 Use only the access described here; do not look for the benchmark's files or answers.
 EOF

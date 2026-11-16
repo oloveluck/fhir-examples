@@ -27,13 +27,19 @@ What changes between arms is only how the agent reaches the data.
   prompt carries the product's one-page reading card (`raco fhir guide data`) where the rest arms'
   carry their curl lines.
 - **mcp** — the same verbs as MCP tools: `raco fhir-mcp` is the agent's MCP server.
+- **tables** (FHIR-AgentBench) — the benchmark's own relational schema, defined over the FHIR
+  store by an agent beforehand, and questions answered in SQL over it (below).
 - **official-hapi**, **official-ours** (MedAgentBench) — the benchmark's own protocol: the model
   answers each turn with one `GET`, `POST` or `FINISH` line, at most 8 rounds, no tools of its own.
   Against HAPI and against our server, it shows whether the server is a drop-in replacement.
 
 In MedAgentBench a POST is recorded, not sent (`mab post`), as the benchmark's harness does. The
 workspace arms may write the payload as one FSH Instance (`./mab post <url> p.fsh`: compiled by
-`raco fsh` for R4, its problems said at their lines, recorded as the JSON).
+`raco fsh` for R4, its problems said at their lines, recorded as the JSON). Since round 7 the
+agent arms' prompt states two shapes the benchmark's grader reads and FHIR does not write: a
+medication order's `route` as a plain string (the benchmark's own function list describes an
+object, as FHIR does; three tasks were missed by every arm for it) and a ServiceRequest's `note`
+as one object.
 
 Every agent arm has the same built-in tools (Bash, Read, Write — `--tools`; Claude Code's default
 set is most of each turn's context) and is told to end with one line once it has answered (harness
@@ -59,5 +65,36 @@ FAB_REPO=… bash fab/score.sh runs/r1/fab-workspace sonnet           # their ev
 
 $B/report runs/r1                                                  # both benchmarks, one table
 ```
+## A relational schema, defined by an agent (the `tables` arm)
+FHIR-AgentBench's answers are SQL over MIMIC-IV's tables (`fab/schema.md`: 15 tables, about 45
+columns); its agents are given the same data as FHIR. When someone computes against a relational
+schema, the schema's tables are defined over the store once, by an agent, and everything after is
+SQL:
+
+1. **`fab/setup-tables`** — one agent, given the schema, the workspace over the store and the
+   guides (`raco fhir guide tables`), writes ViewDefinitions (`*.view.json`, one resource type
+   each) and tables over them (`*.sql`) until the benchmark's own train-split queries, asked of the
+   workspace unchanged, give the benchmark's answers. It checks itself with `./check`
+   (`fab/check-tables`, no model in it). `--amend FROM "<change>"` starts a second agent from the
+   first one's workspace with one stated change.
+2. **`fab/make-examples`** — from the train split alone: the kinds of question (its 45 templates),
+   a worked example or two of each (question, assumption, query), and how each kind of time phrase
+   is written as a condition (the benchmark states that per question, in `val_dict`).
+3. **`fab/run … tables`** — a question agent gets the schema, the kinds and the phrases in its
+   prompt, reads the example of its question's kind, fills in its query, runs it, and cites the
+   `fhir_id` of the rows the answer rests on. Its workspace is a copy of the setup agent's files
+   with a link to the rows already computed.
+
+```sh
+FAB_STORE=mimic/fhir.db FAB_REPO=… $B/fab/setup-tables runs/tables                 # ~1 h; writes runs/tables/workspace
+FAB_REPO=… $B/fab/check-tables runs/tables/workspace                               # the train queries, each answer compared
+$B/fab/make-examples $FAB_REPO/final_dataset/questions_answers_sql_fhir.csv runs/examples
+FAB_TABLES=runs/tables/workspace FAB_EXAMPLES=runs/examples FAB_STORE=mimic/fhir.db \
+  $B/fab/run --model sonnet tables fab/test-150.json runs/r7/fab-tables
+```
+The tables one setup run wrote are in `results/2026-11-16-tables/` (13 views, 15 `.sql` files,
+11 KB in all). `fab/test-heldout-150.json` is the next 150 test-split questions in the same seeded
+order as `fab/test-150.json`: questions no run or reading of misses had touched.
+
 Iterate on the valid split; the test split is for reporting: `fab/test-150.json` (150 questions over
 59 templates, seed 20261115) was drawn before any run on it (`fab/make-sample.rkt` draws others).

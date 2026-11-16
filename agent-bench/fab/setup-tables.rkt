@@ -3,8 +3,8 @@
 ;;; setup-tables.rkt — one agent, given FHIR-AgentBench's relational schema and the FHIR store,
 ;;; defines the schema's tables in a workspace.
 ;;;
-;;;   racket -l- fhir-examples/agent-bench/fab/setup-tables OUT_DIR [--model M] [--timeout SECONDS] [--max-turns N]
-;;;   racket -l- fhir-examples/agent-bench/fab/setup-tables OUT_DIR --amend FROM_WORKSPACE "<what to change>"
+;;;   racket -l- fhir-examples/agent-bench/fab/setup-tables [--model M] [--timeout SECONDS] [--max-turns N] OUT_DIR
+;;;   racket -l- fhir-examples/agent-bench/fab/setup-tables --amend FROM_WORKSPACE "<what to change>" OUT_DIR
 ;;;       a second agent, in a copy of a workspace the first one wrote, makes one stated change
 ;;;       and holds the tables to the same queries
 ;;;

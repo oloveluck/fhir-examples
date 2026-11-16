@@ -1,0 +1,8 @@
+{"resourceType":"ViewDefinition","name":"fhir_procedures","status":"active","resource":"Procedure",
+"where":[{"path":"meta.profile.first().endsWith('mimic-procedure')"}],
+"select":[{"column":[{"name":"id","path":"getResourceKey()"},
+{"name":"encounter_id","path":"encounter.getReferenceKey(Encounter)"},
+{"name":"system","path":"code.coding.system.first()"},
+{"name":"code","path":"code.coding.code.first()"},
+{"name":"title","path":"code.coding.display.first()"},
+{"name":"charttime","path":"performed.ofType(dateTime).toString().substring(0,10)"}]}]}

@@ -1,0 +1,5 @@
+{"resourceType":"ViewDefinition","name":"fhir_encounter_locations","status":"active","resource":"Encounter",
+"select":[{"column":[{"name":"id","path":"getResourceKey()"}]},
+{"forEach":"location","column":[{"name":"location_id","path":"location.getReferenceKey(Location)"},
+{"name":"intime","path":"period.start.toString().substring(0,19).replace('T',' ')"},
+{"name":"outtime","path":"period.end.toString().substring(0,19).replace('T',' ')"}]}]}

@@ -10,7 +10,7 @@
 ;;;   mcp        the same verbs as MCP tools (`raco fhir-mcp` as the agent's MCP server)
 ;;;   tables     the benchmark's relational schema, defined over the store by an agent beforehand
 ;;;              (setup-tables.rkt; FAB_TABLES is that workspace): the question is answered in SQL
-;;;              over those tables, from the worked example of its kind (FAB_EXAMPLES, a file made
+;;;              over those tables, from the worked example of its kind (FAB_EXAMPLES, a directory made
 ;;;              by make-examples.rkt from the train split)
 ;;; Every arm has the same built-in tools (Bash, Read, Write: `--tools`), and the same closing
 ;;; instruction; the workspace arms get the reading card (`raco fhir guide data`) where the rest
@@ -47,11 +47,16 @@ EOF
       "Access: the dataset as the tables of a relational schema, in this directory's workspace (the tables are defined over the FHIR data):\n"
       "  raco fhir-mcp call query language=sql text=\"SELECT …\"      one SQLite statement; rows come back as JSON\n\n"
       (tables-schema) "\n\n"
-      "`examples.md` in this directory has one worked example per kind of question: the kind (its slots in braces), a question of that kind, what it assumes, and the query that answers it. Work like this:\n"
-      "1. `grep -n '^###' examples.md` lists the kinds. Find yours — the nearest, when none fits exactly — and read it (`grep -A3 -F '<the heading's first words>' examples.md`).\n"
-      "2. Write your query the same way: the same tables, the same way of choosing the visit (first, last, current) and of counting time from the assumed current time, with your question's patient, names and dates. A name (a lab test, a drug, a care unit, a specimen) is in the tables as the hospital writes it, capitals included; the question gives it in lower case, so look it up first (`SELECT DISTINCT label FROM d_labitems WHERE lower(label) = 'creatinine'`).\n"
-      "3. Run it. The answer is what it returns. No rows means the answer is \"none\" (0 for a count, no for a yes/no question): do not look for another reading of the question that would return something.\n"
-      "For `resources`: every table has a `fhir_id` column (`Type/id`, the FHIR resource a row comes from); give the fhir_id of the rows the answer rests on (select it beside the answer, or in a second query).")]
+      "People who compute against this schema write each kind of question's query one way. The kinds (a kind's slots in braces and brackets):\n"
+      (examples-file "kinds.md") "\n\n"
+      "`cat examples/<number>.md` shows a kind: a question or two of that kind, what each assumes, and the query that answers it.\n\n"
+      "How a time phrase is written in such a query (with your column and your current time in place of the ones shown):\n"
+      (examples-file "phrases.md") "\n\n"
+      "Work like this:\n"
+      "1. Read the example of your question's kind (the nearest, when none fits exactly). In the same command, look up the names your question gives: a lab test, a drug, a care unit, a specimen is in the tables as the hospital writes it, capitals included, and the question gives it in lower case (`SELECT DISTINCT label FROM d_labitems WHERE lower(label) = 'creatinine'`).\n"
+      "2. Copy the example's query whole and change only three things: the patient's number; the names and values (spelled as the tables have them); the time conditions (take out the example's, put in one for each time phrase of your question — \"today\", \"since 09/2116\", \"on the last ICU visit\" — written as the list above writes it, on the column the example uses). Change nothing else: not how the visit is chosen, not the SELECT, not the ORDER BY or LIMIT, and add no condition of your own. A \"current\" visit (\"this hospital stay\", \"since admission\") is `dischtime IS NULL` and only that: the people who use this schema do not call a visit current once a discharge time is recorded for it, whatever the assumed current time is.\n"
+      "3. Run it. The answer is what it returns, as it returns it: the number with its sign, the time as written, every row when there are several. When it returns no row, a null or a count of 0, nothing was found, and the answer says so: \"none: no <what was asked> on record\" (for a yes/no question, \"no: none on record\"). Do not look for another reading of the question that would return something.\n"
+      "For `resources`: every table but the `d_` dictionaries also has a `fhir_id` column (`Type/id`: the FHIR resource a row comes from), and prescriptions a `medication_fhir_id`. Give the fhir_id of the rows the answer rests on, and for a prescription its medication_fhir_id too: select them beside the answer, or in a second query with the same conditions. An answer that nothing was found rests on no resource.")]
     [("mcp")
      (string-append "Access: the FHIR workspace's tools (mcp__fhir__…: query, describe, explain, run, check, …), over this dataset. "
                     "The card below writes a call as the shell does: `describe ref=X as=fsh` is the describe tool with ref and as.\n\n"
@@ -77,23 +82,28 @@ EOF
   (string-append "The schema (a time is text, `YYYY-MM-DD HH:MM:SS`; an identifier an integer):\n"
                  (string-join (filter (lambda (l) (regexp-match? #rx"^[|]" l)) (file->lines schema-file)) "\n")))
 
+;; examples-dir : -> path   what make-examples wrote (FAB_EXAMPLES): kinds.md, phrases.md, <n>.md
+(define (examples-dir) (or (getenv "FAB_EXAMPLES") (error 'run "set FAB_EXAMPLES to the directory make-examples wrote")))
+(define (examples-file name) (string-trim (file->string (build-path (examples-dir) name))))
+
 ;; tables-workspace! : dir -> void   the question's workspace: the tables the setup agent defined
 ;; (FAB_TABLES: its views and `.sql` files), the rows it already computed (a link to its kept
 ;; views: a view over the Observations takes minutes to compute), and the worked examples
 (define (tables-workspace! work)
   (define from (or (getenv "FAB_TABLES") (error 'run "set FAB_TABLES to the workspace setup-tables wrote")))
-  (define examples (or (getenv "FAB_EXAMPLES") (error 'run "set FAB_EXAMPLES to the file make-examples wrote")))
   (for ([f (in-list (directory-list from))]
         #:when (regexp-match? #rx"[.](view[.]json|sql|yaml)$" (path->string f)))
     (copy-file (build-path from f) (build-path work f) #t))
-  (copy-file examples (build-path work "examples.md") #t)
+  (make-directory* (build-path work "examples"))
+  (for ([f (in-list (directory-list (examples-dir)))] #:when (regexp-match? #rx"^[0-9]+[.]md$" (path->string f)))
+    (copy-file (build-path (examples-dir) f) (build-path work "examples" f) #t))
   (make-directory* (build-path work ".fhir-mcp"))
   (make-file-or-directory-link (path->complete-path (build-path from ".fhir-mcp" "views.db")) (build-path work ".fhir-mcp" "views.db")))
 
 (define (tools arm)
   (append (case arm
             [("workspace") '("Bash(raco fhir-mcp:*)" "Bash(raco fhir guide:*)")]
-            [("tables") '("Bash(raco fhir-mcp:*)" "Bash(grep:*)")]
+            [("tables") '("Bash(raco fhir-mcp:*)" "Bash(cat:*)" "Bash(grep:*)")]
             [("mcp") '("mcp__fhir" "Bash(raco fhir guide:*)")]
             [else '("Bash(curl:*)")])
           '("Bash(python3:*)" "Bash(jq:*)" "Read" "Write")))

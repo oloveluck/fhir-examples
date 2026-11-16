@@ -52,6 +52,18 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   (a JSON Patch: 50). Rounds 4 to 6 of the agent benchmarks: `agent-bench/results/2026-11-16-round4.md`
   (round 6, after a zone-less search date means the record's day and the summary says when no stay
   was open: FHIR-AgentBench 122 of 150; `…-misses-by-cause.md` sorts the misses).
+- **A relational schema, defined by an agent** (2026-11-16, round 7; `agent-bench/results/2026-11-16-round7.md`).
+  FHIR-AgentBench's truth is SQL over MIMIC-IV's tables, so: `fab/setup-tables.rkt` (one agent
+  writes ViewDefinitions and `.sql` tables over the store until the benchmark's train queries give
+  its answers: 2,074 of 2,098; `--amend` for one stated change; options before OUT_DIR),
+  `fab/check-tables.rkt` (those queries asked of a workspace, no model; `--ids` for any list of
+  questions), `fab/make-examples.rkt` (from the train split: kinds.md, `<n>.md`, phrases.md — the
+  time phrases come from the CSV's `val_dict`, a Python literal read by `read-python`),
+  `fab/run.rkt`'s arm `tables` (FAB_TABLES, FAB_EXAMPLES). Development 144 and 145 of 150 (round
+  6: 122), unseen (`fab/test-heldout-150.json`) 145 and 144, at 72k input tokens a question;
+  MedAgentBench 300 of 300 once the prompt says the grader's `route` shape. What moved agents from
+  136 to 145 was the instruction to copy the example's query whole and change three things; told
+  to "adapt" it they rewrote it. A question's `template` column is never given to an agent.
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.

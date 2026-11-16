@@ -1,0 +1,6 @@
+{"tables":["patients","admissions","icustays","transfers","d_labitems","labevents","d_items","chartevents","outputevents","prescriptions","microbiologyevents","procedures_icd","d_icd_procedures","diagnoses_icd","d_icd_diagnoses"],
+"passing":"2073/2098",
+"unresolved":[
+{"table":"prescriptions","what":"24 queries differ: starttime for requests lacking dispenseRequest.validityPeriod, and dose/drug for medication mixes","why":"FHIR MedicationRequests without a validity period carry only authoredOn, so MIMIC's starttime cannot be recovered (approximated by authoredOn to the minute); mixes (ingredient lists) and POE-only orders do not map one-to-one to MIMIC prescription rows"},
+{"table":"chartevents","what":"1 query (edcb8775) errored with a transient 'no such table kept0...' engine error","why":"not a data gap; the view's cached result vanished mid-run"},
+{"table":"d_labitems/d_items/d_icd_*","what":"dictionaries only list items that occur in the data","why":"FHIR holds no standalone dictionary resources"}]}
