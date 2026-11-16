@@ -78,3 +78,11 @@ where the grader reads an object.)
   make "no stay was open then", "nothing after the current time" and "today" hard to miss.
 So the ceiling that means something is about 130 of 150 (the 120 now, plus those 10), or 136 with
 the conventions; two runs of the same code differ by about two.
+
+## Done since
+
+The first two of those ten kinds are built (fhir 41ec5f4; `2026-11-16-round4.md`, round 6): the
+date-only search, and a summary and a card that say what follows from a question being asked at a
+time. Six of the ten questions are now answered as the reference expects, in each of three runs;
+round 6 as a whole is 122 of 150.
+

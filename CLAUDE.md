@@ -49,7 +49,9 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   Findings: CQL is 13% of its ELM in tokens, VCL 28% of a compose, FML 52% of a StructureMap; an
   FSH instance is 96% of compact JSON as decompiled and 75% as an instance of its profile with
   aliases; every edit arm 60/60, the rules-only answer 26 tokens against 535 for the whole JSON
-  (a JSON Patch: 50). Round 4 of the agent benchmarks: `agent-bench/results/2026-11-16-round4.md`.
+  (a JSON Patch: 50). Rounds 4 to 6 of the agent benchmarks: `agent-bench/results/2026-11-16-round4.md`
+  (round 6, after a zone-less search date means the record's day and the summary says when no stay
+  was open: FHIR-AgentBench 122 of 150; `…-misses-by-cause.md` sorts the misses).
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.
