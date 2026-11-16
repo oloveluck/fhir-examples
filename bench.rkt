@@ -363,7 +363,8 @@
                          'timed_out timed-out? 'answered answered? 'run (path->string run-dir)
                          'answer_chars (string-length text)
                          'input_tokens (hash-ref usage 'input_tokens (json-null))
-                         'output_tokens (hash-ref usage 'output_tokens (json-null))))
+                         'output_tokens (hash-ref usage 'output_tokens (json-null))
+                         'thinking_tokens (hash-ref usage 'thinking_tokens (json-null))))
     (call-with-output-file (build-path dir "results.jsonl") #:exists 'append
       (lambda (o) (write-json (hash-set s 'candidate text) o) (newline o)))
     (define acc* (append acc (list s)))
@@ -385,9 +386,12 @@
   (cond [(and (hash? js) (string? (hash-ref js 'result #f)) (hash? (hash-ref js 'usage #f)))
          (define u (hash-ref js 'usage))
          (define (n k) (let ([v (hash-ref u k 0)]) (if (real? v) v 0)))
+         (define details (let ([d (hash-ref u 'output_tokens_details #f)]) (if (hash? d) d (hasheq))))
          (values (hash-ref js 'result)
                  (hasheq 'input_tokens (+ (n 'input_tokens) (n 'cache_read_input_tokens) (n 'cache_creation_input_tokens))
-                         'output_tokens (n 'output_tokens)))]
+                         'output_tokens (n 'output_tokens)
+                         ;; the model's thinking, inside output_tokens: spent whatever the answer's form
+                         'thinking_tokens (let ([v (hash-ref details 'thinking_tokens 0)]) (if (real? v) v 0))))]
         [else (values text (hasheq))]))
 
 (module+ test

@@ -29,7 +29,21 @@
                    'compiled (hash-ref final 'profile_compiled #f)
                    'fidelity (pair 'fidelity) 'accepts (pair 'accepts_published_examples)
                    'conforms (pair 'examples_conform_to_published)
-                   'in (n 'input_tokens) 'out (n 'output_tokens) 'chars (hash-ref final 'answer_chars 0))))))
+                   'in (n 'input_tokens) 'out (n 'output_tokens) 'think (thinking dir rounds)
+                   'chars (hash-ref final 'answer_chars 0))))))
+
+;; thinking : dir (listof score) -> number   the thinking tokens of a run's rounds, as recorded, else
+;; read from each round's raw answer (Claude Code's JSON: usage.output_tokens_details.thinking_tokens)
+(define (thinking dir rounds)
+  (for/sum ([s rounds])
+    (define v (hash-ref s 'thinking_tokens #f))
+    (cond [(real? v) v]
+          [else
+           (define run (let ([r (hash-ref s 'run)]) (if (absolute-path? r) r (build-path dir 'up r))))
+           (define f (build-path run (format "round-~a.answer.txt" (hash-ref s 'round))))
+           (define js (and (file-exists? f) (with-handlers ([exn:fail? (lambda (_) #f)]) (string->jsexpr (file->string f)))))
+           (define d (and (hash? js) (hash? (hash-ref js 'usage #f)) (hash-ref (hash-ref js 'usage) 'output_tokens_details #f)))
+           (let ([t (and (hash? d) (hash-ref d 'thinking_tokens #f))]) (if (real? t) t 0))])))
 
 (define (frac p) (if (zero? (cadr p)) 1 (/ (car p) (cadr p))))
 (define (pct x) (format "~a%" (round (* 100 x))))
@@ -47,17 +61,18 @@
     (printf "| ~a | ~a | ~a |\n" (hash-ref (first p) 'task) (cell (first p)) (cell (second p))))
   (newline)
   (printf "~a tasks with both formats run\n\n" (length done))
-  (printf "| format | clean at the end | mean fidelity | published examples accepted | own examples conforming | rounds | output tokens | input tokens | answer characters |\n|---|---|---|---|---|---|---|---|---|\n")
+  (printf "| format | clean at the end | mean fidelity | published examples accepted | own examples conforming | rounds | answer tokens | thinking tokens | input tokens | answer characters |\n|---|---|---|---|---|---|---|---|---|---|\n")
   (for ([i '(0 1)] [name '("FSH (the DSL)" "FHIR JSON (the representation)")])
     (define rs (map (lambda (p) (list-ref p i)) done))
     (define (sum f) (for/sum ([r rs]) (f r)))
     (define (pairsum key) (list (sum (lambda (r) (car (hash-ref r key)))) (sum (lambda (r) (cadr (hash-ref r key))))))
-    (printf "| ~a | ~a/~a | ~a | ~a/~a | ~a/~a | ~a | ~a | ~a | ~a |\n" name
+    (printf "| ~a | ~a/~a | ~a | ~a/~a | ~a/~a | ~a | ~a | ~a | ~a | ~a |\n" name
             (count (lambda (r) (hash-ref r 'clean)) rs) (length rs)
             (pct (/ (sum (lambda (r) (frac (hash-ref r 'fidelity)))) (max 1 (length rs))))
             (car (pairsum 'accepts)) (cadr (pairsum 'accepts)) (car (pairsum 'conforms)) (cadr (pairsum 'conforms))
             (/ (round (* 10 (/ (sum (lambda (r) (hash-ref r 'rounds))) (max 1 (length rs))))) 10.0)
-            (k (sum (lambda (r) (hash-ref r 'out)))) (k (sum (lambda (r) (hash-ref r 'in))))
+            (k (sum (lambda (r) (- (hash-ref r 'out) (hash-ref r 'think))))) (k (sum (lambda (r) (hash-ref r 'think))))
+            (k (sum (lambda (r) (hash-ref r 'in))))
             (k (sum (lambda (r) (hash-ref r 'chars))))))
   (newline)
   (define (better key) (for/list ([p done] #:when (> (frac (hash-ref (first p) key)) (frac (hash-ref (second p) key)))) (hash-ref (first p) 'task)))
