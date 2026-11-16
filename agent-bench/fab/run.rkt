@@ -111,6 +111,7 @@ EOF
      [("--parallel") k "agents at a time (default 4)" (set! parallel (string->number k))]
      [("--limit") n "the first N questions" (set! limit (string->number n))]
      [("--collect") "run nothing: rebuild agent_results.json from the run's directories" (set! collect? #t)]
+     [("--resume") "skip the items that already have a record (a killed run, resumed)" (current-resume? #t)]
      #:args (arm sample out) (values arm sample out)))
   (unless (member arm '("rest" "workspace" "mcp")) (raise-user-error 'run "the arm is rest, workspace or mcp"))
   (define rest (or (getenv "FAB_REST") "http://localhost:8765"))

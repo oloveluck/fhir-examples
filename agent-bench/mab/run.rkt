@@ -151,6 +151,7 @@ EOF
      [("--ids") i "task ids, comma-separated" (set! ids i)]
      [("--per-kind") n "the first N tasks of each kind" (set! per-kind (string->number n))]
      [("--parallel") k "agents at a time (default 4)" (set! parallel (string->number k))]
+     [("--resume") "skip the items that already have a record (a killed run, resumed)" (current-resume? #t)]
      #:args (arm out) (values arm out)))
   (define base (if (member arm '("rest-hapi" "official-hapi")) hapi ours))
   (define dir (path->complete-path out))

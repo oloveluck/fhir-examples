@@ -47,7 +47,11 @@
   ;; workspace-mcp : dir -> string   an MCP configuration: the workspace in dir as the agent's server
   [workspace-mcp (-> path-string? string?)]
   ;; builtin-tools : every arm's built-in tools
-  [builtin-tools (listof string?)]))
+  [builtin-tools (listof string?)]
+  ;; current-resume? : when true, an item whose directory already holds its record is not run
+  ;; again (a run killed with the container is resumed; a link left by a killed item is no record)
+  [current-resume? (parameter/c boolean?)]))
+(define current-resume? (make-parameter #f))
 
 (define builtin-tools '("Bash" "Read" "Write"))
 (define card #f)
@@ -124,6 +128,13 @@
                   #:prepare [prepare #f] #:timeout [timeout 1200] #:max-turns [max-turns 60] #:env [env-extra '()]
                   #:builtin [builtin #f] #:mcp [mcp #f])
   (define work (path->complete-path workdir))
+  (define kept (build-path work "record.json"))
+  (if (and (current-resume?) (not (link-exists? work)) (file-exists? kept))
+      (read-json-file kept)
+      (run-item/fresh id prompt work model tools prepare timeout max-turns env-extra builtin mcp)))
+
+;; run-item/fresh : … -> Record   the item run by a new agent
+(define (run-item/fresh id prompt work model tools prepare timeout max-turns env-extra builtin mcp)
   (when (or (link-exists? work) (file-exists? work)) (delete-file work))
   (when (directory-exists? work) (delete-directory/files work))
   (make-directory* (let-values ([(parent _n _d) (split-path work)]) parent))
