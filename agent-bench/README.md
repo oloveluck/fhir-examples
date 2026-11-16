@@ -1,9 +1,12 @@
 # Agent benchmarks
 
 Two third-party benchmarks of LLM agents over FHIR data, run with headless Claude Code agents
-(`claude -p`), each in an empty directory of its own: no repository notes, only the benchmark's
+(`claude -p`), each in an empty directory of its own (a short one, `/tmp/agent-bench/<n>/<id>` or
+`$AGENT_BENCH_WORK`, moved into the run afterwards): no repository notes, only the benchmark's
 prompt and the arm's tools. Every run records the answer, tokens, cost, time and every shell
-command (`run-agent.rkt`), and is graded by the benchmark's own grader.
+command (`run-agent.rkt`), and is graded by the benchmark's own grader. Arms are compared by the
+input tokens an item costs and its turns (`report.rkt`); cost is shown last, since prompt caching
+makes the same tokens cost twice as much in one run as in the next.
 
 | benchmark | what it asks | data | grader |
 |---|---|---|---|

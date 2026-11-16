@@ -23,7 +23,9 @@
   ;; #:builtin: the built-in tools the agent has at all (`--tools`; #f = Claude Code's default set,
   ;; whose definitions are most of every turn's context); #:mcp: an MCP configuration (JSON text),
   ;; its servers the only ones the agent sees
-  [run-item (->* (string? string? path-string? string? (listof string?))
+  ;; prompt: the text, or a function of the directory the agent works in (a short one, see
+  ;; agent-directory) when the prompt names a path there
+  [run-item (->* (string? (or/c string? (-> path? string?)) path-string? string? (listof string?))
                  (#:prepare (or/c #f (-> any)) #:timeout real? #:max-turns exact-positive-integer?
                   #:env (listof (cons/c string? string?))
                   #:builtin (or/c #f (listof string?)) #:mcp (or/c #f string?))
@@ -100,14 +102,40 @@
 (define (write-json-file f v)
   (call-with-output-file f #:exists 'truncate (lambda (o) (write-json v o))))
 
+;; The agent works in a SHORT directory of its own (agent-directory), not in the item's directory of
+;; the run: under a scratch path like `/tmp/x/-home-user/abc/…` (the shape of Claude Code's own
+;; project-directory names) agents wrote files to `/tmp/x/-home-user-abc/…`, then could not read them
+;; (8 of 300 MedAgentBench workspace tasks, 21 of 300 MCP ones, a turn or more each). While it runs,
+;; the item's directory is a link to it; afterwards the directory is moved into the run.
+(define work-root (or (getenv "AGENT_BENCH_WORK") "/tmp/agent-bench"))
+;; agent-directory : id -> path   a new, empty, short directory named for the item
+(define (agent-directory id)
+  (make-directory* work-root)
+  (define d (build-path (make-temporary-directory "~a" #:base-dir work-root) id))
+  (make-directory* d)
+  d)
+;; settle! : real work -> void   the agent's directory moved to the item's place in the run
+(define (settle! real work)
+  (when (link-exists? work) (delete-file work))
+  (rename-file-or-directory real work)
+  (delete-directory (let-values ([(parent _n _d) (split-path real)]) parent)))
+
 (define (run-item id prompt workdir model tools
                   #:prepare [prepare #f] #:timeout [timeout 1200] #:max-turns [max-turns 60] #:env [env-extra '()]
                   #:builtin [builtin #f] #:mcp [mcp #f])
   (define work (path->complete-path workdir))
+  (when (or (link-exists? work) (file-exists? work)) (delete-file work))
   (when (directory-exists? work) (delete-directory/files work))
-  (make-directory* work)
+  (make-directory* (let-values ([(parent _n _d) (split-path work)]) parent))
+  (define real (agent-directory id))
+  (make-file-or-directory-link real work)
   (when prepare (prepare))
-  (define-values (status seconds out err) (run-claude work prompt model tools timeout max-turns env-extra builtin mcp))
+  (define-values (status seconds out err)
+    (dynamic-wind void
+                  (lambda () (run-claude real (if (procedure? prompt) (prompt real) prompt) model tools timeout max-turns env-extra builtin mcp))
+                  ;; the workspace's warm process, if a call started one, ends with the item
+                  (lambda () (void (system* (find-executable-path "pkill") "-f" (format "mcp-daemon.*~a" real))))))
+  (settle! real work)
   (define meta (with-handlers ([exn:fail? (lambda (_) (hasheq))]) (string->jsexpr out)))
   (define answer (read-answer work))
   (define usage (if (hash? meta) (hash-ref meta 'usage (hasheq)) (hasheq)))

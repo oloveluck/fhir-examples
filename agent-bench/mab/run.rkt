@@ -35,7 +35,7 @@
 
 How to act here:
 - {access}
-- A POST is recorded, not sent: write the payload to a file (with the Write tool), then run `./mab post <url> <file>`, for example `./mab post {api_base}Observation payload.json`.{fsh} Make only the POSTs the question calls for, before you finish.
+- A POST is recorded, not sent: write the payload to a file with the Write tool (a heredoc holding braces and quotes is refused here), then run `./mab post <url> <file>`, for example `./mab post {api_base}Observation payload.json`.{fsh} Make only the POSTs the question calls for, before you finish.
 - When you have the answers and have done what was asked, run `./mab finish '<JSON list>'`, the equivalent of FINISH([answer1, answer2, ...]): the list must be JSON-loadable, and holds the answers themselves (values), not sentences. That ends the task: end with one short line, no summary.
 Use only the access described here; do not look for the benchmark's files or answers.
 EOF
@@ -45,7 +45,7 @@ EOF
   (case kind
     [(workspace)
      (string-append "Read the EHR through the FHIR workspace in this directory, from the shell; there is no other access to the EHR. "
-                    "For example: raco fhir-mcp call query language=search text='Observation?patient=S1234567&code=MG'\n\n" (reading-card) "\n")]
+                    "For example: raco fhir-mcp call query language=search text='Observation?patient=Patient/S1234567&code=MG'\n\n" (reading-card) "\n")]
     [(mcp)
      (string-append "Read the EHR through the FHIR workspace's tools (mcp__fhir__…); there is no other access to the EHR. "
                     "The card below writes a call as the shell does: `describe ref=X as=fsh` is the describe tool with ref and as.\n\n" (reading-card) "\n")]

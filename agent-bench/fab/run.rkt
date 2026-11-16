@@ -124,7 +124,7 @@ EOF
       (when (member arm '("workspace" "mcp"))
         (display-to-file (format "fhirVersion: 4.0.1\ndata: ~a\n" (or (getenv "FAB_STORE") (error 'run "set FAB_STORE")))
                          (build-path work "workspace.yaml"))))
-    (define rec (run-item id (prompt arm rest q (path->string (build-path work "answer.json"))) work model (tools arm)
+    (define rec (run-item id (lambda (real) (prompt arm rest q (path->string (build-path real "answer.json")))) work model (tools arm)
                           #:prepare prepare #:builtin builtin-tools #:mcp (and (equal? arm "mcp") (workspace-mcp work))))
     (void (system* (find-executable-path "pkill") "-f" (format "mcp-daemon.*~a" work)))
     ;; the benchmark's files, and the other questions' directories (an agent's own is its cwd)
