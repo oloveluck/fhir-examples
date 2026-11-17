@@ -17,7 +17,10 @@
 ;;;      and, when the workspace holds the question (question.json) and examples/checks.json, says
 ;;;      what query-checks.rkt finds: a phrase of the question with no condition, a name the
 ;;;      question does not give; and says when the first or last row it picked has no value;
-;;;   5. writes {"answer", "resources"} to --out (answer.json).
+;;;   5. writes {"answer", "resources"} to --out (answer.json) — unless a decisive note stands
+;;;      (query-checks.rkt's `hold?`: the averaging unit only other kinds say, a value where the
+;;;      question asks whether): then nothing is written and it says so; the same query given a
+;;;      second time is written.
 ;;; The agent reads the rows and the notes, and writes the file itself only when it disagrees.
 ;;;
 ;;; A Shape is a string: a query with its WHERE conditions left out and its literals as `?`.
@@ -25,18 +28,11 @@
 (require racket/cmdline racket/file racket/list racket/string json
          (only-in fhir/lang/workspace run-result-columns run-result-rows)
          (only-in "check-ids.rkt" row-queries id-columns sub-selects)
-         (only-in "query-checks.rkt" query-notes))
+         (only-in "query-checks.rkt" query-notes comparison? asks-whether hold?))
 
-(provide answer-text shape example-queries shape-note all-rows empty-pick-note)
+(provide answer-text shape example-queries shape-note all-rows empty-pick-note held? shown-note)
 
 ;; ---- the answer ---------------------------------------------------------------------------------
-;; comparison? : string -> boolean   a query whose select list is a comparison: its 1/0 is yes/no
-(define (comparison? sql)
-  (define q (regexp-replace* #px"\\s+" sql " "))
-  (define outer (regexp-replace* #px"\\([^()]*\\)" (regexp-replace* #px"\\([^()]*\\)" (regexp-replace* #px"\\([^()]*\\)" (regexp-replace* #px"\\([^()]*\\)" q "G") "G") "G") "G"))
-  (define select-list (car (string-split (string-append outer " ") " FROM ")))
-  (regexp-match? #px"^SELECT .*(>|<|=)" select-list))
-
 ;; count? : string -> boolean   a query that counts
 (define (count? sql) (regexp-match? #px"^\\s*SELECT\\s+COUNT\\s*\\(" sql))
 
@@ -58,6 +54,19 @@
     [else (string-join (for/list ([r (in-list rows)] #:unless (andmap (lambda (c) (eq? c 'null)) r))
                          (string-join (map cell-text (filter (lambda (c) (not (eq? c 'null))) r)) " | "))
                        ", ")]))
+
+;; ---- an answer held back -----------------------------------------------------------------------------
+;; held-file : the query whose answer was held back, kept in the question's workspace
+(define held-file ".held-query")
+
+;; shown-note : string -> string   a note as it is printed: a decisive one reads as any other
+(define (shown-note n) (if (hold? n) (string-append "note: " (substring n 6)) n))
+
+;; held? : string (listof string) path -> boolean   the answer of this query is not written now:
+;; a decisive note stands, and the query is not the one held back just before
+(define (held? sql notes file)
+  (and (ormap hold? notes)
+       (not (and (file-exists? file) (equal? (file->string file) sql)))))
 
 ;; ---- the rows an answer rests on ------------------------------------------------------------------
 ;; all-rows : string -> string   a row query without its grouping: every row of each group. A
@@ -200,22 +209,37 @@
       (cond [(not kind) '()]
             [(file-exists? file) (example-queries (file->string file))]
             [else (printf "note: there is no examples/~a.md\n" kind) '()])))
-  (for ([note (in-list (list (shape-note sql examples) (empty-pick-note sql rows)))] #:when note)
+  (define question
+    (if (file-exists? "question.json") (call-with-input-file "question.json" read-json) (hasheq)))
+  ;; a comparison where the question asks whether is the question's own shape, whatever the kind's is
+  (define asked-shape? (and (asks-whether (hash-ref question 'question "")) (comparison? sql)))
+  (for ([note (in-list (list (and (not asked-shape?) (shape-note sql examples)) (empty-pick-note sql rows)))] #:when note)
     (printf "~a\n" note))
-  (when (and (file-exists? "question.json") (file-exists? (build-path "examples" "checks.json")))
-    (define q (call-with-input-file "question.json" read-json))
-    (define checks (call-with-input-file (build-path "examples" "checks.json") read-json))
-    ;; a column's distinct values, asked of the workspace when a check needs them
-    (define (values-of column)
-      (define parts (string-split column "."))
-      (with-handlers ([exn:fail? (lambda (_) '())])
-        (define-values (_cols rs) (cells (run (format "SELECT DISTINCT ~a FROM ~a" (cadr parts) (car parts)))))
-        (filter string? (map car rs))))
-    (for ([n (in-list (query-notes sql kind checks (hash-ref q 'question "") (hash-ref q 'assumption "") examples values-of))])
-      (printf "~a\n" n)))
-  (call-with-output-file out #:exists 'truncate
-    (lambda (o) (write-json (hasheq 'answer answer 'resources resources) o)))
-  (printf "written to ~a\n" out))
+  (define notes
+    (cond
+      [(and (file-exists? "question.json") (file-exists? (build-path "examples" "checks.json")))
+       (define q question)
+       (define checks (call-with-input-file (build-path "examples" "checks.json") read-json))
+       ;; a column's distinct values, asked of the workspace when a check needs them
+       (define (values-of column)
+         (define parts (string-split column "."))
+         (with-handlers ([exn:fail? (lambda (_) '())])
+           (define-values (_cols rs) (cells (run (format "SELECT DISTINCT ~a FROM ~a" (cadr parts) (car parts)))))
+           (filter string? (map car rs))))
+       (query-notes sql kind checks (hash-ref q 'question "") (hash-ref q 'assumption "") examples values-of)]
+      [else '()]))
+  (for ([n (in-list notes)]) (printf "~a\n" (shown-note n)))
+  ;; a decisive note holds the answer back once: the same query given again is written
+  (cond
+    [(held? sql notes held-file)
+     (call-with-output-file held-file #:exists 'truncate (lambda (o) (write-string sql o)))
+     (printf "NOT written to ~a: ~a says this query does not answer the question as it is asked. Correct the query and run it again. (If the note is mistaken, run this same command once more and it is written.)\n"
+             out (if (= 1 (count hold? notes)) "the last note" "a note above"))]
+    [else
+     (when (file-exists? held-file) (delete-file held-file))
+     (call-with-output-file out #:exists 'truncate
+       (lambda (o) (write-json (hasheq 'answer answer 'resources resources) o)))
+     (printf "written to ~a\n" out)]))
 
 (module+ test
   (require rackunit)
@@ -257,4 +281,15 @@
   (check-false (empty-pick-note pick '(("Transplant"))))
   (check-false (empty-pick-note pick '()) "no row: nothing on record")
   (check-false (empty-pick-note "SELECT MAX(t.v) FROM t WHERE t.a = 1" '((null))) "an aggregate over nothing")
-  (check-false (empty-pick-note "SELECT t.v FROM t WHERE t.a = 1" '((null))) "no ordering picks the row"))
+  (check-false (empty-pick-note "SELECT t.v FROM t WHERE t.a = 1" '((null))) "no ordering picks the row")
+  ;; held back
+  (define f (make-temporary-file "held~a"))
+  (delete-file f)
+  (check-false (held? "SELECT 1" '("note: a") f))
+  (check-true (held? "SELECT 1" '("note: a" "hold: b") f))
+  (void (call-with-output-file f (lambda (o) (write-string "SELECT 1" o))))
+  (check-false (held? "SELECT 1" '("hold: b") f) "the same query a second time is written")
+  (check-true (held? "SELECT 2" '("hold: b") f) "another query is held in its turn")
+  (delete-file f)
+  (check-equal? (shown-note "hold: the question") "note: the question")
+  (check-equal? (shown-note "note: x") "note: x"))

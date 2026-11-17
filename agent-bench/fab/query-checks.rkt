@@ -6,22 +6,29 @@
 ;;;   racket -l- fhir-examples/agent-bench/fab/query-checks <questions_answers_sql_fhir.csv> <examples-dir>
 ;;;
 ;;; writes <examples-dir>/checks.json beside what make-examples wrote. `./answer` (answer.rkt)
-;;; reads it, with the question, and prints a note for each of two slips an agent makes about
+;;; reads it, with the question, and prints a note for each of three slips an agent makes about
 ;;; once in fifty questions:
 ;;;   - a phrase of the question — a time ("today", "since 3 months ago", "this hospital stay") or
 ;;;     an averaging unit ("daily", "monthly") — whose condition the query lacks. The phrases and
 ;;;     the condition each is written as are the train split's own (`val_dict`);
 ;;;   - a name in the query (a drug, a label, a specimen) that the question does not give, and a
 ;;;     name the question does give — a value of the column the query compares names with — that
-;;;     the query leaves out ("or urine" is the label `OR Urine`).
-;;; A note is advice: the query still runs and the answer is still written.
+;;;     the query leaves out ("or urine" is the label `OR Urine`);
+;;;   - a question that asks whether something is so ("Has …", "can you tell me if …") answered by
+;;;     a query that selects a value: every such train query selects a comparison (`COUNT(*)>0`).
+;;; A note is advice: the query still runs and the answer is still written. Two are decisive and
+;;; begin `hold:` in place of `note:` — the question's averaging unit said only by other kinds
+;;; than the one given, and a value selected where the question asks whether: over the scored
+;;; runs no answer written under the first was right. `./answer` writes such an answer only
+;;; when the same query is given a second time.
 ;;;
 ;;; Held to the train and validation splits' own queries: neither is said of any of them (the
 ;;; test below, when FAB_REPO is set). A third check was written and taken out: the conditions
 ;;; every train query of a kind has. A question of a kind the train split lacks (14 of the test
 ;;; split's kinds) is answered from the nearest kind, whose fixed conditions are not its own.
 ;;;
-;;; A Checks is (hasheq 'phrases (listof Phrase))
+;;; A Checks is (hasheq 'phrases (listof Phrase) 'whether (listof n)): `whether` the kinds whose
+;;; train queries all select a comparison
 ;;; A Phrase is (hasheq 'form <pregexp source> 'conditions (listof Shape) 'example <sql> 'kinds (listof n))
 ;;; A Shape is a condition as text with its literals `?` and its columns `C`.
 
@@ -29,7 +36,7 @@
          (only-in "make-examples.rkt" train-questions kinds read-python))
 
 (provide phrase-book phrase-notes name-literals name-notes column-names question-names unnamed-notes whole-name-notes
-         query-shape make-checks query-notes)
+         query-shape make-checks query-notes comparison? asks-whether whether-kinds hold?)
 
 ;; ---- text ----------------------------------------------------------------------------------------
 (define (norm s) (string-downcase (string-trim (regexp-replace* #px"\\s+" s " "))))
@@ -190,9 +197,39 @@
               #:when (pair? others))
     (list (car cn) (norm v) v others)))
 
+;; ---- what is asked for ------------------------------------------------------------------------------
+;; comparison? : string -> boolean   a query whose select list is a comparison: its 1/0 is yes/no
+(define (comparison? sql)
+  (define q (regexp-replace* #px"\\s+" sql " "))
+  (define outer (regexp-replace* #px"\\([^()]*\\)" (regexp-replace* #px"\\([^()]*\\)" (regexp-replace* #px"\\([^()]*\\)" (regexp-replace* #px"\\([^()]*\\)" q "G") "G") "G") "G"))
+  (define select-list (car (string-split (string-append outer " ") " FROM ")))
+  (regexp-match? #px"^SELECT .*(>|<|=)" select-list))
+
+;; asks-whether : string -> (or string #f)   the words by which a question asks whether something
+;; is so: it opens with has/have/had/did/was/were, or asks "if"/"whether" inside a sentence ("can
+;; you tell me if …"). A sentence that begins with "if" states a condition ("… ? if multiple
+;; weights are measured daily, take the maximum."), and a question that ends on a choice asks
+;; which ("… if patient 1 is male or female?")
+(define (asks-whether question)
+  (define q (norm question))
+  (cond [(regexp-match #px"^(?:has|have|had|did|was|were)\\b" q) => car]
+        [(regexp-match? #px"\\b\\w+ or \\w+\\s*[?.]*$" q) #f]
+        [(regexp-match #px"[^.?!] ((?:if|whether))\\b" q) => cadr]
+        [else #f]))
+
+;; whether-kinds : (listof Question) -> (listof n)   the kinds (as make-examples numbers them)
+;; whose train queries all select a comparison
+(define (whether-kinds train)
+  (for/list ([k (in-list (kinds train))] [i (in-naturals 1)]
+             #:when (andmap (lambda (q) (comparison? (hash-ref q 'sql_query))) (cdr k)))
+    i))
+
+;; hold? : string -> boolean   a note that keeps the answer from being written the first time
+(define (hold? note) (string-prefix? note "hold: "))
+
 ;; ---- the checks, made and applied ---------------------------------------------------------------------
 ;; make-checks : (listof Question) -> Checks
-(define (make-checks train) (hasheq 'phrases (phrase-book train)))
+(define (make-checks train) (hasheq 'phrases (phrase-book train) 'whether (whether-kinds train)))
 
 ;; query-notes : string (or string #f) Checks string string (listof string) [(column -> (listof string))]
 ;;               -> (listof string)
@@ -204,13 +241,22 @@
   (append
    (for/list ([p (in-list (phrase-notes question sql (hash-ref checks 'phrases '())))])
      (define kinds (caddr p))
+     ;; a phrase only a few kinds of question say, and the kind given is not one: the kind is the slip
+     (define other-kind? (and kind (string->number kind) (pair? kinds) (<= (length kinds) 6) (not (member (string->number kind) kinds))))
      (string-append
-      (format "note: the question says \"~a\". A query of this schema writes that as `~a` (with its own column and time), and yours has no such condition." (car p) (cadr p))
-      ;; a phrase only a few kinds of question say, and the kind given is not one: the kind is the slip
-      (if (and kind (string->number kind) (pair? kinds) (<= (length kinds) 6) (not (member (string->number kind) kinds)))
+      (format "~a: the question says \"~a\". A query of this schema writes that as `~a` (with its own column and time), and yours has no such condition."
+              (if other-kind? "hold" "note") (car p) (cadr p))
+      (if other-kind?
           (format " Kind ~a's questions do not say \"~a\"; the kinds whose questions do: ~a (`cat examples/~a.md`). If yours is one of those, copy its example instead."
                   kind (car p) (string-join (map number->string kinds) ", ") (car kinds))
           "")))
+   ;; a value where the question asks whether
+   (let ([words (asks-whether question)] [whether (hash-ref checks 'whether '())])
+     (if (and words (pair? whether) (not (comparison? sql)))
+         (list (format "hold: the question asks whether something is so (\"~a …\"), and every query of this schema that answers such a question selects a comparison: `SELECT COUNT(*)>0 FROM …`, or one value `>`/`<` another (kinds ~a~a). Yours selects a value. Keep its conditions and select the comparison."
+                       words (string-join (map number->string (take whether (min 4 (length whether)))) ", ")
+                       (if (> (length whether) 4) ", …" "")))
+         '()))
    (for/list ([w (in-list whole)])
      (format "note: the question's words \"~a\" are the name '~a' in `~a`, whole: a question gives a name in lower case inside its sentence, however much it reads like ordinary words. Name it alone: your query also names ~a, which the question does not say."
              (cadr w) (caddr w) (car w) (string-join (map (lambda (o) (format "'~a'" o)) (cadddr w)) ", ")))
@@ -300,6 +346,26 @@
                       (car (query-notes "SELECT MAX(c.v) FROM c WHERE c.a = 1" "1" checks "What was the monthly weight of patient 1?" "" '())))
   (check-false (regexp-match? #rx"Kind" (car (query-notes "SELECT MAX(c.v) FROM c WHERE c.a = 1" "2" checks "What was the monthly weight of patient 1?" "" '())))
                "the kind given is one that says it")
+  ;; whether
+  (check-equal? (asks-whether "Has patient 1 been prescribed aspirin?") "has")
+  (check-equal? (asks-whether "Can you tell me if the or urine event has occurred to patient 1 since 10/04/2119?") "if")
+  (check-false (asks-whether "Can you tell me if patient 1 is male or female?") "a choice asks which")
+  (check-false (asks-whether "What is the daily weight of patient 1? If multiple weights are measured daily, take the maximum.") "a condition")
+  (check-false (asks-whether "What was the last weight of patient 1?"))
+  (check-true (comparison? "SELECT COUNT(*)>0 FROM t WHERE t.a = 1"))
+  (check-true (comparison? "SELECT ( SELECT t.v FROM t LIMIT 1 ) > ( SELECT t.v FROM t LIMIT 1 )"))
+  (check-false (comparison? "SELECT SUM(t.v) FROM t WHERE t.a >= 1"))
+  (define yes-no (hash-set checks 'whether '(2 4 5 9 11)))
+  (define whether-note (query-notes "SELECT SUM(o.value) FROM o WHERE o.a = 1" "3" yes-no "Can you tell me if the void event has occurred to patient 1?" "" '()))
+  (check-equal? (length whether-note) 1)
+  (check-true (hold? (car whether-note)))
+  (check-regexp-match #rx"asks whether something is so \\(\"if …\"\\).*kinds 2, 4, 5, 9, …" (car whether-note))
+  (check-equal? (query-notes "SELECT COUNT(*)>0 FROM o WHERE o.a = 1" "3" yes-no "Can you tell me if the void event has occurred to patient 1?" "" '()) '())
+  (check-equal? (query-notes "SELECT SUM(o.value) FROM o WHERE o.a = 1" "3" checks "Has patient 1 had any void output?" "" '()) '()
+                "checks made before the kinds were recorded say nothing")
+  (check-true (hold? (car (query-notes "SELECT MAX(c.v) FROM c WHERE c.a = 1" "1" checks "What was the monthly weight of patient 1?" "" '())))
+              "an averaging unit only other kinds say holds the answer")
+  (check-false (hold? (car (query-notes "SELECT MAX(c.v) FROM c WHERE c.a = 1" "2" checks "What was the monthly weight of patient 1?" "" '()))))
   ;; the benchmark's own queries are never noted (train: by construction for the fixed conditions; validation: not)
   (define repo (getenv "FAB_REPO"))
   (when (and repo (file-exists? (build-path repo "final_dataset" "questions_answers_sql_fhir.csv")))
