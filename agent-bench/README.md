@@ -97,8 +97,11 @@ SQL:
 6. **`fab/gate`** — scored runs taken together: the score as scored, the questions of
    `fab/set-aside.json` apart (those whose recorded answer contradicts the question; the
    evidence is in `results/2026-11-17-note-to-benchmark-authors.md`), the rest as right every
-   time, missed sometimes or missed every time, and what a question costs. It passes when no
-   question in scope is missed every time (and at most `--slips N` sometimes).
+   time, missed sometimes or missed every time, and what a question costs. An answer marked
+   right in one run and wrong in another, word for word, is the judge's disagreement with
+   itself and is listed apart. It passes when no question in scope is missed every time (and
+   at most `--slips N` sometimes). The whole test split three times and the validation sample:
+   PASS, at 45k input tokens and 3.2 turns a question.
 
 ```sh
 FAB_STORE=mimic/fhir.db FAB_REPO=… $B/fab/setup-tables runs/tables                 # ~1 h; writes runs/tables/workspace

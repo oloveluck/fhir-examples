@@ -37,6 +37,7 @@ Each has its harness here, its runs' results in the directory named, and its mis
 |---|---|---|
 | Agents on [MedAgentBench](https://github.com/stanfordmlgroup/MedAgentBench) and [FHIR-AgentBench](https://github.com/glee4810/FHIR-AgentBench): the workspace's tools against plain REST calls on the same data, by right answers and by tokens | 297 and 294 of 300 at 38k tokens a task; 118 of 150 at 55k tokens a question against 109 at 69k | [`agent-bench/`](agent-bench/), `agent-bench/results/` |
 | Each language beside the JSON it compiles to, in a model's tokens | CQL 13%, VCL 28%, the mapping language 52%, an FSH instance of its profile 75% | `dsl-sizes.rkt`, [`results/2026-11-16-dsl-vs-json.md`](results/2026-11-16-dsl-vs-json.md) |
+| FHIR-AgentBench answered in SQL over tables an agent defined on the FHIR store (ViewDefinitions and `.sql` files), the whole test split three times | 402, 401 and 402 of 409 at 45k tokens and 3.2 turns a question; every question whose recorded answer can be held to is right (`fab/gate`: PASS) | [`agent-bench/results/2026-11-16-round7.md`](agent-bench/results/2026-11-16-round7.md) |
 | A profile written from stated requirements, as FSH and as JSON, one oracle | 1427 and 1431 of 1431 constraints; 0.9k and 1.8k answer tokens | `bench.rkt`, `dsl-report.rkt`, the same write-up |
 | One change to a stored resource, answered whole or as what changes | every arm 60 of 60; 535 tokens as JSON, 26 as FSH rules | `edit-bench.rkt`, the same write-up |
 

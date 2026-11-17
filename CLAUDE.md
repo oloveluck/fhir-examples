@@ -71,6 +71,29 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   case; one organism query without the upper bound train always writes; one admission type the
   export does not carry). The tables, asked the benchmark's own queries, are right for 408 of
   409. The plan for the rest is in the round's write-up ("Plan for what remains").
+  **Carried out, and the gate** (2026-11-17): the tables are held to the benchmark's rows and
+  resource ids, not only its answers (`fab/check-rows.rkt`, `fab/check-ids.rkt`; workspace
+  `tables4`: 409 of 409 test queries); an agent answers with `./answer --kind N "SELECT …"`
+  (`fab/answer.rkt`: runs the query, writes answer.json with the rows' `fhir_id`s — three turns
+  where there were five), which says what the train split's queries of that kind would not do
+  (`fab/query-checks.rkt`, checks made from the train split by `make-checks`: a time phrase
+  without its condition, a name not as stored, a value selected where the question asks whether
+  …). Two notes are decisive (`hold?`: the phrase belongs to other kinds than the one given; a
+  value where every train query of such a question selects a comparison): the answer is NOT
+  written until the query is corrected or given a second time. `fab/gate.rkt RUN_DIR…` is the
+  one verdict over scored runs: as scored; `fab/set-aside.json`'s 18 questions apart (the
+  recorded answer contradicts the question or needs a value the export lacks: 8 test, 10
+  validation; evidence in `results/2026-11-17-note-to-benchmark-authors.md`; never given to an
+  agent); the rest right every time, missed sometimes, missed every time, or JUDGED BOTH WAYS
+  (the same answer, word for word, marked right in one run and wrong in another: the judge is
+  a model — one such in 4,147 repeated judgements); PASS = none missed every time and at most
+  `--slips` (0) missed sometimes; then what a question costs. Whole test split, three passes:
+  402, 401, 402 of 409 as scored, 1202 of 1203 in scope (the one is the judge's), PASS;
+  validation sample 144 of 150, 144 of 144 in scope, PASS; 45.5k input tokens, 3.2 turns, 10 s a
+  question — the baseline performance work is compared with (the gate must stay PASS). A turn
+  re-reads ~14k tokens; kinds.md and phrases.md are in every one. Do not edit the modules agents
+  invoke (`answer`, `query-checks`, `run`), the examples or the toolkit's sources while a run
+  is going: kept views are keyed by the engine's sources.
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.

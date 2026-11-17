@@ -11,23 +11,27 @@
 ;;; The benchmark's score is reported as scored. Beside it, the questions of set-aside.json — those
 ;;; whose recorded answer contradicts the question, with the evidence in the note to the
 ;;; benchmark's authors — are set apart, and the rest (in scope) are sorted by how often they were
-;;; missed: every time (the arm cannot answer it), sometimes (a slip of one run). The gate passes
-;;; when no in-scope question is missed every time and at most N (--slips, default 0) are missed
-;;; sometimes. Then what a question costs, which is what is compared once the gate passes: input
-;;; tokens, turns, seconds, and the citations' precision and recall.
+;;; missed: every time (the arm cannot answer it), sometimes (a slip of one run). A question
+;;; marked wrong only for answers that, word for word, were marked right in another run is neither:
+;;; the benchmark's judge is a model, and there it disagreed with itself about one answer. It is
+;;; listed apart (judged both ways) and is no slip of the arm's. The gate passes when no in-scope
+;;; question is missed every time and at most N (--slips, default 0) are missed sometimes. Then
+;;; what a question costs, which is what is compared once the gate passes: input tokens, turns,
+;;; seconds, and the citations' precision and recall.
 ;;;
 ;;; An Asked is (asked id question correct? answer truth precision recall tokens turns seconds).
-;;; A Tally is (tally id question asked right answers): one question over the runs given.
+;;; A Tally is (tally id question asked right answers accepted): one question over the runs
+;;; given; `answers` are the answers marked wrong, `accepted` those marked right.
 
 (require racket/cmdline racket/file racket/list racket/string racket/math racket/runtime-path json)
 
-(provide (struct-out asked) (struct-out tally) tallies missed-always missed-sometimes passes?
+(provide (struct-out asked) (struct-out tally) tallies missed-always missed-sometimes judged-both-ways passes?
          set-aside-ids mean median)
 
 (define-runtime-path set-aside-file "set-aside.json")
 
 (struct asked (id question correct? answer truth precision recall tokens turns seconds) #:transparent)
-(struct tally (id question asked right answers) #:transparent)
+(struct tally (id question asked right answers accepted) #:transparent)
 
 ;; set-aside-ids : jsexpr -> (hash id class)   set-aside.json's questions by id
 (define (set-aside-ids j)
@@ -57,11 +61,21 @@
   (for/list ([id (in-list order)])
     (define mine (reverse (hash-ref by id)))
     (tally id (asked-question (car mine)) (length mine) (count asked-correct? mine)
-           (for/list ([a (in-list mine)] #:unless (asked-correct? a)) (asked-answer a)))))
+           (for/list ([a (in-list mine)] #:unless (asked-correct? a)) (asked-answer a))
+           (for/list ([a (in-list mine)] #:when (asked-correct? a)) (asked-answer a)))))
 
-;; missed-always, missed-sometimes : (listof Tally) -> (listof Tally)
+;; judged-both-ways? : Tally -> boolean   marked wrong in some run, and only for answers that
+;; were marked right, word for word, in another: the judge's disagreement with itself
+(define (judged-both-ways? t)
+  (and (< 0 (tally-right t) (tally-asked t))
+       (for/and ([a (in-list (tally-answers t))]) (and (member a (tally-accepted t)) #t))))
+
+;; missed-always, missed-sometimes, judged-both-ways : (listof Tally) -> (listof Tally)
+;; every question marked wrong in some run is in exactly one of the three
 (define (missed-always ts) (filter (lambda (t) (zero? (tally-right t))) ts))
-(define (missed-sometimes ts) (filter (lambda (t) (< 0 (tally-right t) (tally-asked t))) ts))
+(define (missed-sometimes ts)
+  (filter (lambda (t) (and (< 0 (tally-right t) (tally-asked t)) (not (judged-both-ways? t)))) ts))
+(define (judged-both-ways ts) (filter judged-both-ways? ts))
 
 ;; passes? : (listof Tally) natural -> boolean   the in-scope tallies pass with at most `slips`
 ;; questions missed in some run and none missed in every run
@@ -101,14 +115,18 @@
   (define (pct a b) (if (zero? b) "-" (format "~a%" (/ (round (* 1000.0 (/ a b))) 10.0))))
   (define always (missed-always scope))
   (define sometimes (missed-sometimes scope))
+  (define both-ways (judged-both-ways scope))
   (define ok? (passes? scope slips))
   (printf "runs ~a, questions ~a, answers ~a\n" (length dirs) (length ts) (length all))
   (printf "as scored       ~a of ~a (~a)\n" (right-of ts) (asked-of ts) (pct (right-of ts) (asked-of ts)))
   (printf "set aside       ~a questions (set-aside.json): ~a of ~a marked right\n" (length apart) (right-of apart) (asked-of apart))
-  (printf "in scope        ~a of ~a (~a) over ~a questions: ~a right every time, ~a missed sometimes, ~a missed every time\n"
+  (printf "in scope        ~a of ~a (~a) over ~a questions: ~a right every time, ~a missed sometimes, ~a missed every time~a\n"
           (right-of scope) (asked-of scope) (pct (right-of scope) (asked-of scope)) (length scope)
-          (- (length scope) (length always) (length sometimes)) (length sometimes) (length always))
-  (for ([group (list (cons "missed every time" always) (cons "missed sometimes" sometimes))] #:when (pair? (cdr group)))
+          (- (length scope) (length always) (length sometimes) (length both-ways)) (length sometimes) (length always)
+          (if (null? both-ways) "" (format ", ~a judged both ways" (length both-ways))))
+  (for ([group (list (cons "missed every time" always) (cons "missed sometimes" sometimes)
+                     (cons "judged both ways (the same answer marked right in one run and wrong in another: the judge's, no slip)" both-ways))]
+        #:when (pair? (cdr group)))
     (printf "\n~a:\n" (car group))
     (for ([t (in-list (cdr group))])
       (printf "  ~a  right ~a of ~a  ~a\n      answered: ~a\n" (tally-id t) (tally-right t) (tally-asked t)
@@ -129,6 +147,7 @@
                             'as_scored (list (right-of ts) (asked-of ts))
                             'in_scope (list (right-of scope) (asked-of scope))
                             'missed_every_time (map tally-id always) 'missed_sometimes (map tally-id sometimes)
+                            'judged_both_ways (map tally-id both-ways)
                             'input_tokens_mean (exact-round (mean tokens)) 'input_tokens_median (exact-round (median tokens))
                             'turns_mean (exact->inexact (mean (figures asked-turns)))
                             'seconds_mean (exact->inexact (mean (figures asked-seconds)))
@@ -150,6 +169,15 @@
   (check-false (passes? scope 0))
   (check-true (passes? scope 1))
   (check-true (passes? (list (car ts)) 0))
+  ;; one answer, marked right twice and wrong once: the judge's, and the gate passes; a question
+  ;; that also gave another answer, marked wrong, is a slip
+  (define judged (tallies (list (a "q4" #t "no") (a "q4" #f "no") (a "q4" #t "no") (a "q5" #t "7") (a "q5" #f "7") (a "q5" #f "8"))))
+  (check-equal? (map tally-id (judged-both-ways judged)) '("q4"))
+  (check-equal? (map tally-id (missed-sometimes judged)) '("q5"))
+  (check-equal? (tally-accepted (car judged)) '("no" "no"))
+  (check-true (passes? (list (car judged)) 0))
+  (check-false (passes? judged 0))
+  (check-equal? (judged-both-ways ts) '())
   (check-equal? (median '(3 1 2)) 2)
   (check-equal? (median '(4 1 2 3)) 5/2)
   (check-equal? (mean '()) 0)
