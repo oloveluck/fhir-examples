@@ -1,0 +1,5 @@
+{"resourceType":"ViewDefinition","name":"fhir_specimens","status":"active","resource":"Specimen",
+"select":[{"column":[{"name":"id","path":"getResourceKey()"},
+{"name":"spec_type","path":"type.coding.display.first()"},
+{"name":"spec_type_text","path":"type.text"},
+{"name":"encounter_hint","path":"request.first().getReferenceKey()"}]}]}

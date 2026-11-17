@@ -1,0 +1,14 @@
+2098 questions of the train split, 213.0 s
+  admissions             207/207
+  chartevents            401/401
+  diagnoses_icd          25/25
+  icustays               86/86
+  labevents              423/423
+  microbiologyevents     243/243
+  outputevents           111/111
+  patients               30/30
+  prescriptions          435/455
+  procedures_icd         84/84
+  transfers              33/33
+  all                    2078/2098
+

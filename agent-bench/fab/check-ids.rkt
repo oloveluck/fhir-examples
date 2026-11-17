@@ -28,7 +28,7 @@
          (only-in "make-sample.rkt" read-csv)
          (only-in "make-examples.rkt" read-python))
 
-(provide cited-queries row-queries sub-selects first-sub-select main-table expected-ids expected-resources id-columns
+(provide cited-queries row-queries sub-selects first-sub-select main-table groups expected-ids expected-resources id-columns
          recall precision)
 
 ;; ---- the benchmark's rewrite ------------------------------------------------------------------------

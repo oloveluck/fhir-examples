@@ -1,0 +1,3 @@
+{"resourceType":"ViewDefinition","name":"fhir_medication_ingredients","status":"active","resource":"Medication",
+"select":[{"column":[{"name":"id","path":"getResourceKey()"}]},
+{"forEach":"ingredient","column":[{"name":"ingredient_id","path":"item.ofType(Reference).getReferenceKey(Medication)"}]}]}

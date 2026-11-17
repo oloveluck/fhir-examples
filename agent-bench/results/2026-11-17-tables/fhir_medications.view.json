@@ -1,0 +1,7 @@
+{"resourceType":"ViewDefinition","name":"fhir_medications","status":"active","resource":"Medication",
+"select":[{"column":[{"name":"id","path":"getResourceKey()"},
+{"name":"base_id","path":"ingredient.last().item.ofType(Reference).getReferenceKey(Medication)"},
+{"name":"mix","path":"identifier.where(system.endsWith('medication-mix')).value.first()"},
+{"name":"mix_add","path":"identifier.where(system.endsWith('medication-mix')).value.first().split('_').first().split('--').skip(1).first().replaceMatches('^[^0-9]*([0-9]+).*$','$1')"},
+{"name":"mix_base","path":"identifier.where(system.endsWith('medication-mix')).value.first().split('_').last().split('--').skip(1).first().replaceMatches('^.*?([0-9]+)[^0-9]*$','$1')"},
+{"name":"drug","path":"identifier.where(system.endsWith('medication-name')).value.first()"}]}]}

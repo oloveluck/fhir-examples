@@ -58,7 +58,7 @@ EOF
       "2. Copy the example's query whole and change only three things: the patient's number; the names and values (spelled as the tables have them); the time conditions (take out the example's, put in one for each time phrase of your question — \"today\", \"since 09/2116\", \"on the last ICU visit\" — written as the list above writes it, on the column the example uses). Change nothing else: not how the visit is chosen, not the SELECT, not the ORDER BY or LIMIT, and add no condition of your own. Two readings to keep:\n"
       "   - \"Current\" is what has no end recorded, and only that. A current hospital visit (\"this hospital stay\", \"this admission\", \"since admission\") is `admissions.dischtime IS NULL`; a current ICU stay (\"this ICU encounter\", \"the current ICU visit\") is `icustays.outtime IS NULL`. The people who use this schema do not call a visit current once its end is recorded, whatever the assumed current time is.\n"
       "   - \"Last year\", \"in the last year\", \"the previous month\", \"yesterday\" name the calendar year, month or day before the current one (`datetime(x,'start of year') = datetime(<now>,'start of year','-1 year')`), not the twelve months, thirty days or twenty-four hours up to now. Only \"since N years/months/days ago\" counts back from now.\n"
-      "3. Run it with `./answer --kind <number> \"SELECT …\"` (the number of the example you copied). It prints the rows; states the answer as the people who use this schema state one — the value alone (`61.7`, `-1`, `2133-12-31 02:00:00`, `EW EMER.`), every row's value in the order returned when there are several, `yes`/`no` for a comparison, and \"none: nothing on record\" when the query returns no row, a null or a count of 0; finds the resources the answer rests on (the rows of the query's table that meet its conditions, each row's `fhir_id` columns); and writes both to the answer file. When it notes that your query's shape is not the example's and the question does not ask for that difference, correct the query and run it again. Otherwise you are done: do not rewrite the file, do not add a unit, a date or an explanation, and do not look for another reading of the question that would return something. (Only when the answer it states is not what the rows say, write the file yourself.)")]
+      "3. Run it with `./answer --kind <number> \"SELECT …\"` (the number of the example you copied). It prints the rows; states the answer as the people who use this schema state one — the value alone (`61.7`, `-1`, `2133-12-31 02:00:00`, `EW EMER.`), every row's value in the order returned when there are several, `yes`/`no` for a comparison, and \"none: nothing on record\" when the query returns no row, a null or a count of 0; finds the resources the answer rests on (the rows of the query's table that meet its conditions, each row's `fhir_id` columns); and writes both to the answer file. Each `note:` it prints names something to look at again: a shape that is not the example's, a phrase of your question (\"today\", \"this hospital stay\", \"daily\") with no condition for it, a name the question does not give or one it gives that the query leaves out, a first or last row with no value. Unless a note is plainly mistaken, correct the query and run it again. Otherwise you are done: do not rewrite the file, do not add a unit, a date or an explanation, and do not look for another reading of the question that would return something. (Only when the answer it states is not what the rows say, write the file yourself.)")]
     [("mcp")
      (string-append "Access: the FHIR workspace's tools (mcp__fhir__…: query, describe, explain, run, check, …), over this dataset. "
                     "The card below writes a call as the shell does: `describe ref=X as=fsh` is the describe tool with ref and as.\n\n"
@@ -88,11 +88,12 @@ EOF
 (define (examples-dir) (or (getenv "FAB_EXAMPLES") (error 'run "set FAB_EXAMPLES to the directory make-examples wrote")))
 (define (examples-file name) (string-trim (file->string (build-path (examples-dir) name))))
 
-;; tables-workspace! : dir -> void   the question's workspace: the tables the setup agent defined
+;; tables-workspace! : dir question -> void   the question's workspace: the tables the setup agent defined
 ;; (FAB_TABLES: its views and `.sql` files), the rows it already computed (a link to its kept
-;; views: a view over the Observations takes minutes to compute), the worked examples, and
+;; views: a view over the Observations takes minutes to compute), the worked examples with
+;; the checks read from the train split (query-checks.rkt), the question (for those checks), and
 ;; `./answer` (answer.rkt: the query run, the answer and its resources written)
-(define (tables-workspace! work)
+(define (tables-workspace! work q)
   (define from (or (getenv "FAB_TABLES") (error 'run "set FAB_TABLES to the workspace setup-tables wrote")))
   (for ([f (in-list (directory-list from))]
         #:when (regexp-match? #rx"[.](view[.]json|sql|yaml)$" (path->string f)))
@@ -100,6 +101,10 @@ EOF
   (make-directory* (build-path work "examples"))
   (for ([f (in-list (directory-list (examples-dir)))] #:when (regexp-match? #rx"^[0-9]+[.]md$" (path->string f)))
     (copy-file (build-path (examples-dir) f) (build-path work "examples" f) #t))
+  (when (file-exists? (build-path (examples-dir) "checks.json"))
+    (copy-file (build-path (examples-dir) "checks.json") (build-path work "examples" "checks.json") #t))
+  (call-with-output-file (build-path work "question.json") #:exists 'truncate
+    (lambda (o) (write-json (hasheq 'question (hash-ref q 'question) 'assumption (hash-ref q 'assumption "")) o)))
   (display-to-file "#!/bin/sh\nexec racket -l- fhir-examples/agent-bench/fab/answer \"$@\"\n" (build-path work "answer") #:exists 'truncate)
   (file-or-directory-permissions (build-path work "answer") #o755)
   (make-directory* (build-path work ".fhir-mcp"))
@@ -175,7 +180,7 @@ EOF
       (when (member arm '("workspace" "mcp"))
         (display-to-file (format "fhirVersion: 4.0.1\ndata: ~a\n" (or (getenv "FAB_STORE") (error 'run "set FAB_STORE")))
                          (build-path work "workspace.yaml")))
-      (when (equal? arm "tables") (tables-workspace! work)))
+      (when (equal? arm "tables") (tables-workspace! work q)))
     (define rec (run-item id (lambda (real) (prompt arm rest q (path->string (build-path real "answer.json")))) work model (tools arm)
                           #:prepare prepare #:builtin builtin-tools #:mcp (and (equal? arm "mcp") (workspace-mcp work))))
     (void (system* (find-executable-path "pkill") "-f" (format "mcp-daemon.*~a" work)))

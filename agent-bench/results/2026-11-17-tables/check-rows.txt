@@ -1,0 +1,16 @@
+table                reference  workspace  missing  extra     columns: values of the reference the workspace lacks
+patients             100        100        0        0         
+admissions           275        275        15       15        admission_type 3, marital_status 9
+icustays             140        140        0        0         
+transfers            1190       1186       4        0         hadm_id 4, careunit 4, intime 4
+d_labitems           1622       498        1124     0         itemid 1124, label 1124
+labevents            107727     107727     48       48        charttime 48
+d_items              4014       1444       2570     0         itemid 2570, label 2570, linksto 2570
+chartevents          668862     668862     113      113       charttime 113
+outputevents         9362       9362       0        0         
+prescriptions        18087      18087      3534     3534      starttime 767, dose_val_rx 1904
+microbiologyevents   2899       2896       4        1         hadm_id 3, charttime 3, spec_type_desc 3, test_name 3, org_name 3
+procedures_icd       722        722        0        0         
+d_icd_procedures     85257      352        84905    0         icd_code 84905, long_title 84905
+diagnoses_icd        4506       4506       0        0         
+d_icd_diagnoses      109775     1573       108288   86        icd_code 108202, long_title 108288

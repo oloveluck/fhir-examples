@@ -1,0 +1,10 @@
+{"resourceType":"ViewDefinition","name":"fhir_medreqs","status":"active","resource":"MedicationRequest",
+"select":[{"column":[{"name":"id","path":"getResourceKey()"},
+{"name":"encounter_id","path":"encounter.getReferenceKey(Encounter)"},
+{"name":"medication_id","path":"medication.ofType(Reference).getReferenceKey(Medication)"},
+{"name":"drug_cc","path":"medication.ofType(CodeableConcept).coding.code.first()"},
+{"name":"starttime","path":"dispenseRequest.validityPeriod.start.toString().substring(0,19).replace('T',' ')"},
+{"name":"authored","path":"authoredOn.toString().substring(0,19).replace('T',' ')"},
+{"name":"route","path":"dosageInstruction.first().route.coding.code.first()"},
+{"name":"dtext","path":"dosageInstruction.first().text"},
+{"name":"dose","path":"dosageInstruction.first().doseAndRate.first().doseQuantity.value.toString()"}]}]}

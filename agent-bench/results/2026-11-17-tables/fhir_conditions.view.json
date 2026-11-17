@@ -1,0 +1,6 @@
+{"resourceType":"ViewDefinition","name":"fhir_conditions","status":"active","resource":"Condition",
+"select":[{"column":[{"name":"id","path":"getResourceKey()"},
+{"name":"encounter_id","path":"encounter.getReferenceKey(Encounter)"},
+{"name":"system","path":"code.coding.system.first()"},
+{"name":"code","path":"code.coding.code.first()"},
+{"name":"title","path":"code.coding.display.first()"}]}]}

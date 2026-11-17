@@ -1,0 +1,2 @@
+{"resourceType":"ViewDefinition","name":"fhir_patients","status":"active","resource":"Patient",
+"select":[{"column":[{"name":"id","path":"getResourceKey()"},{"name":"subject_id","path":"identifier.value.first()"},{"name":"gender","path":"gender"},{"name":"marital","path":"maritalStatus.coding.code.first()"}]}]}

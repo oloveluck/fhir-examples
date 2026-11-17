@@ -14,6 +14,9 @@
 ;;;      `…fhir_id` columns — every row of a sum, a count or a group, not one of them;
 ;;;   4. with --kind N, sets the query's shape (what it selects, groups by, orders by and limits,
 ;;;      literals aside) beside the shapes of kind N's examples, and says so when it is none of them;
+;;;      and, when the workspace holds the question (question.json) and examples/checks.json, says
+;;;      what query-checks.rkt finds: a phrase of the question with no condition, a name the
+;;;      question does not give; and says when the first or last row it picked has no value;
 ;;;   5. writes {"answer", "resources"} to --out (answer.json).
 ;;; The agent reads the rows and the notes, and writes the file itself only when it disagrees.
 ;;;
@@ -21,9 +24,10 @@
 
 (require racket/cmdline racket/file racket/list racket/string json
          (only-in fhir/lang/workspace run-result-columns run-result-rows)
-         (only-in "check-ids.rkt" row-queries id-columns sub-selects))
+         (only-in "check-ids.rkt" row-queries id-columns sub-selects)
+         (only-in "query-checks.rkt" query-notes))
 
-(provide answer-text shape example-queries shape-note all-rows)
+(provide answer-text shape example-queries shape-note all-rows empty-pick-note)
 
 ;; ---- the answer ---------------------------------------------------------------------------------
 ;; comparison? : string -> boolean   a query whose select list is a comparison: its 1/0 is yes/no
@@ -133,6 +137,17 @@
        (format "note: this kind's example~a\n  ~a\nand your query is\n  ~a\nIf the difference is not one the question asks for (a name, a number, a time), write it as the example does."
                (if (= (length theirs) 1) " is" "s are") (string-join theirs "\n  ") mine)))
 
+;; empty-pick-note : string (listof (listof Cell)) -> string or #f   said when a query that picks
+;; rows by an ordering (the first, the last) and selects a plain column picked rows with no value in
+;; it. No query of the train or validation split answers so: a first or last value on record is one
+;; that was recorded.
+(define (empty-pick-note sql rows)
+  (define q (string-trim (regexp-replace* #px"\\s+" sql " ")))
+  (define m (regexp-match #px"^SELECT (?:DISTINCT )?([a-z_]+\\.[a-z_]+) FROM .* ORDER BY [^()]*LIMIT [0-9]+;?$" q))
+  (and m (pair? rows) (andmap (lambda (r) (andmap (lambda (c) (eq? c 'null)) r)) rows)
+       (format "note: the row this query picks has no value in `~a`. When the question asks for the first or the last one on record, a row without a value is not one: add `AND ~a IS NOT NULL` and run it again."
+               (cadr m) (cadr m))))
+
 ;; ---- running ---------------------------------------------------------------------------------------
 ;; cells : run-result -> (values (listof symbol) (listof (listof Cell)))
 (define (cells r)
@@ -178,12 +193,26 @@
   (printf "answer: ~a\n" answer)
   (printf "resources: ~a~a\n" (length resources)
           (if (pair? resources) (format " (~a~a)" (string-join (take resources (min 3 (length resources))) ", ") (if (> (length resources) 3) ", …" "")) ""))
-  (when kind
-    (define file (build-path "examples" (format "~a.md" kind)))
-    (cond [(file-exists? file)
-           (define note (shape-note sql (example-queries (file->string file))))
-           (when note (printf "~a\n" note))]
-          [else (printf "note: there is no examples/~a.md\n" kind)]))
+  ;; the notes: the query's shape beside its kind's examples, and what the train split's queries
+  ;; say a query of this kind and of this question holds (query-checks.rkt)
+  (define examples
+    (let ([file (and kind (build-path "examples" (format "~a.md" kind)))])
+      (cond [(not kind) '()]
+            [(file-exists? file) (example-queries (file->string file))]
+            [else (printf "note: there is no examples/~a.md\n" kind) '()])))
+  (for ([note (in-list (list (shape-note sql examples) (empty-pick-note sql rows)))] #:when note)
+    (printf "~a\n" note))
+  (when (and (file-exists? "question.json") (file-exists? (build-path "examples" "checks.json")))
+    (define q (call-with-input-file "question.json" read-json))
+    (define checks (call-with-input-file (build-path "examples" "checks.json") read-json))
+    ;; a column's distinct values, asked of the workspace when a check needs them
+    (define (values-of column)
+      (define parts (string-split column "."))
+      (with-handlers ([exn:fail? (lambda (_) '())])
+        (define-values (_cols rs) (cells (run (format "SELECT DISTINCT ~a FROM ~a" (cadr parts) (car parts)))))
+        (filter string? (map car rs))))
+    (for ([n (in-list (query-notes sql kind checks (hash-ref q 'question "") (hash-ref q 'assumption "") examples values-of))])
+      (printf "~a\n" n)))
   (call-with-output-file out #:exists 'truncate
     (lambda (o) (write-json (hasheq 'answer answer 'resources resources) o)))
   (printf "written to ~a\n" out))
@@ -221,4 +250,11 @@
   (check-false (shape-note "SELECT MAX(t.v) FROM t WHERE t.a = 7 AND t.c >= '2100'" '("SELECT MIN(t.v) FROM t WHERE t.a = 1")) "a name, a time, another aggregate: the kind's slots")
   (check-false (shape-note "SELECT (SELECT t.v FROM t ORDER BY t.c DESC LIMIT 1) > (SELECT t.v FROM t LIMIT 1)" '("SELECT ( SELECT t.v FROM t ORDER BY t.c ASC LIMIT 1 ) < ( SELECT t.v FROM t LIMIT 1 )")))
   (check-regexp-match #rx"group by" (shape-note "SELECT AVG(t.v) FROM t WHERE t.a = 7" '("SELECT AVG(t.v) FROM t WHERE t.a = 1 GROUP BY strftime('%Y',t.c)")))
-  (check-false (shape-note "SELECT 1" '()) "no example, no note"))
+  (check-false (shape-note "SELECT 1" '()) "no example, no note")
+  ;; a picked row with no value
+  (define pick "SELECT transfers.careunit FROM transfers WHERE transfers.hadm_id IN ( SELECT 1 ) ORDER BY transfers.intime DESC LIMIT 1")
+  (check-regexp-match #rx"AND transfers.careunit IS NOT NULL" (empty-pick-note pick '((null))))
+  (check-false (empty-pick-note pick '(("Transplant"))))
+  (check-false (empty-pick-note pick '()) "no row: nothing on record")
+  (check-false (empty-pick-note "SELECT MAX(t.v) FROM t WHERE t.a = 1" '((null))) "an aggregate over nothing")
+  (check-false (empty-pick-note "SELECT t.v FROM t WHERE t.a = 1" '((null))) "no ordering picks the row"))
