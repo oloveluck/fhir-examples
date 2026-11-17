@@ -81,19 +81,39 @@ SQL:
    a worked example or two of each (question, assumption, query), and how each kind of time phrase
    is written as a condition (the benchmark states that per question, in `val_dict`).
 3. **`fab/run … tables`** — a question agent gets the schema, the kinds and the phrases in its
-   prompt, reads the example of its question's kind, fills in its query, runs it, and cites the
-   `fhir_id` of the rows the answer rests on. Its workspace is a copy of the setup agent's files
-   with a link to the rows already computed.
+   prompt, reads the example of its question's kind, fills in its query and gives it to one
+   command, `./answer --kind N "SELECT …"` (`fab/answer.rkt`): it runs the query, states the
+   answer as the benchmark's people state one, finds the resources behind the rows (their
+   `fhir_id` columns) and writes the answer file. Its workspace is a copy of the setup agent's
+   files with a link to the rows already computed.
+4. **`fab/query-checks`** — from the train split alone: what a question's query should hold (the
+   condition each time phrase and averaging unit is written as, the names a question gives, a
+   comparison where a question asks whether). `./answer` prints a note where the query does not;
+   under two of them it writes no answer until the query is corrected or given again. None is
+   said of any train or validation query of the benchmark.
+5. **Held to more than the queries**: `fab/check-rows` compares each table with the relational
+   database row for row, `fab/check-ids` a query's rows with the resources the benchmark cites;
+   an amending setup agent works with either as its gate.
+6. **`fab/gate`** — scored runs taken together: the score as scored, the questions of
+   `fab/set-aside.json` apart (those whose recorded answer contradicts the question; the
+   evidence is in `results/2026-11-17-note-to-benchmark-authors.md`), the rest as right every
+   time, missed sometimes or missed every time, and what a question costs. It passes when no
+   question in scope is missed every time (and at most `--slips N` sometimes).
 
 ```sh
 FAB_STORE=mimic/fhir.db FAB_REPO=… $B/fab/setup-tables runs/tables                 # ~1 h; writes runs/tables/workspace
 FAB_REPO=… $B/fab/check-tables runs/tables/workspace                               # the train queries, each answer compared
 $B/fab/make-examples $FAB_REPO/final_dataset/questions_answers_sql_fhir.csv runs/examples
+$B/fab/query-checks $FAB_REPO/final_dataset/questions_answers_sql_fhir.csv runs/examples   # checks.json, beside the examples
 FAB_TABLES=runs/tables/workspace FAB_EXAMPLES=runs/examples FAB_STORE=mimic/fhir.db \
   $B/fab/run --model sonnet tables fab/test-150.json runs/r7/fab-tables
+$B/fab/check-rows mimic_iv.sqlite runs/tables/workspace                            # each table against the relational rows
+FAB_REPO=… $B/fab/check-ids runs/tables/workspace                                  # the resources the benchmark cites
+$B/fab/gate runs/r7/fab-tables-a runs/r7/fab-tables-b runs/r7/fab-tables-c         # passing? and what a question costs
 ```
 The tables one setup run wrote are in `results/2026-11-16-tables/` (13 views, 15 `.sql` files,
-11 KB in all). `fab/test-heldout-150.json` is the next 150 test-split questions in the same seeded
+11 KB in all), and as two amending agents left them — held to the relational rows and to the
+benchmark's citations — in `results/2026-11-17-tables/`. `fab/test-heldout-150.json` is the next 150 test-split questions in the same seeded
 order as `fab/test-150.json`, and `fab/test-fresh-109.json` the last 109: each was run before
 anyone read its misses, and the three together are the whole test split.
 
