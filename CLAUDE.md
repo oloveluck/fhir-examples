@@ -64,6 +64,13 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   MedAgentBench 300 of 300 once the prompt says the grader's `route` shape. What moved agents from
   136 to 145 was the instruction to copy the example's query whole and change three things; told
   to "adapt" it they rewrote it. A question's `template` column is never given to an agent.
+  The fourth prompt (2026-11-17: current ICU stay, exact name look-up, calendar "last year",
+  value-only answers) over the WHOLE test split (`test-150`, `test-heldout-150`,
+  `test-fresh-109`): 400 and 399 of 409. Eight are missed every time and none can be learnt from
+  the train split (six of a kind only the test split has, whose query looks a label up in lower
+  case; one organism query without the upper bound train always writes; one admission type the
+  export does not carry). The tables, asked the benchmark's own queries, are right for 408 of
+  409. The plan for the rest is in the round's write-up ("Plan for what remains").
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.

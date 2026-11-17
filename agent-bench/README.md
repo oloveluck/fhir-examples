@@ -94,7 +94,8 @@ FAB_TABLES=runs/tables/workspace FAB_EXAMPLES=runs/examples FAB_STORE=mimic/fhir
 ```
 The tables one setup run wrote are in `results/2026-11-16-tables/` (13 views, 15 `.sql` files,
 11 KB in all). `fab/test-heldout-150.json` is the next 150 test-split questions in the same seeded
-order as `fab/test-150.json`: questions no run or reading of misses had touched.
+order as `fab/test-150.json`, and `fab/test-fresh-109.json` the last 109: each was run before
+anyone read its misses, and the three together are the whole test split.
 
 Iterate on the valid split; the test split is for reporting: `fab/test-150.json` (150 questions over
 59 templates, seed 20261115) was drawn before any run on it (`fab/make-sample.rkt` draws others).
