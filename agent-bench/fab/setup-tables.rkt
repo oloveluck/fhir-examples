@@ -22,6 +22,8 @@
 ;;;   FAB_REFERENCE (optional): the relational database itself (the benchmark's create_db.py over
 ;;;       the MIMIC-IV demo's CSV files). With it the agent also has `./check-rows`
 ;;;       (check-rows.rkt): each table compared with the database row for row.
+;;; An amending agent also has `./check-ids` (check-ids.rkt): the resources its tables put behind
+;;; each train answer against the benchmark's.
 
 (require racket/cmdline racket/file racket/string racket/runtime-path json
          "../run-agent.rkt")
@@ -58,6 +60,11 @@ EOF
   (string-append
    "`./check-rows` compares each table, row for row, with the relational database the schema describes (`./check-rows --table admissions --show 20` for one table; all of them take about a minute): the rows only the database has, the rows only your table has, and for each column how many of the database's values your table lacks, which says which column to look at. It reads only the schema's columns.\n\n"))
 
+;; what an agent is told of `./check-ids`
+(define ids-note
+  (string-append
+   "`./check-ids` asks, for each of those queries, which resources stand behind its answer: the rows of the query's main table that meet its conditions, and of each row the columns named `fhir_id` or ending in `_fhir_id` (`Type/id`; one to a cell, or several separated by spaces). It compares them with the resources the schema's keepers put behind the same answer and prints, by table, how many agree and, for the first that differ, a resource only they name and an id only your rows name (`./check-ids --table prescriptions --show 5`; all of them take about four minutes).\n\n"))
+
 ;; the task of an agent that changes tables already defined
 (define amend-task #<<END
 This directory is a FHIR workspace in which the tables of a relational schema are already defined over a hospital's FHIR data: ViewDefinitions (`*.view.json`, each one resource type flattened) and tables defined over them (`*.sql`). `raco fhir guide tables` explains the two kinds of file. Every `raco fhir-mcp call …` runs in this directory.
@@ -66,7 +73,7 @@ Make this change: {change}
 
 `./check` asks the workspace queries written for the schema and compares each answer with the known one (`./check --table labevents --show 5` for one table's queries; `./check` for all, a few minutes). Before your change {passing} of them pass; after it the same ones must.
 
-{rows}Time: a `.sql` file costs nothing to change. A view over the Observations (more than 800,000) takes about three minutes to compute again when its text changes, so change such a view only if you must, and give such a command a timeout of 10 minutes.
+{rows}{ids}Time: a `.sql` file costs nothing to change. A view over the Observations (more than 800,000) takes about three minutes to compute again when its text changes, so change such a view only if you must, and give such a command a timeout of 10 minutes.
 
 When done, write {answer_file}: {"changed": ["<each file you changed>"], "passing": "<n>/<m> as the last full ./check printed", "notes": "<anything a user of the tables should know>"}. Then end with one short line.
 
@@ -113,6 +120,12 @@ END
              (path->complete-path repo))
      check)
     (file-or-directory-permissions check #o755)
+    (define ids (build-path work "check-ids"))
+    (display-to-file
+     (format "#!/bin/sh\n# the resources behind each answer (the benchmark's train split) asked of this workspace\nFAB_REPO='~a' exec racket -l- fhir-examples/agent-bench/fab/check-ids --split train \"$@\" \"$(dirname \"$0\")\"\n"
+             (path->complete-path repo))
+     ids #:exists 'truncate)
+    (file-or-directory-permissions ids #o755)
     (when reference
       (define rows (build-path work "check-rows"))
       (display-to-file
@@ -133,10 +146,11 @@ END
                                      (cons "{answer_file}" (path->string (build-path dir "answer.json")))
                                      (cons "{change}" (if amend (cdr amend) ""))
                                      (cons "{passing}" (or passing ""))
-                                     (cons "{rows}" (if reference rows-note "")))])
+                                     (cons "{rows}" (if reference rows-note ""))
+                                     (cons "{ids}" ids-note))])
                   (string-replace t (car kv) (cdr kv))))
               work model
-              (append '("Bash(raco fhir-mcp:*)" "Bash(raco fhir guide:*)" "Bash(./check:*)")
+              (append '("Bash(raco fhir-mcp:*)" "Bash(raco fhir guide:*)" "Bash(./check:*)" "Bash(./check-ids:*)")
                       (if reference '("Bash(./check-rows:*)") '())
                       '("Bash(python3:*)" "Bash(jq:*)" "Read" "Write" "Edit"))
               #:prepare prepare #:timeout timeout #:max-turns max-turns
