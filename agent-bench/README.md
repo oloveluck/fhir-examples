@@ -80,17 +80,22 @@ SQL:
 2. **`fab/make-examples`** — from the train split alone: the kinds of question (its 45 templates),
    a worked example or two of each (question, assumption, query), and how each kind of time phrase
    is written as a condition (the benchmark states that per question, in `val_dict`).
-3. **`fab/run … tables`** — a question agent gets the schema, the kinds and the phrases in its
-   prompt, reads the example of its question's kind, fills in its query and gives it to one
-   command, `./answer --kind N "SELECT …"` (`fab/answer.rkt`): it runs the query, states the
-   answer as the benchmark's people state one, finds the resources behind the rows (their
-   `fhir_id` columns) and writes the answer file. Its workspace is a copy of the setup agent's
-   files with a link to the rows already computed.
+3. **`fab/run … tables`** — a question agent gets the schema and the kinds in its prompt, reads
+   the example of its question's kind (`./kind N`: the example, then how each time phrase is
+   written), fills in its query and gives it to one command, `./answer --kind N "SELECT …"`
+   (`fab/answer.rkt`): it runs the query, states the answer as the benchmark's people state one,
+   finds the resources behind the rows (their `fhir_id` columns) and writes the answer file.
+   Its workspace is a copy of the setup agent's files with a link to the rows already computed.
+   The agent has the shell tool alone, and its session ends when `./answer` writes the answer
+   with nothing to look at again (`fab/stop-when-answered.sh`, a hook of the agent runtime): two
+   calls of the model a question where there were three.
 4. **`fab/query-checks`** — from the train split alone: what a question's query should hold (the
    condition each time phrase and averaging unit is written as, the names a question gives, a
-   comparison where a question asks whether). `./answer` prints a note where the query does not;
-   under two of them it writes no answer until the query is corrected or given again. None is
-   said of any train or validation query of the benchmark.
+   comparison where a question asks whether, a time exactly where it asks when). `./answer`
+   prints a note where the query does not; under the decisive ones — those, and a first or last
+   row picked from several that differ — it writes no answer until the query is corrected or
+   given again, and shows the kind the note names. None is said of any train or validation
+   query of the benchmark.
 5. **Held to more than the queries**: `fab/check-rows` compares each table with the relational
    database row for row, `fab/check-ids` a query's rows with the resources the benchmark cites;
    an amending setup agent works with either as its gate.
@@ -101,7 +106,9 @@ SQL:
    right in one run and wrong in another, word for word, is the judge's disagreement with
    itself and is listed apart. It passes when no question in scope is missed every time (and
    at most `--slips N` sometimes). The whole test split three times and the validation sample:
-   PASS, at 45k input tokens and 3.2 turns a question.
+   PASS, at 45k input tokens and 10 s a question; the questions nobody had read (the other 274
+   of the validation split) 267 of 270, and what followed from them and from the loop on tokens
+   and time is `results/2026-11-17-held-out-and-efficiency.md`.
 
 ```sh
 FAB_STORE=mimic/fhir.db FAB_REPO=… $B/fab/setup-tables runs/tables                 # ~1 h; writes runs/tables/workspace

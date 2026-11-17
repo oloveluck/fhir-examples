@@ -1,0 +1,1920 @@
+[
+ {
+  "assumption": "Search for 'Daily Weight' to find weight.",
+  "patient_fhir_id": "e2beb281-c44f-579b-8211-a3749c549e92",
+  "question": "Tell me the change in the weight of patient 10027602 second measured on the last hospital visit compared to the value first measured on the last hospital visit?",
+  "question_id": "97a564727fd229d0a1d9c3ba",
+  "template": "What is the change in the weight of patient {patient_id} from the [time_filter_exact2] value measured [time_filter_global2] compared to the [time_filter_exact1] value measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "f5efdf3f-5b53-5c9f-95a6-047275107c46",
+  "question": "What was the microbiology test given to patient 10002495 for the last time in the last hospital visit?",
+  "question_id": "fd2461146ec138678719d7e3",
+  "template": "What was the name of the microbiology test that patient {patient_id} [time_filter_exact1] received [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2161-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "b7b92f05-c913-5a94-9a06-7b015e838f14",
+  "question": "When did patient 10021118 since 10/2161 have the bilirubin, total test, the first time?",
+  "question_id": "9ae67f8f87f7be444b601b61",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} received a {lab_name} lab test [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2131-12-31 23:59:00.",
+  "patient_fhir_id": "5f3dcdb5-bd27-58f5-b990-859b6bcc2d73",
+  "question": "When was the first time that patient 10038999 had the heart rate maximum since 02/26/2131?",
+  "question_id": "b65ad812aa58a875e2d64890",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} had the [sort] {vital_name} [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "837b0984-f3bf-5076-baf5-b727decb4bea",
+  "question": "What is the number of times patient 10037975 visited the intensive care unit during their last hospital visit.",
+  "question_id": "2e1336e1727d7e40e18f93c4",
+  "template": "Count the number of ICU visits of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "8d7b633e-0f92-5448-a56d-36c69210e860",
+  "question": "Has patient 10004733 been provided with any lidocaine 1% during this hospital encounter?",
+  "question_id": "732ddbd8735aa1ef150a5da1",
+  "template": "Has_verb patient {patient_id} been prescribed {drug_name} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2170-12-31 23:59:00.",
+  "patient_fhir_id": "9c3ebb7e-d087-519e-bea4-31c3d4aac7ff",
+  "question": "Can you retrieve the time of patient 10023117's hospital admission since 1 year ago?",
+  "question_id": "2fe2de5ecc04ecf656ea58f3",
+  "template": "List the hospital admission time of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "4365e125-c049-525a-9459-16d5e6947ad2",
+  "question": "Has acetazolamide, bisacodyl, or 5% dextrose been ordered for patient 10021487 on this hospital encounter?",
+  "question_id": "2e4d054961ab8dd569126be6",
+  "template": "Has_verb patient {patient_id} been prescribed {drug_name1}, {drug_name2}, or {drug_name3} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Search for 'O2 saturation pulseoxymetry' to find SpO2.",
+  "patient_fhir_id": "4c9069e4-486b-53a6-8a49-b8520d49ef7e",
+  "question": "What is the difference in patient 10001725's spo2 last measured on the first icu visit compared to the second to last value measured on the first icu visit?",
+  "question_id": "941095e5c2a9df6746e4a383",
+  "template": "What is the change in the {vital_name} of patient {patient_id} from the [time_filter_exact2] value measured [time_filter_global2] compared to the [time_filter_exact1] value measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2162-12-31 23:59:00.",
+  "patient_fhir_id": "bbad4581-d089-54a7-b7a0-8d986c5fb5ec",
+  "question": "Has patient 10018423 undergone a laboratory test since 01/2162?",
+  "question_id": "82c55832a756019258539f9d",
+  "template": "Has_verb patient {patient_id} received any lab test [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2118-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace. When searching for magnesium, use the labevents records.",
+  "patient_fhir_id": "76202c51-1b9d-5cc2-a7bc-3dfb2ac3ab32",
+  "question": "What was the average value of magnesium on patient 10019172 last month?",
+  "question_id": "9941ca19aa20b45f0d59bc93",
+  "template": "What was the [agg_function] {lab_name} value of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2132-12-31 23:59:00. Search for 'Arterial Blood Pressure mean' to find mean blood pressure.",
+  "patient_fhir_id": "a2605b15-4f1b-5839-b4ce-fb7a6bc1005f",
+  "question": "Can you provide patient 10005817's maximum value of mean blood pressure since 08/11/2132?",
+  "question_id": "c4e3a7be2d01b9b7351a661d",
+  "template": "What was the [agg_function] {vital_name} of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2115-12-31 23:59:00.",
+  "patient_fhir_id": "752d15e2-bd27-52ed-b055-ed79edb86aba",
+  "question": "Since patient 10039831's admission in the icu, how many hours have elapsed?",
+  "question_id": "90eb2c78447a14389410b63f",
+  "template": "How many [unit_count] have passed since patient {patient_id} was admitted to the ICU currently?"
+ },
+ {
+  "assumption": "Assume the current time is 2144-12-31 23:59:00.",
+  "patient_fhir_id": "158f3a39-e3d7-5e7a-93aa-57af894aadd9",
+  "question": "What specimen tests were given to patient 10005909 for the last time since 15 months ago?",
+  "question_id": "38447d52a601457cc529a5b1",
+  "template": "What was the name of the specimen that patient {patient_id} was [time_filter_exact1] tested [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2110-12-31 23:59:00.",
+  "patient_fhir_id": "dd773280-4157-5168-9481-3d29a5ff82d8",
+  "question": "Has patient 10008454 been admitted to a hospital emergency room in 2110?",
+  "question_id": "38b8d432b6882df96340f954",
+  "template": "Has_verb patient {patient_id} been to an emergency room [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "af0e5009-d87d-52a8-ac8a-676e471c41f1",
+  "question": "When was patient 10021938's last hospital visit?",
+  "question_id": "6a0f9787ca51fccbc44a087c",
+  "template": "When was the [time_filter_exact1] hospital admission time of patient {patient_id}?"
+ },
+ {
+  "assumption": "Assume the current time is 2133-12-31 23:59:00. Search for 'Arterial Blood Pressure systolic' to find systolic blood pressure.",
+  "patient_fhir_id": "dd2bf984-33c3-5874-8f68-84113327877e",
+  "question": "Yesterday, when was the first instance that patient 10018081's systolic blood pressure was greater than 127.0?",
+  "question_id": "29145deb2421f340268f6323",
+  "template": "When was the [time_filter_exact1] time that the {vital_name} of patient {patient_id} was [comparison] than {vital_value} [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "2edf1f64-2919-50e3-b98c-7a55dcfda00d",
+  "question": "Did patient 10009035 go through any type of procedure during their first hospital visit?",
+  "question_id": "d081d7e2db7e69a70b388b51",
+  "template": "Has_verb patient {patient_id} received any procedure [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "d378a59b-aa80-5bc5-812a-7d59b26e7df4",
+  "question": "Was the value of the platelet count of patient 10036156 last measured on the last hospital visit greater than that first measured on the last hospital visit?",
+  "question_id": "769ea1c5d6c42c47ac9a1735",
+  "template": "Is the value of {lab_name} of patient {patient_id} [time_filter_exact2] measured [time_filter_global2] [comparison] than the [time_filter_exact1] value measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2153-12-31 23:59:00.",
+  "patient_fhir_id": "51d2190c-cc46-56c5-b2ea-363895cbea75",
+  "question": "When was the last lab test that patient 10009628 received in 10/2153?",
+  "question_id": "649fd348e56a70012edf8781",
+  "template": "When was the [time_filter_exact1] lab test of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Search for 'O2 saturation pulseoxymetry' to find SpO2.",
+  "patient_fhir_id": "df756e08-6ea8-5d69-b918-67911945f827",
+  "question": "Compared to first measured on the first icu visit, is the spo2 value of patient 10010471 last measured on the first icu visit greater?",
+  "question_id": "18712984cf426bc265ef3c86",
+  "template": "Is the {vital_name} of patient {patient_id} [time_filter_exact2] measured [time_filter_global2] [comparison] than the [time_filter_exact1] value measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2116-12-31 23:59:00.",
+  "patient_fhir_id": "4365e125-c049-525a-9459-16d5e6947ad2",
+  "question": "On 12/20/this year, what was the last value of respiratory rate for patient 10021487?",
+  "question_id": "880392e9b0ba16e0c00356d2",
+  "template": "What was the [time_filter_exact1] measured {vital_name} of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "f5efdf3f-5b53-5c9f-95a6-047275107c46",
+  "question": "How much does patient 10002495's troponin t differ from the last value measured on the last hospital visit compared to the second to last value measured on the last hospital visit?",
+  "question_id": "7e5e17dca306a105f47f9bb7",
+  "template": "What is the change in the value of {lab_name} of patient {patient_id} from the [time_filter_exact2] value measured [time_filter_global2] compared to the [time_filter_exact1] value measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2146-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "c4c29979-f2f5-56db-af5b-1715887727b8",
+  "question": "The total number of times in 10/last year patient 10011398 had a lab test for platelet count.",
+  "question_id": "6b5cff60f50561310ed8c3c2",
+  "template": "Count the number of times that patient {patient_id} received a {lab_name} lab test [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2133-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "dd2bf984-33c3-5874-8f68-84113327877e",
+  "question": "How many days have passed since patient 10018081 first received a lab test during this hospital visit for po2?",
+  "question_id": "23dd8572482a3b9ef2437c37",
+  "template": "How many [unit_count] have passed since the [time_filter_exact1] time patient {patient_id} received a {lab_name} lab test on the current hospital visit?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "8adbf3e4-47ff-561e-b1b6-746ee32e056d",
+  "question": "When did patient 10020740 last get prescribed a drug on their first hospital visit?",
+  "question_id": "0f107c9e56d31b410f4f045c",
+  "template": "When was the [time_filter_exact1] prescription time of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2118-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "76202c51-1b9d-5cc2-a7bc-3dfb2ac3ab32",
+  "question": "What was the last prescription time for metoprolol tartrate for patient 10019172 in 10/2118?",
+  "question_id": "448d117f9de70ed2d4dc414e",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} was prescribed {drug_name} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2134-12-31 23:59:00.",
+  "patient_fhir_id": "b9a9ae7b-2455-59fe-938d-ce19ef360dd1",
+  "question": "When did patient 10039997 last receive a microbiology test in 09/this year?",
+  "question_id": "073f2bf50f7338fb5c3bb42b",
+  "template": "When was the [time_filter_exact1] microbiology test of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "73fb53d8-f1fa-53cd-a25c-2314caccbb99",
+  "question": "What was the name of the organism to be found in the first blood culture test of patient 10007818 on their first hospital encounter?",
+  "question_id": "dd880129ab0eb4dc203813f8",
+  "template": "What was the organism name found in the [time_filter_exact1] {spec_name} microbiology test of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "dc332fb6-61f8-552e-8743-765d626f0a4e",
+  "question": "Please provide patient 10035185's yearly level of protein, total. if multiple protein, total levels are measured yearly, take the minimum.",
+  "question_id": "ab28063625f4ba14b3379479",
+  "template": "List the [unit_average] [agg_function] {lab_name} lab value of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2167-12-31 23:59:00. I want the final output to be the sum of the retrieved results.",
+  "patient_fhir_id": "94abdf17-f13a-5eae-aac0-eca407bbfadd",
+  "question": "Could you report the total amount of output that patient 10007058 had since 03/20/2167?",
+  "question_id": "b71409d570252fbb7bc7ecd0",
+  "template": "What was the total volume of output that patient {patient_id} had [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2116-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "4365e125-c049-525a-9459-16d5e6947ad2",
+  "question": "Count the days that have passed since patient 10021487's last stay at careunit emergency department in their current hospital encounter.",
+  "question_id": "aedafdf56773a3d83e728b07",
+  "template": "How many [unit_count] have passed since the [time_filter_exact1] time patient {patient_id} stayed in careunit {careunit} on the current hospital visit?"
+ },
+ {
+  "assumption": "Assume the current time is 2142-12-31 23:59:00.",
+  "patient_fhir_id": "73eac996-32e6-5b25-96fb-7d7414180af9",
+  "question": "Has patient 10027445 received any medication since 17 months ago?",
+  "question_id": "407ffa4fc0b1f6b83c6a90e4",
+  "template": "Has_verb patient {patient_id} been prescribed any medication [time_filter_global1]?"
+ },
+ {
+  "assumption": "Search for 'Arterial Blood Pressure systolic' to find systolic blood pressure.",
+  "patient_fhir_id": "c0d83ad6-0b65-5fd6-b241-f50cf552232c",
+  "question": "Can you give me patient 10019385's daily systolic blood pressure on the last icu visit? if multiple systolic blood pressures are measured daily, take the average.",
+  "question_id": "2c5b0c8baa3288cd5ae25871",
+  "template": "List the [unit_average] [agg_function] {vital_name} of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2129-12-31 23:59:00.",
+  "patient_fhir_id": "27980ad8-77b7-5360-b211-bf4fac9c468c",
+  "question": "Which drug was prescribed to patient 10020306 for the first time since 13 months ago?",
+  "question_id": "1bc55cd8f6d690799f8c4047",
+  "template": "What was the name of the drug that patient {patient_id} was [time_filter_exact1] prescribed [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2137-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "5f74c4bf-681e-5123-ab4d-225c72be4f9f",
+  "question": "Number of times patient 10015272 was prescribed potassium chloride replacement (critical care and oncology) in 2137.",
+  "question_id": "75f2ab4d9c265d10a7c0876f",
+  "template": "Count the number of times that patient {patient_id} were prescribed {drug_name} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2200-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "9111ccb1-fc93-5599-ab7d-35f1e61d4214",
+  "question": "When was patient 10026255 last prescribed a medicine via the iv route since 06/2200?",
+  "question_id": "bf8aee434927ad78efbb9c37",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} was prescribed a medication via {drug_route} route [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2189-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "a0bcbbc0-b432-5f7d-ac63-28212f20dead",
+  "question": "Did patient 10022017 have foley on 10/03/this year?",
+  "question_id": "e58ee0e5c472679a4d86b25e",
+  "template": "Has_verb patient {patient_id} had any {output_name} output [time_filter_global1]?"
+ },
+ {
+  "assumption": "Search for 'Daily Weight' to find weight.",
+  "patient_fhir_id": "73eac996-32e6-5b25-96fb-7d7414180af9",
+  "question": "How much is patient 10027445's change of weight last measured on the last hospital visit compared to the first value measured on the last hospital visit?",
+  "question_id": "dc7482ecedbaea3e549bc140",
+  "template": "What is the change in the weight of patient {patient_id} from the [time_filter_exact2] value measured [time_filter_global2] compared to the [time_filter_exact1] value measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2201-12-31 23:59:00. Search for 'Daily Weight' to find weight.",
+  "patient_fhir_id": "e2beb281-c44f-579b-8211-a3749c549e92",
+  "question": "Can you tell me the first measured weight of patient 10027602 since 5 months ago?",
+  "question_id": "9cd37fc842ad70310d54ee58",
+  "template": "What was the [time_filter_exact1] measured weight of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "e7e213ac-81c0-5c7f-8d57-81519132353e",
+  "question": "When did patient 10021312 have the rdw test, the first time?",
+  "question_id": "528d495934e0aadbd47ad1b6",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} received a {lab_name} lab test [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2111-12-31 23:59:00.",
+  "patient_fhir_id": "4c48ec6f-716c-5bfd-8cee-b9a6b7c6c765",
+  "question": "Has patient 10004422 come to the hospital since 1 year ago?",
+  "question_id": "7cf6accf1943c04c3021431d",
+  "template": "Has_verb patient {patient_id} been admitted to the hospital [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2181-12-31 23:59:00.",
+  "patient_fhir_id": "af0e5009-d87d-52a8-ac8a-676e471c41f1",
+  "question": "Since 2 months ago, how many distinct drugs were prescribed to patient 10021938?",
+  "question_id": "99420e9ae112f93bdf6f421a",
+  "template": "Count the number of drugs patient {patient_id} were prescribed [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2133-12-31 23:59:00. Search for 'Arterial Blood Pressure diastolic' to find diastolic blood pressure.",
+  "patient_fhir_id": "dd2bf984-33c3-5874-8f68-84113327877e",
+  "question": "When was the first time when patient 10018081 had the maximum value of diastolic blood pressure on 12/26/this year?",
+  "question_id": "565bd442b074a6efca2e0887",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} had the [sort] {vital_name} [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "13df78e7-150e-5eb7-be5f-5f62b2baee87",
+  "question": "How many times was patient 10022880 in the icu?",
+  "question_id": "c6ef8b615b48c60724e2636d",
+  "template": "Count the number of ICU visits of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2150-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace. When searching for insulin, use the prescriptions records.",
+  "patient_fhir_id": "8adbf3e4-47ff-561e-b1b6-746ee32e056d",
+  "question": "Was patient 10020740 provided with any insulin in 03/2150?",
+  "question_id": "29ea8f3acec04ab1a79ac191",
+  "template": "Has_verb patient {patient_id} been prescribed {drug_name} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2178-12-31 23:59:00.",
+  "patient_fhir_id": "2955c958-192a-50eb-b59d-23a29d7d374e",
+  "question": "Could you provide me with patient 10016742's hospital admission time since 2178?",
+  "question_id": "0980045acad692ba2a8996db",
+  "template": "List the hospital admission time of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2177-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace. When searching for heparin, use the prescriptions records.",
+  "patient_fhir_id": "13df78e7-150e-5eb7-be5f-5f62b2baee87",
+  "question": "Has the medicine heparin, iso-osmotic dextrose, or milk of magnesia been prescribed to patient 10022880 since 2177?",
+  "question_id": "c6e32087897377afc707821c",
+  "template": "Has_verb patient {patient_id} been prescribed {drug_name1}, {drug_name2}, or {drug_name3} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2136-12-31 23:59:00.",
+  "patient_fhir_id": "28dcf33b-0c52-587f-83ad-2a3270976719",
+  "question": "Was a lab test performed on patient 10007795 in 08/2136?",
+  "question_id": "9957eec4f3658a2214f701c9",
+  "template": "Has_verb patient {patient_id} received any lab test [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2111-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace. I want to use the dose_val_rx column for the dose of any medication.",
+  "patient_fhir_id": "a7bbf9a2-f7fe-5815-a637-fa59bd70b374",
+  "question": "For the first time, how much 0.9% sodium chloride was prescribed since 10/2111 to patient 10006053?",
+  "question_id": "73f7afc22d0bf51b0967f477",
+  "template": "What was the dose of {drug_name} that patient {patient_id} was [time_filter_exact1] prescribed [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2120-12-31 23:59:00.",
+  "patient_fhir_id": "88fcbf73-7d80-52ae-8f11-ee73c71df69b",
+  "question": "When was the measurement of patient 10019568's heart rate taken first on 02/04/2120?",
+  "question_id": "9395b479ccae72fb9bd102d3",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} had a {vital_name} measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "e232ee4d-3042-51c6-b730-a79eb8579d42",
+  "question": "What was the admission type for patient 10019917's last hospital visit?",
+  "question_id": "68c085ad9374a9c886e43355",
+  "template": "What was the [time_filter_exact1] hospital admission type of patient {patient_id}?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "a977f4b6-1eb6-5639-80da-3e025744c4ac",
+  "question": "Give me the number of hospital visits patient 10018501 made.",
+  "question_id": "1565b3431aebbecefff6df1d",
+  "template": "Count the number of hospital visits of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2185-12-31 23:59:00.",
+  "patient_fhir_id": "8c3ba37b-ba80-576a-8028-5a58eccb6156",
+  "question": "Can you provide patient 10016810's minimum value of heart rate since 206 days ago?",
+  "question_id": "7b7e0d370650fe79de5ab188",
+  "template": "What was the [agg_function] {vital_name} of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2137-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "3bbb6aec-41a3-5825-b6cf-422832002f96",
+  "question": "When did patient 10031757 last take his or her swab microbiology test since 02/2137?",
+  "question_id": "031ff26b606f0d58d734256c",
+  "template": "When was patient {patient_id}'s [time_filter_exact1] {spec_name} microbiology test [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2133-12-31 23:59:00.",
+  "patient_fhir_id": "dd2bf984-33c3-5874-8f68-84113327877e",
+  "question": "How many hours have passed from the time when patient 10018081 was admitted to the icu?",
+  "question_id": "3444c5918e4cc5369449a9b3",
+  "template": "How many [unit_count] have passed since patient {patient_id} was admitted to the ICU currently?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "88fcbf73-7d80-52ae-8f11-ee73c71df69b",
+  "question": "During the first hospital visit, was patient 10019568 in the emergency room?",
+  "question_id": "33c6e26e755a5e0efb3a25b9",
+  "template": "Has_verb patient {patient_id} been to an emergency room [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "52462b6a-9b39-5460-9ee6-1a2d7a20394e",
+  "question": "On the last hospital visit, did patient 10022041 receive any diagnoses?",
+  "question_id": "f209b8c081219def0ef4ace5",
+  "template": "Has_verb patient {patient_id} received any diagnosis [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2155-12-31 23:59:00.",
+  "patient_fhir_id": "df756e08-6ea8-5d69-b918-67911945f827",
+  "question": "When was the time that patient 10010471's respiratory rate was greater than 25.0 for the first time on this month/19?",
+  "question_id": "53761ebb18ac5c642c4f2006",
+  "template": "When was the [time_filter_exact1] time that the {vital_name} of patient {patient_id} was [comparison] than {vital_value} [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "a0bcbbc0-b432-5f7d-ac63-28212f20dead",
+  "question": "Has patient 10022017 had any procedure?",
+  "question_id": "10fd1a4b2a07afed251f289a",
+  "template": "Has_verb patient {patient_id} received any procedure [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "752d15e2-bd27-52ed-b055-ed79edb86aba",
+  "question": "Is the calculated total co2 reading for patient 10039831 last measured on the current hospital visit less than the value first measured on the current hospital visit?",
+  "question_id": "617d9b7140ffa467be53e5b8",
+  "template": "Is the value of {lab_name} of patient {patient_id} [time_filter_exact2] measured [time_filter_global2] [comparison] than the [time_filter_exact1] value measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "Search for 'Temperature Celsius' to find body temperature.",
+  "patient_fhir_id": "2edf1f64-2919-50e3-b98c-7a55dcfda00d",
+  "question": "What was the last body temperature value of patient 10009035?",
+  "question_id": "34320356e0e8b8b03cfb94be",
+  "template": "What was the [time_filter_exact1] measured {vital_name} of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "f572075b-186b-5565-b2d4-1567fe4f925c",
+  "question": "Tell me the difference in the creatine kinase (ck) value for patient 10025612 second measured on the last hospital visit compared to the first value measured on the last hospital visit?",
+  "question_id": "01b66115a27e8ec4031d99ba",
+  "template": "What is the change in the value of {lab_name} of patient {patient_id} from the [time_filter_exact2] value measured [time_filter_global2] compared to the [time_filter_exact1] value measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2116-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "4365e125-c049-525a-9459-16d5e6947ad2",
+  "question": "How many days has it been since the first time patient 10021487 took a amylase, pleural lab test on this hospital stay?",
+  "question_id": "de82a5b21bc173cb82992e90",
+  "template": "How many [unit_count] have passed since the [time_filter_exact1] time patient {patient_id} received a {lab_name} lab test on the current hospital visit?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "f572075b-186b-5565-b2d4-1567fe4f925c",
+  "question": "When did patient 10025612 come to the hospital via physician referral for the first time?",
+  "question_id": "be0c83bb4816c62c521f4f19",
+  "template": "When was the [time_filter_exact1] hospital admission time that patient {patient_id} was admitted via {admission_route}?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "9c3ebb7e-d087-519e-bea4-31c3d4aac7ff",
+  "question": "Was a implantation of cardiac resynchronization defibrillator, total system [crt-d] procedure performed on patient 10023117 in their last hospital visit?",
+  "question_id": "c8af28411a3f128722567f9e",
+  "template": "Has_verb patient {patient_id} received a {procedure_name} procedure [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "28776290-4349-56d3-8c13-adc554feabb8",
+  "question": "What was the last time that patient 10025463 received a prescription for quinidine gluconate e.r. in their first hospital visit?",
+  "question_id": "d4f2dc48d747e43282e99fc7",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} was prescribed {drug_name} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2180-12-31 23:59:00.",
+  "patient_fhir_id": "0a8eebfd-a352-522e-89f0-1d4a13abdebc",
+  "question": "When did since 05/2180 patient 10000032 receive a microbiology test for the first time?",
+  "question_id": "56ca21bbb266b349bca3f6e5",
+  "template": "When was the [time_filter_exact1] microbiology test of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2167-12-31 23:59:00. I want the final output to be the sum of the retrieved results.",
+  "patient_fhir_id": "94abdf17-f13a-5eae-aac0-eca407bbfadd",
+  "question": "Gather the total output since 10/05/2167 for patient 10007058.",
+  "question_id": "67c2dbeaea4791e0feb0a69b",
+  "template": "What was the total volume of output that patient {patient_id} had [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2174-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "8d7b633e-0f92-5448-a56d-36c69210e860",
+  "question": "How many hours has it been since patient 10004733's first stay in the careunit neurology on the current hospital visit?",
+  "question_id": "55734b9319f9dd143aa308ee",
+  "template": "How many [unit_count] have passed since the [time_filter_exact1] time patient {patient_id} stayed in careunit {careunit} on the current hospital visit?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "1ab119a5-aac8-5002-9d2f-b8ff69623387",
+  "question": "Do you know patient 10038933's gender?",
+  "question_id": "cc30aba23d4b59298a12f192",
+  "template": "What is the gender of patient {patient_id}?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "91e0e410-0782-5478-90e0-1bedc3aa1525",
+  "question": "How many times was albumin 25% (12.5g / 50ml) prescribed for patient 10038081 in the first hospital encounter?",
+  "question_id": "f737cdc1f727761a17f22b7d",
+  "template": "Count the number of times that patient {patient_id} were prescribed {drug_name} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2183-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "8659a6be-db5c-5f66-b629-1a3b858a487a",
+  "question": "When did patient 10004720 last have the minimum monocytes since 12/2183?",
+  "question_id": "3701159d655f47f5724c7180",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} had the [sort] value of {lab_name} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Search for 'Daily Weight' to find weight.",
+  "patient_fhir_id": "4c48ec6f-716c-5bfd-8cee-b9a6b7c6c765",
+  "question": "How much weight does the weight of patient 10004422 change last measured on the last hospital visit compared to the second to last value measured on the last hospital visit?",
+  "question_id": "350e7b3e88e232febb94440c",
+  "template": "What is the change in the weight of patient {patient_id} from the [time_filter_exact2] value measured [time_filter_global2] compared to the [time_filter_exact1] value measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2110-12-31 23:59:00.",
+  "patient_fhir_id": "dd773280-4157-5168-9481-3d29a5ff82d8",
+  "question": "What was the name of the microbiology test that patient 10008454 received last in this month?",
+  "question_id": "bd164a06951b24d9fbb32e90",
+  "template": "What was the name of the microbiology test that patient {patient_id} [time_filter_exact1] received [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "13df78e7-150e-5eb7-be5f-5f62b2baee87",
+  "question": "When did patient 10022880 receive a ntprobnp lab test, the first time, on the last hospital stay?",
+  "question_id": "7dc3347edeff0be3bfeb2b14",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} received a {lab_name} lab test [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2137-12-31 23:59:00.",
+  "patient_fhir_id": "5f74c4bf-681e-5123-ab4d-225c72be4f9f",
+  "question": "Has patient 10015272 come to the hospital since 2137?",
+  "question_id": "d012dd1a0c9587638828166b",
+  "template": "Has_verb patient {patient_id} been admitted to the hospital [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2183-12-31 23:59:00.",
+  "patient_fhir_id": "8659a6be-db5c-5f66-b629-1a3b858a487a",
+  "question": "Calculate the number of distinct medications that patient 10004720 was prescribed since 11/2183.",
+  "question_id": "8db871c52022d633a9f58b11",
+  "template": "Count the number of drugs patient {patient_id} were prescribed [time_filter_global1]."
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "7ec7078a-0593-5a99-9862-ebbff47fd1c5",
+  "question": "When was the last hospital discharge time of patient 10029291?",
+  "question_id": "d6ea3d8ed946d219e8c6b546",
+  "template": "When was the [time_filter_exact1] hospital discharge time of patient {patient_id}?"
+ },
+ {
+  "assumption": "Assume the current time is 2183-12-31 23:59:00. Search for 'Temperature Celsius' to find body temperature.",
+  "patient_fhir_id": "8659a6be-db5c-5f66-b629-1a3b858a487a",
+  "question": "When was the first time since 228 days ago patient 10004720 reached the maximum body temperature?",
+  "question_id": "9ec14e1d25e50dd996d4e3a7",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} had the [sort] {vital_name} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2169-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "aeda7084-be35-510e-b171-f00596aed99f",
+  "question": "What medication was last prescribed to patient 10020187 via po in 02/this year?",
+  "question_id": "727a314e82ff330ad11ea76a",
+  "template": "What was the name of the drug that patient {patient_id} was [time_filter_exact1] prescribed via {drug_route} route [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace. I want to use the dose_val_rx column for the dose of any medication.",
+  "patient_fhir_id": "f5efdf3f-5b53-5c9f-95a6-047275107c46",
+  "question": "For the first time, in their last hospital encounter, how much lidocaine jelly 2% (urojet) was prescribed to patient 10002495?",
+  "question_id": "63e4dddc1461b7b4506f3036",
+  "template": "What was the dose of {drug_name} that patient {patient_id} was [time_filter_exact1] prescribed [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace. When searching for magnesium, use the labevents records.",
+  "patient_fhir_id": "53b0f2d8-24dc-5c82-903c-1bf98e510e96",
+  "question": "What is the average magnesium value in the first hospital encounter for patient 10006580?",
+  "question_id": "a19666f04f957b696244b895",
+  "template": "What was the [agg_function] {lab_name} value of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "dd2bf984-33c3-5874-8f68-84113327877e",
+  "question": "What was the admission type during patient 10018081's first visit to the hospital?",
+  "question_id": "6fd5e2805d0a42a23c2787ff",
+  "template": "What was the [time_filter_exact1] hospital admission type of patient {patient_id}?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "f3fc719c-f6e0-5c27-a18f-b4e5afaf279b",
+  "question": "How many times did patient 10014729 visit the hospital?",
+  "question_id": "97aace30ba0ffdefe43a92fd",
+  "template": "Count the number of hospital visits of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2140-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "8326334a-d5e4-5339-8c54-8463f95786a7",
+  "question": "Has there been any organism found in 04/this year in the first staph aureus swab microbiology test of patient 10012552?",
+  "question_id": "623a4a91b019a3f07aa9fbb9",
+  "template": "Has_verb there been any organism found in the [time_filter_exact1] {spec_name} microbiology test of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2185-12-31 23:59:00. Search for 'O2 saturation pulseoxymetry' to find SpO2.",
+  "patient_fhir_id": "837b0984-f3bf-5076-baf5-b727decb4bea",
+  "question": "Tell me patient 10037975's minimum spo2 on 02/10/this year.",
+  "question_id": "8f13d57ff126b0360f9b38a9",
+  "template": "What was the [agg_function] {vital_name} of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2142-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "afa7c67f-82b9-5f51-bd04-8b7d7c4456c0",
+  "question": "When did patient 10016150 first get a urine microbiology test since 05/2142?",
+  "question_id": "8fc30d6e91b22c5fbe1a138b",
+  "template": "When was patient {patient_id}'s [time_filter_exact1] {spec_name} microbiology test [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2146-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace. I want the final output to be the sum of the retrieved results. I want to use the dose_val_rx column for the dose of any medication.",
+  "patient_fhir_id": "c4c29979-f2f5-56db-af5b-1715887727b8",
+  "question": "What was the dose of glucagon that patient 10011398 was prescribed since 07/2146?",
+  "question_id": "c342b5e4b0e92d9e4a863516",
+  "template": "What was the total amount of dose of {drug_name} that patient {patient_id} were prescribed [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2133-12-31 23:59:00.",
+  "patient_fhir_id": "dd2bf984-33c3-5874-8f68-84113327877e",
+  "question": "What number of hours have elapsed since patient 10018081 was admitted to the icu?",
+  "question_id": "b1f43697c74666c4701854b3",
+  "template": "How many [unit_count] have passed since patient {patient_id} was admitted to the ICU currently?"
+ },
+ {
+  "assumption": "Assume the current time is 2141-12-31 23:59:00.",
+  "patient_fhir_id": "a977f4b6-1eb6-5639-80da-3e025744c4ac",
+  "question": "For the first time, what specimen test was given to patient 10018501 since 04/2141?",
+  "question_id": "c309a617ea1462d56fdac6d2",
+  "template": "What was the name of the specimen that patient {patient_id} was [time_filter_exact1] tested [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2136-12-31 23:59:00.",
+  "patient_fhir_id": "28dcf33b-0c52-587f-83ad-2a3270976719",
+  "question": "During the last year, did patient 10007795 come into an er?",
+  "question_id": "b422362f19ca6957cfa3fb02",
+  "template": "Has_verb patient {patient_id} been to an emergency room [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "a3a12d01-dc21-565b-89e2-da60e7fc80dc",
+  "question": "When was patient 10003046 admitted for the first time to the hospital?",
+  "question_id": "c9887571dd618b516d5a3741",
+  "template": "When was the [time_filter_exact1] hospital admission time of patient {patient_id}?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "5d0fc1da-e9bb-5b52-8e17-5930295afd2c",
+  "question": "Did patient 10017492 get any diagnosis on their first hospital visit?",
+  "question_id": "c73288aeb0cfc184ac029f56",
+  "template": "Has_verb patient {patient_id} received any diagnosis [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2132-12-31 23:59:00.",
+  "patient_fhir_id": "a2605b15-4f1b-5839-b4ce-fb7a6bc1005f",
+  "question": "When did patient 10005817 receive the first lab test, since 08/2132?",
+  "question_id": "314c43e484535c98944bc116",
+  "template": "When was the [time_filter_exact1] lab test of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "4365e125-c049-525a-9459-16d5e6947ad2",
+  "question": "How much is changed in patient 10021487's hyaline casts levels last measured on the current hospital visit compared to the first value measured on the current hospital visit?",
+  "question_id": "beba7369b04f1b191db5f12e",
+  "template": "What is the change in the value of {lab_name} of patient {patient_id} from the [time_filter_exact2] value measured [time_filter_global2] compared to the [time_filter_exact1] value measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "752d15e2-bd27-52ed-b055-ed79edb86aba",
+  "question": "Count the number of times that patient 10039831 had received a hemoglobin lab test during this hospital visit.",
+  "question_id": "18804b0230296456eb7bf9f3",
+  "template": "Count the number of times that patient {patient_id} received a {lab_name} lab test [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2116-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "4365e125-c049-525a-9459-16d5e6947ad2",
+  "question": "How many days have passed since patient 10021487 first took a pco2 lab test in this hospital encounter?",
+  "question_id": "90b5ca0a939ce91e8678e9e2",
+  "template": "How many [unit_count] have passed since the [time_filter_exact1] time patient {patient_id} received a {lab_name} lab test on the current hospital visit?"
+ },
+ {
+  "assumption": "Assume the current time is 2189-12-31 23:59:00.",
+  "patient_fhir_id": "a0bcbbc0-b432-5f7d-ac63-28212f20dead",
+  "question": "What time was patient 10022017 prescribed a drug for the last time since 04/2189?",
+  "question_id": "73924b9389e02ce45d9e3c48",
+  "template": "When was the [time_filter_exact1] prescription time of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2146-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "73fb53d8-f1fa-53cd-a25c-2314caccbb99",
+  "question": "Has patient 10007818 undergone a extirpation of matter from lung lingula, via natural or artificial opening endoscopic procedure since 2146?",
+  "question_id": "889ee571402af73523bd702b",
+  "template": "Has_verb patient {patient_id} received a {procedure_name} procedure [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2146-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "73fb53d8-f1fa-53cd-a25c-2314caccbb99",
+  "question": "Can you tell me the name of the organism detected in the first bronchoalveolar lavage test of patient 10007818 since 07/2146?",
+  "question_id": "ee3ef44107690c988c06c3e4",
+  "template": "What was the organism name found in the [time_filter_exact1] {spec_name} microbiology test of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "I want the final output to be the sum of the retrieved results.",
+  "patient_fhir_id": "a977f4b6-1eb6-5639-80da-3e025744c4ac",
+  "question": "Can you find the total amount of output of patient 10018501 in the last icu visit?",
+  "question_id": "9cb9aa60b28077c70929769c",
+  "template": "What was the total volume of output that patient {patient_id} had [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2115-12-31 23:59:00.",
+  "patient_fhir_id": "752d15e2-bd27-52ed-b055-ed79edb86aba",
+  "question": "Since 04/2115, have there been any microbiology tests conducted for patient 10039831?",
+  "question_id": "c0193e5f3d01df8825ae0a53",
+  "template": "Has_verb patient {patient_id} had any microbiology test result [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2174-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "8d7b633e-0f92-5448-a56d-36c69210e860",
+  "question": "How many hours has it been since patient 10004733's first stay in the careunit medicine during this hospital visit?",
+  "question_id": "468c08e2b6a2ad56c3a4b7ce",
+  "template": "How many [unit_count] have passed since the [time_filter_exact1] time patient {patient_id} stayed in careunit {careunit} on the current hospital visit?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "807d2a03-9c57-55e3-a443-09fc8f1de866",
+  "question": "What's the gender of patient 10014078?",
+  "question_id": "cc2d0e8abf70d2897312faf2",
+  "template": "What is the gender of patient {patient_id}?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "7ec7078a-0593-5a99-9862-ebbff47fd1c5",
+  "question": "Was patient 10029291 taken a lab test of ck-mb index on their first hospital encounter?",
+  "question_id": "6f9ec204cf2995a0808955b7",
+  "template": "Has_verb patient {patient_id} received a {lab_name} lab test [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2143-12-31 23:59:00.",
+  "patient_fhir_id": "adde1635-3110-5e92-b9f0-7a6d845a1784",
+  "question": "Has patient 10040025 received any drug prescription in 04/last year?",
+  "question_id": "6b7a85cc61dd82548ef2f988",
+  "template": "Has_verb patient {patient_id} been prescribed any medication [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "5f3dcdb5-bd27-58f5-b990-859b6bcc2d73",
+  "question": "What is the monthly respiratory rate for patient 10038999 in the first hospital encounter? if multiple respiratory rates are measured monthly, take the average.",
+  "question_id": "e1d0b53beabc24ec45e07b2d",
+  "template": "List the [unit_average] [agg_function] {vital_name} of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2134-12-31 23:59:00.",
+  "patient_fhir_id": "77e10fd0-6a1c-5547-a130-fae1341acf36",
+  "question": "What was the first drug being prescribed for patient 10003400 since 26 months ago?",
+  "question_id": "b1230a6aa17968195ee8b217",
+  "template": "What was the name of the drug that patient {patient_id} was [time_filter_exact1] prescribed [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2125-12-31 23:59:00. Search for 'Daily Weight' to find weight.",
+  "patient_fhir_id": "f3fc719c-f6e0-5c27-a18f-b4e5afaf279b",
+  "question": "Could you tell me patient 10014729's monthly weight in 2125? if multiple weights are measured monthly, take the minimum.",
+  "question_id": "42d490e9dcc8cd200649d0ff",
+  "template": "List the [unit_average] [agg_function] weight of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2137-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "53b0f2d8-24dc-5c82-903c-1bf98e510e96",
+  "question": "When was the last time that patient 10006580 was prescribed a medicine via the im route since 26 months ago?",
+  "question_id": "f75de59a1a66905c8e18c843",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} was prescribed a medication via {drug_route} route [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace. When searching for iron, use the labevents records.",
+  "patient_fhir_id": "42f0ed8f-d744-5edb-a05d-8e011c1fbd64",
+  "question": "When did patient 10029484 first have maximum iron in the last hospital encounter?",
+  "question_id": "f49e8d99f34677375d3e576d",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} had the [sort] value of {lab_name} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2183-12-31 23:59:00.",
+  "patient_fhir_id": "8659a6be-db5c-5f66-b629-1a3b858a487a",
+  "question": "What microbiology test did patient 10004720 undergo for the last time since 01/2183?",
+  "question_id": "d738acddca870a290c446af4",
+  "template": "What was the name of the microbiology test that patient {patient_id} [time_filter_exact1] received [time_filter_global1]?"
+ },
+ {
+  "assumption": "Search for 'Daily Weight' to find weight.",
+  "patient_fhir_id": "d378a59b-aa80-5bc5-812a-7d59b26e7df4",
+  "question": "How much did patient 10036156 weigh according to the first measurement?",
+  "question_id": "27ce9933ce0b1542c2dd468c",
+  "template": "What was the [time_filter_exact1] measured weight of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2150-12-31 23:59:00.",
+  "patient_fhir_id": "8adbf3e4-47ff-561e-b1b6-746ee32e056d",
+  "question": "Has patient 10020740 been hospitalized in this year?",
+  "question_id": "6699cff955e99112f866a2d5",
+  "template": "Has_verb patient {patient_id} been admitted to the hospital [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "d378a59b-aa80-5bc5-812a-7d59b26e7df4",
+  "question": "When was the first time patient 10036156 was discharged from the hospital?",
+  "question_id": "7e8d5196747ac83500ed63a2",
+  "template": "When was the [time_filter_exact1] hospital discharge time of patient {patient_id}?"
+ },
+ {
+  "assumption": "Search for 'Arterial Blood Pressure mean' to find mean blood pressure.",
+  "patient_fhir_id": "b9a9ae7b-2455-59fe-938d-ce19ef360dd1",
+  "question": "When did patient 10039997 last have maximum mean blood pressure?",
+  "question_id": "e799539afbf0b691d6a01724",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} had the [sort] {vital_name} [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "a87c1099-8c87-5548-8fc0-56972a82cebf",
+  "question": "During their first hospital visit, what was the first drug patient 10020944 was prescribed via the iv route?",
+  "question_id": "ad08e146a6e37e3a138c8c78",
+  "template": "What was the name of the drug that patient {patient_id} was [time_filter_exact1] prescribed via {drug_route} route [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "8659a6be-db5c-5f66-b629-1a3b858a487a",
+  "question": "Give the count of icu visits of patient 10004720 on the last hospital encounter.",
+  "question_id": "4a84bbe324a00742f9bdfa52",
+  "template": "Count the number of ICU visits of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2131-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "a87c1099-8c87-5548-8fc0-56972a82cebf",
+  "question": "Was any glucose gel prescribed to patient 10020944 in 03/2131?",
+  "question_id": "b3baba0d3d4a30996c8d7040",
+  "template": "Has_verb patient {patient_id} been prescribed {drug_name} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2176-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace. I want the final output to be the sum of the retrieved results.",
+  "patient_fhir_id": "f5a99b42-365c-5f7e-bcab-4fa33b3cc88e",
+  "question": "What was patient 10015931's total or urine output since 12/06/2176?",
+  "question_id": "e4f78cd53a4a70e9d10c4eea",
+  "template": "What was the total volume of {output_name} output that patient {patient_id} had [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "dc332fb6-61f8-552e-8743-765d626f0a4e",
+  "question": "Can you list the time when patient 10035185 was admitted to the hospital?",
+  "question_id": "bee55ba67d6da489306ff469",
+  "template": "List the hospital admission time of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2161-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "b7b92f05-c913-5a94-9a06-7b015e838f14",
+  "question": "Has patient 10021118 been received docusate sodium, 5% dextrose, or polyethylene glycol since 11/2161?",
+  "question_id": "605dc49bacfb0b462cf31880",
+  "template": "Has_verb patient {patient_id} been prescribed {drug_name1}, {drug_name2}, or {drug_name3} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Search for 'Arterial Blood Pressure systolic' to find systolic blood pressure.",
+  "patient_fhir_id": "aeda7084-be35-510e-b171-f00596aed99f",
+  "question": "Tell me the change in the systolic blood pressure of patient 10020187 last measured on the last icu visit compared to the value second to last measured on the last icu visit?",
+  "question_id": "5ae9eba9c11262b3bc8961b7",
+  "template": "What is the change in the {vital_name} of patient {patient_id} from the [time_filter_exact2] value measured [time_filter_global2] compared to the [time_filter_exact1] value measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "f5efdf3f-5b53-5c9f-95a6-047275107c46",
+  "question": "What was patient 10002495's minimum protein value on the last hospital encounter?",
+  "question_id": "9f0ee496296456e6f48a49a6",
+  "template": "What was the [agg_function] {lab_name} value of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Search for 'Arterial Blood Pressure systolic' to find systolic blood pressure.",
+  "patient_fhir_id": "2edf1f64-2919-50e3-b98c-7a55dcfda00d",
+  "question": "When was the first time that the systolic blood pressure readings of patient 10009035 were recorded on their first icu visit?",
+  "question_id": "e5d7989d4180e49d445f9388",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} had a {vital_name} measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "8adbf3e4-47ff-561e-b1b6-746ee32e056d",
+  "question": "What was the admission type during patient 10020740's first hospital visit?",
+  "question_id": "94cd2d4043d712084245bed1",
+  "template": "What was the [time_filter_exact1] hospital admission type of patient {patient_id}?"
+ },
+ {
+  "assumption": "Assume the current time is 2167-12-31 23:59:00.",
+  "patient_fhir_id": "94abdf17-f13a-5eae-aac0-eca407bbfadd",
+  "question": "How many times did patient 10007058 go into the hospital since 2167?",
+  "question_id": "bb96274f7d0903a6f3ad4e76",
+  "template": "Count the number of hospital visits of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "8c3ba37b-ba80-576a-8028-5a58eccb6156",
+  "question": "Show me the duration in days of patient 10016810's last stay in the icu.",
+  "question_id": "01c32ce2101e22b2dfea210b",
+  "template": "What was the [time_filter_exact1] length of ICU stay of patient {patient_id}?"
+ },
+ {
+  "assumption": "Assume the current time is 2116-12-31 23:59:00.",
+  "patient_fhir_id": "4365e125-c049-525a-9459-16d5e6947ad2",
+  "question": "On this month/21, what was the minimum respiratory rate of patient 10021487?",
+  "question_id": "068a6fbca2eb611746f77955",
+  "template": "What was the [agg_function] {vital_name} of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace. I want the final output to be the sum of the retrieved results. I want to use the dose_val_rx column for the dose of any medication.",
+  "patient_fhir_id": "f77a5b72-65fd-5b20-8cef-6b6be4791265",
+  "question": "How much ferrous sulfate was patient 10012853 prescribed in total in their last hospital encounter?",
+  "question_id": "372eebaf1307d345c3c26b97",
+  "template": "What was the total amount of dose of {drug_name} that patient {patient_id} were prescribed [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2141-12-31 23:59:00.",
+  "patient_fhir_id": "f5efdf3f-5b53-5c9f-95a6-047275107c46",
+  "question": "Tell me the first specimen test given to patient 10002495 in 06/2141?",
+  "question_id": "441abc9cec7ed48c4b29a5c3",
+  "template": "What was the name of the specimen that patient {patient_id} was [time_filter_exact1] tested [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2185-12-31 23:59:00.",
+  "patient_fhir_id": "8c3ba37b-ba80-576a-8028-5a58eccb6156",
+  "question": "During the previous year, did patient 10016810 come into an er?",
+  "question_id": "18827b43fd9e61dcfc5d9388",
+  "template": "Has_verb patient {patient_id} been to an emergency room [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "b9a9ae7b-2455-59fe-938d-ce19ef360dd1",
+  "question": "When did patient 10039997's last visit to the hospital occur?",
+  "question_id": "f03270451ac730c92efdd5b1",
+  "template": "When was the [time_filter_exact1] hospital admission time of patient {patient_id}?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "e232ee4d-3042-51c6-b730-a79eb8579d42",
+  "question": "Can you provide the first value of the hematocrit for patient 10019917 during their last hospital visit?",
+  "question_id": "0eeb80895de2cb7f545f7953",
+  "template": "What was the [time_filter_exact1] measured value of a {lab_name} lab test of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "8c3ba37b-ba80-576a-8028-5a58eccb6156",
+  "question": "Is the calcium, total reading for patient 10016810 second measured on the last hospital visit less than the value first measured on the last hospital visit?",
+  "question_id": "96a829af0978aeef2a29366b",
+  "template": "Is the value of {lab_name} of patient {patient_id} [time_filter_exact2] measured [time_filter_global2] [comparison] than the [time_filter_exact1] value measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2153-12-31 23:59:00.",
+  "patient_fhir_id": "51d2190c-cc46-56c5-b2ea-363895cbea75",
+  "question": "When did patient 10009628 receive the last lab test, in 10/this year?",
+  "question_id": "f7e273153edfeb72b98bd9c7",
+  "template": "When was the [time_filter_exact1] lab test of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "5f3dcdb5-bd27-58f5-b990-859b6bcc2d73",
+  "question": "Is the value of the respiratory rate of patient 10038999 last measured on the last icu visit greater than that second to last measured on the last icu visit?",
+  "question_id": "49096da9fc4db23df0c9ca94",
+  "template": "Is the {vital_name} of patient {patient_id} [time_filter_exact2] measured [time_filter_global2] [comparison] than the [time_filter_exact1] value measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2161-12-31 23:59:00. Search for 'Temperature Celsius' to find body temperature.",
+  "patient_fhir_id": "2edf1f64-2919-50e3-b98c-7a55dcfda00d",
+  "question": "What was the first body temperature of patient 10009035 on 05/12/2161?",
+  "question_id": "3e69a6b789c8a2c74de0771d",
+  "template": "What was the [time_filter_exact1] measured {vital_name} of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "72d56b49-a7ee-5b9a-a679-25d1c836d3c3",
+  "question": "When did patient 10018845 enter the hospital the first time via emergency room?",
+  "question_id": "a3b2c1bfc83f38e441791752",
+  "template": "When was the [time_filter_exact1] hospital admission time that patient {patient_id} was admitted via {admission_route}?"
+ },
+ {
+  "assumption": "Assume the current time is 2144-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "158f3a39-e3d7-5e7a-93aa-57af894aadd9",
+  "question": "Has a extirpation of matter from left femoral vein, percutaneous approach procedure been performed on patient 10005909 since 1 year ago?",
+  "question_id": "bd8736e59f3b5eb724910a84",
+  "template": "Has_verb patient {patient_id} received a {procedure_name} procedure [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2183-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "8659a6be-db5c-5f66-b629-1a3b858a487a",
+  "question": "In this month, when was the first prescription of citalopram issued for patient 10004720?",
+  "question_id": "28cf75715d1cf3411a84ca65",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} was prescribed {drug_name} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2155-12-31 23:59:00.",
+  "patient_fhir_id": "df756e08-6ea8-5d69-b918-67911945f827",
+  "question": "When was the first time patient 10010471 was given microbiology tests since 06/2155?",
+  "question_id": "eeeb5ecc1778f72724d0534d",
+  "template": "When was the [time_filter_exact1] microbiology test of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2118-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "76202c51-1b9d-5cc2-a7bc-3dfb2ac3ab32",
+  "question": "What was the name of the organism that was discovered in the last urine test of patient 10019172 during the previous month?",
+  "question_id": "f2be9084ce59ddbf5372d16a",
+  "template": "What was the organism name found in the [time_filter_exact1] {spec_name} microbiology test of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "4365e125-c049-525a-9459-16d5e6947ad2",
+  "question": "What is patient 10021487's daily bilirubin, direct levels during the current hospital encounter? if multiple bilirubin, direct levels are measured daily, take the minimum.",
+  "question_id": "acc9bade197c3728c67fcdd7",
+  "template": "List the [unit_average] [agg_function] {lab_name} lab value of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2148-12-31 23:59:00.",
+  "patient_fhir_id": "1ab119a5-aac8-5002-9d2f-b8ff69623387",
+  "question": "Has any microbiological tests been conducted for patient 10038933 in 08/last year?",
+  "question_id": "4a8bec0e16a11e2197448c3b",
+  "template": "Has_verb patient {patient_id} had any microbiology test result [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2133-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "dd2bf984-33c3-5874-8f68-84113327877e",
+  "question": "Since patient 10018081's last stay in careunit trauma sicu (tsicu) on the current hospital encounter, how many days have passed?",
+  "question_id": "14cbab955b0cd896876914ae",
+  "template": "How many [unit_count] have passed since the [time_filter_exact1] time patient {patient_id} stayed in careunit {careunit} on the current hospital visit?"
+ },
+ {
+  "assumption": "Assume the current time is 2153-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "51d2190c-cc46-56c5-b2ea-363895cbea75",
+  "question": "Did patient 10009628 receive a laboratory calculated total co2 test in 10/2153?",
+  "question_id": "7c0a9c949c9ec7ff63c270ae",
+  "template": "Has_verb patient {patient_id} received a {lab_name} lab test [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2113-12-31 23:59:00.",
+  "patient_fhir_id": "e7e213ac-81c0-5c7f-8d57-81519132353e",
+  "question": "Has any medication been given to patient 10021312 since 03/2113?",
+  "question_id": "d60412f228f0e3b6df5b6d8c",
+  "template": "Has_verb patient {patient_id} been prescribed any medication [time_filter_global1]?"
+ },
+ {
+  "assumption": "Search for 'Arterial Blood Pressure systolic' to find systolic blood pressure.",
+  "patient_fhir_id": "a3a12d01-dc21-565b-89e2-da60e7fc80dc",
+  "question": "Show me patient 10003046's daily systolic blood pressure. if multiple systolic blood pressures are measured daily, take the maximum.",
+  "question_id": "2783cbb5eccb2b4d0c78a1e0",
+  "template": "List the [unit_average] [agg_function] {vital_name} of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "73fb53d8-f1fa-53cd-a25c-2314caccbb99",
+  "question": "What drug was last given to patient 10007818 in the last hospital encounter?",
+  "question_id": "a0db7ff03e5bff5fb4b04f91",
+  "template": "What was the name of the drug that patient {patient_id} was [time_filter_exact1] prescribed [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2133-12-31 23:59:00. Search for 'Daily Weight' to find weight.",
+  "patient_fhir_id": "dd2bf984-33c3-5874-8f68-84113327877e",
+  "question": "Can you tell me the daily weight of patient 10018081, taken since 11/2133? if multiple weights are measured daily, take the maximum.",
+  "question_id": "e8a376ca7f202983221786bd",
+  "template": "List the [unit_average] [agg_function] weight of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2128-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "3886cafb-65f4-5789-9213-64678a202f82",
+  "question": "How frequently was milk of magnesia prescribed to patient 10005348 in 09/this year?",
+  "question_id": "0035d27329064c6e313badd1",
+  "template": "Count the number of times that patient {patient_id} were prescribed {drug_name} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2118-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "76202c51-1b9d-5cc2-a7bc-3dfb2ac3ab32",
+  "question": "In the previous month, when was patient 10019172 prescribed a medication via the pr route for the first time?",
+  "question_id": "4ec0747fdc64218ae8ffc26d",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} was prescribed a medication via {drug_route} route [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2125-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "f572075b-186b-5565-b2d4-1567fe4f925c",
+  "question": "Can you tell me if the emesis event did occur to patient 10025612 on 10/02/this year?",
+  "question_id": "0c5849747818dd64e3090cd8",
+  "template": "Has_verb patient {patient_id} had any {output_name} output [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2138-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "8e77dd0b-932d-5790-9ba6-5c6df8434457",
+  "question": "When did patient 10039708 have the minimum ferritin value in 11/2138 the last time?",
+  "question_id": "327eb60e80b925374560c88e",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} had the [sort] value of {lab_name} [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "72d56b49-a7ee-5b9a-a679-25d1c836d3c3",
+  "question": "What microbiology test did patient 10018845 take for the first time in the first hospital visit?",
+  "question_id": "c03994e0de214c507a8f8002",
+  "template": "What was the name of the microbiology test that patient {patient_id} [time_filter_exact1] received [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2146-12-31 23:59:00. Search for 'Daily Weight' to find weight.",
+  "patient_fhir_id": "c4c29979-f2f5-56db-af5b-1715887727b8",
+  "question": "What was patient 10011398's weight during the last measurement since 30 months ago?",
+  "question_id": "b82dba86a4b2a808ab2cef89",
+  "template": "What was the [time_filter_exact1] measured weight of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2161-12-31 23:59:00.",
+  "patient_fhir_id": "b7b92f05-c913-5a94-9a06-7b015e838f14",
+  "question": "Has patient 10021118 been hospitalized in 2161?",
+  "question_id": "44877f8ac388426e512417e3",
+  "template": "Has_verb patient {patient_id} been admitted to the hospital [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2146-12-31 23:59:00.",
+  "patient_fhir_id": "73fb53d8-f1fa-53cd-a25c-2314caccbb99",
+  "question": "In 07/this year, how many unique drugs were prescribed to patient 10007818?",
+  "question_id": "9db928d9e5f6893e61f4f006",
+  "template": "Count the number of drugs patient {patient_id} were prescribed [time_filter_global1]."
+ },
+ {
+  "assumption": "Search for 'Arterial Blood Pressure mean' to find mean blood pressure.",
+  "patient_fhir_id": "dc332fb6-61f8-552e-8743-765d626f0a4e",
+  "question": "When did patient 10035185 last have minimum mean blood pressure?",
+  "question_id": "b862c7be7085f5768ab9bd66",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} had the [sort] {vital_name} [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "73fb53d8-f1fa-53cd-a25c-2314caccbb99",
+  "question": "What drug was first prescribed to patient 10007818 via replace in the first hospital encounter?",
+  "question_id": "86aa92cf8b22de77c9f101da",
+  "template": "What was the name of the drug that patient {patient_id} was [time_filter_exact1] prescribed via {drug_route} route [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "4365e125-c049-525a-9459-16d5e6947ad2",
+  "question": "Has zolpidem tartrate been prescribed during their current hospital encounter to patient 10021487?",
+  "question_id": "f4d19ba764d6773617847b52",
+  "template": "Has_verb patient {patient_id} been prescribed {drug_name} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2116-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace. I want the final output to be the sum of the retrieved results.",
+  "patient_fhir_id": "4365e125-c049-525a-9459-16d5e6947ad2",
+  "question": "Tell me patient 10021487's total tf residual output amount on 12/16/2116.",
+  "question_id": "e0ef594aee8d798aff512963",
+  "template": "What was the total volume of {output_name} output that patient {patient_id} had [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "77e10fd0-6a1c-5547-a130-fae1341acf36",
+  "question": "Was the lisinopril, vitamin d, or lenalidomide (revlimide)15mg prescribed for patient 10003400 in their first hospital visit?",
+  "question_id": "03aa2747a4bbb38e1e9ccb85",
+  "template": "Has_verb patient {patient_id} been prescribed {drug_name1}, {drug_name2}, or {drug_name3} [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "f3fc719c-f6e0-5c27-a18f-b4e5afaf279b",
+  "question": "How much does the heart rate of patient 10014729 change last measured on the first icu visit compared to the first value measured on the first icu visit?",
+  "question_id": "6b3760b9b37e0bb8f9e647f8",
+  "template": "What is the change in the {vital_name} of patient {patient_id} from the [time_filter_exact2] value measured [time_filter_global2] compared to the [time_filter_exact1] value measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2118-12-31 23:59:00.",
+  "patient_fhir_id": "76202c51-1b9d-5cc2-a7bc-3dfb2ac3ab32",
+  "question": "Has patient 10019172 undergone any lab test in 11/this year?",
+  "question_id": "be808f9b9ff6628170faba78",
+  "template": "Has_verb patient {patient_id} received any lab test [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace. I want to use the dose_val_rx column for the dose of any medication.",
+  "patient_fhir_id": "28dcf33b-0c52-587f-83ad-2a3270976719",
+  "question": "What dose of tamoxifen citrate was prescribed to patient 10007795 last?",
+  "question_id": "8ddf87626d2c76b0babbc0d9",
+  "template": "What was the dose of {drug_name} that patient {patient_id} was [time_filter_exact1] prescribed [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2185-12-31 23:59:00. Search for 'O2 saturation pulseoxymetry' to find SpO2.",
+  "patient_fhir_id": "8c3ba37b-ba80-576a-8028-5a58eccb6156",
+  "question": "When was the first time that patient 10016810 has had a spo2 measured on 07/07/this year?",
+  "question_id": "ae02dd831bcaea6f356e18cb",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} had a {vital_name} measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "bbad4581-d089-54a7-b7a0-8d986c5fb5ec",
+  "question": "What was the admission type during patient 10018423's first hospital visit?",
+  "question_id": "129654f0722de6dae2867660",
+  "template": "What was the [time_filter_exact1] hospital admission type of patient {patient_id}?"
+ },
+ {
+  "assumption": "Assume the current time is 2141-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "f5efdf3f-5b53-5c9f-95a6-047275107c46",
+  "question": "Has there been any organism found in 06/this year in the first urine microbiology test of patient 10002495?",
+  "question_id": "4f4a3bef12490dacc3837b15",
+  "template": "Has_verb there been any organism found in the [time_filter_exact1] {spec_name} microbiology test of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "4c9069e4-486b-53a6-8a49-b8520d49ef7e",
+  "question": "Tell me patient 10001725's length of stay in days for the last icu stay.",
+  "question_id": "4c25e26fad35ddcb5d7e1eb0",
+  "template": "What was the [time_filter_exact1] length of ICU stay of patient {patient_id}?"
+ },
+ {
+  "assumption": "Assume the current time is 2187-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "52462b6a-9b39-5460-9ee6-1a2d7a20394e",
+  "question": "When did patient 10022041 first get mrsa screen microbiology test in 06/this year?",
+  "question_id": "58f0822239c07b746c5df6fc",
+  "template": "When was patient {patient_id}'s [time_filter_exact1] {spec_name} microbiology test [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2178-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace. I want the final output to be the sum of the retrieved results. I want to use the dose_val_rx column for the dose of any medication.",
+  "patient_fhir_id": "2955c958-192a-50eb-b59d-23a29d7d374e",
+  "question": "How much of levetiracetam has been prescribed to patient 10016742 in total since 01/2178?",
+  "question_id": "21a26369d82d30e8f8036663",
+  "template": "What was the total amount of dose of {drug_name} that patient {patient_id} were prescribed [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2133-12-31 23:59:00.",
+  "patient_fhir_id": "dd2bf984-33c3-5874-8f68-84113327877e",
+  "question": "Since patient 10018081's admission to the icu, how many days have passed?",
+  "question_id": "a4601ccbd52ea5048219a13a",
+  "template": "How many [unit_count] have passed since patient {patient_id} was admitted to the ICU currently?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "f3fc719c-f6e0-5c27-a18f-b4e5afaf279b",
+  "question": "When did patient 10014729 come for the first time to the hospital?",
+  "question_id": "b357f1cf8213ef5655a20b3b",
+  "template": "When was the [time_filter_exact1] hospital admission time of patient {patient_id}?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "d378a59b-aa80-5bc5-812a-7d59b26e7df4",
+  "question": "Has patient 10036156 received any diagnosis?",
+  "question_id": "cc4d6ffe4f9c497d114ffb8f",
+  "template": "Has_verb patient {patient_id} received any diagnosis [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2178-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "2955c958-192a-50eb-b59d-23a29d7d374e",
+  "question": "What was the first platelet count result for patient 10016742 in 08/2178?",
+  "question_id": "4710d3c9173e3759cd533b86",
+  "template": "What was the [time_filter_exact1] measured value of a {lab_name} lab test of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "9c3ebb7e-d087-519e-bea4-31c3d4aac7ff",
+  "question": "Did patient 10023117 have any procedure on the first hospital visit?",
+  "question_id": "7fbb236187007480210be707",
+  "template": "Has_verb patient {patient_id} received any procedure [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "c0d83ad6-0b65-5fd6-b241-f50cf552232c",
+  "question": "Is the value of the respiratory rate of patient 10019385 last measured on the last icu visit greater than that second to last measured on the last icu visit?",
+  "question_id": "a4067779dc66a630f0290603",
+  "template": "Is the {vital_name} of patient {patient_id} [time_filter_exact2] measured [time_filter_global2] [comparison] than the [time_filter_exact1] value measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "88fcbf73-7d80-52ae-8f11-ee73c71df69b",
+  "question": "Tell me the difference in the creatinine value for patient 10019568 second measured on the last hospital visit compared to the first value measured on the last hospital visit?",
+  "question_id": "efb37b1f8299f18af10b51ec",
+  "template": "What is the change in the value of {lab_name} of patient {patient_id} from the [time_filter_exact2] value measured [time_filter_global2] compared to the [time_filter_exact1] value measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "51d2190c-cc46-56c5-b2ea-363895cbea75",
+  "question": "Calculate the number of times that patient 10009628 received a asparate aminotransferase (ast) lab test.",
+  "question_id": "bca12dbeb197151809e62874",
+  "template": "Count the number of times that patient {patient_id} received a {lab_name} lab test [time_filter_global1]."
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "e2beb281-c44f-579b-8211-a3749c549e92",
+  "question": "What was patient 10027602's last prescription time in the first hospital visit?",
+  "question_id": "f5baeb5fd7062bd570005226",
+  "template": "When was the [time_filter_exact1] prescription time of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "807d2a03-9c57-55e3-a443-09fc8f1de866",
+  "question": "What was the first time to be admitted into a hospital that patient 10014078 was admitted via emergency room?",
+  "question_id": "b20d40188481222bfbb9b02f",
+  "template": "When was the [time_filter_exact1] hospital admission time that patient {patient_id} was admitted via {admission_route}?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "7ec7078a-0593-5a99-9862-ebbff47fd1c5",
+  "question": "Did patient 10029291 undergo a ultrasonography of superior vena cava, guidance treatment in the first hospital visit?",
+  "question_id": "0018b73b2eda7611f63bee38",
+  "template": "Has_verb patient {patient_id} received a {procedure_name} procedure [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2141-12-31 23:59:00.",
+  "patient_fhir_id": "f5efdf3f-5b53-5c9f-95a6-047275107c46",
+  "question": "When did since 02/2141 patient 10002495 receive a microbiology test for the last time?",
+  "question_id": "499518ffdd4562209632b0e7",
+  "template": "When was the [time_filter_exact1] microbiology test of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2148-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "1ab119a5-aac8-5002-9d2f-b8ff69623387",
+  "question": "Please provide patient 10038933's yearly level of lactate dehydrogenase (ld) since 2148. if multiple lactate dehydrogenase (ld) levels are measured yearly, take the maximum.",
+  "question_id": "249619a43d4c7fe7add673f1",
+  "template": "List the [unit_average] [agg_function] {lab_name} lab value of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2131-12-31 23:59:00. I want the final output to be the sum of the retrieved results.",
+  "patient_fhir_id": "a87c1099-8c87-5548-8fc0-56972a82cebf",
+  "question": "What were the overall outputs from patient 10020944 on 03/15/this year?",
+  "question_id": "184fc5e11e0bfc9be1a0263c",
+  "template": "What was the total volume of output that patient {patient_id} had [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2146-12-31 23:59:00.",
+  "patient_fhir_id": "c4c29979-f2f5-56db-af5b-1715887727b8",
+  "question": "Since 2 months ago, has there been a microbiology test result for patient 10011398?",
+  "question_id": "adfdf07d99e741f927fb639b",
+  "template": "Has_verb patient {patient_id} had any microbiology test result [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "cb70e6ae-90b1-562b-8ab0-467c65d18d5e",
+  "question": "Can you tell me the gender of patient 10014354?",
+  "question_id": "261994390f6de9839143e6eb",
+  "template": "What is the gender of patient {patient_id}?"
+ },
+ {
+  "assumption": "Assume the current time is 2178-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "2955c958-192a-50eb-b59d-23a29d7d374e",
+  "question": "In 07/2178 did patient 10016742 undergo a creatinine, urine test?",
+  "question_id": "f53166032d928995607d2fc9",
+  "template": "Has_verb patient {patient_id} received a {lab_name} lab test [time_filter_global1]?"
+ },
+ {
+  "assumption": "Search for 'Daily Weight' to find weight.",
+  "patient_fhir_id": "d378a59b-aa80-5bc5-812a-7d59b26e7df4",
+  "question": "What's the monthly weight for patient 10036156 on the first hospital visit? if multiple weights are measured monthly, take the average.",
+  "question_id": "c0faf3e95f2c2000bdda5a2e",
+  "template": "List the [unit_average] [agg_function] weight of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2177-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "13df78e7-150e-5eb7-be5f-5f62b2baee87",
+  "question": "When was the last time that patient 10022880 was prescribed a medication via the iv route in 03/2177?",
+  "question_id": "ba85b4185b40acf102f505e5",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} was prescribed a medication via {drug_route} route [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2114-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "23069939-0c4c-517b-a3ec-baae0d4e3988",
+  "question": "Did patient 10013049 have oral gastric in 06/2114?",
+  "question_id": "cea5a40f3d9844b4ee58041d",
+  "template": "Has_verb patient {patient_id} had any {output_name} output [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2133-12-31 23:59:00. Search for 'Daily Weight' to find weight.",
+  "patient_fhir_id": "dd2bf984-33c3-5874-8f68-84113327877e",
+  "question": "How much do patient 10018081's weight shifts measured at 2133-12-31 00:00:00 compared to the value measured at 2133-12-30 00:00:00?",
+  "question_id": "10e5776d6866e2b43f77a084",
+  "template": "What is the change in the weight of patient {patient_id} from the [time_filter_exact2] value measured [time_filter_global2] compared to the [time_filter_exact1] value measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2110-12-31 23:59:00.",
+  "patient_fhir_id": "dd773280-4157-5168-9481-3d29a5ff82d8",
+  "question": "What microbiology tests did patient 10008454 have last in 12/this year?",
+  "question_id": "a49efc1cdf3ebbe617aa7d26",
+  "template": "What was the name of the microbiology test that patient {patient_id} [time_filter_exact1] received [time_filter_global1]?"
+ },
+ {
+  "assumption": "Search for 'Daily Weight' to find weight.",
+  "patient_fhir_id": "74a2fd87-885b-5eca-9f8b-9141915dba51",
+  "question": "What was the first recorded weight of patient 10007928 in the last hospital encounter?",
+  "question_id": "689684471cdf1a2cea58ca7c",
+  "template": "What was the [time_filter_exact1] measured weight of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "73eac996-32e6-5b25-96fb-7d7414180af9",
+  "question": "When was the last pt test that patient 10027445 received during the last hospital visit?",
+  "question_id": "fd8916330e9d2c2e5b150852",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} received a {lab_name} lab test [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2144-12-31 23:59:00.",
+  "patient_fhir_id": "158f3a39-e3d7-5e7a-93aa-57af894aadd9",
+  "question": "Calculate how many unique drugs patient 10005909 was given since 10/2144.",
+  "question_id": "5861ef095f4c08ad236ab8c5",
+  "template": "Count the number of drugs patient {patient_id} were prescribed [time_filter_global1]."
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "bc2a74ce-4069-5983-9423-1c175f7854d9",
+  "question": "When did patient 10023239 leave hospital for the first time?",
+  "question_id": "be1e758721f63febd66af577",
+  "template": "When was the [time_filter_exact1] hospital discharge time of patient {patient_id}?"
+ },
+ {
+  "assumption": "Assume the current time is 2123-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "7ec7078a-0593-5a99-9862-ebbff47fd1c5",
+  "question": "What drug was prescribed to patient 10029291 for the first time in 03/this year via iv route?",
+  "question_id": "c1b92eb9d2e4ceedd614efe5",
+  "template": "What was the name of the drug that patient {patient_id} was [time_filter_exact1] prescribed via {drug_route} route [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2123-12-31 23:59:00.",
+  "patient_fhir_id": "7ec7078a-0593-5a99-9862-ebbff47fd1c5",
+  "question": "Give the count of icu visits of patient 10029291 since 1 year ago.",
+  "question_id": "3476f7a1daff51acd412b499",
+  "template": "Count the number of ICU visits of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2146-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace. I want the final output to be the sum of the retrieved results.",
+  "patient_fhir_id": "73fb53d8-f1fa-53cd-a25c-2314caccbb99",
+  "question": "Tell me the total amount of tf residual that patient 10007818 had since 01/23/2146.",
+  "question_id": "98a679829a4f28ba76a5e3dc",
+  "template": "What was the total volume of {output_name} output that patient {patient_id} had [time_filter_global1]?"
+ },
+ {
+  "assumption": "Search for 'Arterial Blood Pressure systolic' to find systolic blood pressure.",
+  "patient_fhir_id": "a3a12d01-dc21-565b-89e2-da60e7fc80dc",
+  "question": "How much does the systolic blood pressure change in patient 10003046 last measured on the last icu visit compared to the first value measured on the last icu visit?",
+  "question_id": "b5ddccb2652019203e02c96e",
+  "template": "What is the change in the {vital_name} of patient {patient_id} from the [time_filter_exact2] value measured [time_filter_global2] compared to the [time_filter_exact1] value measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2123-12-31 23:59:00.",
+  "patient_fhir_id": "7ec7078a-0593-5a99-9862-ebbff47fd1c5",
+  "question": "Has patient 10029291 undergone a laboratory test since 01/2123?",
+  "question_id": "2b3268beab056ff505b05347",
+  "template": "Has_verb patient {patient_id} received any lab test [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace. I want to use the dose_val_rx column for the dose of any medication.",
+  "patient_fhir_id": "158f3a39-e3d7-5e7a-93aa-57af894aadd9",
+  "question": "For the first time, in the last hospital encounter, how much phenazopyridine was prescribed to patient 10005909?",
+  "question_id": "0d67d0933db06596007b915d",
+  "template": "What was the dose of {drug_name} that patient {patient_id} was [time_filter_exact1] prescribed [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2116-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "4365e125-c049-525a-9459-16d5e6947ad2",
+  "question": "What is patient 10021487's average value for bilirubin, total, ascites since 08/2116?",
+  "question_id": "aba8c9a560d7ec87a020f638",
+  "template": "What was the [agg_function] {lab_name} value of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2201-12-31 23:59:00.",
+  "patient_fhir_id": "e2beb281-c44f-579b-8211-a3749c549e92",
+  "question": "When was the first time on 11/27/2201 that patient 10027602 had his or her heart rate checked?",
+  "question_id": "234ef243bc79fbeeafde9f09",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} had a {vital_name} measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2170-12-31 23:59:00.",
+  "patient_fhir_id": "9c3ebb7e-d087-519e-bea4-31c3d4aac7ff",
+  "question": "Count the total number of hospital visits of patient 10023117 in 2170.",
+  "question_id": "5e1e03c6f5228f110a137a50",
+  "template": "Count the number of hospital visits of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2155-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "e1de99bc-3bc5-565e-9ee6-69675b9cc267",
+  "question": "Has any organism been found in the first microbiological blood culture test of patient 10002428 since 1 year ago?",
+  "question_id": "ec96517b92997f0de9c0bbbe",
+  "template": "Has_verb there been any organism found in the [time_filter_exact1] {spec_name} microbiology test of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "52462b6a-9b39-5460-9ee6-1a2d7a20394e",
+  "question": "Can you show the length in days of patient 10022041's last stay in the icu?",
+  "question_id": "461b2614afff7dfabc033d6e",
+  "template": "What was the [time_filter_exact1] length of ICU stay of patient {patient_id}?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "dd773280-4157-5168-9481-3d29a5ff82d8",
+  "question": "When does patient 10008454 have received a mrsa screen microbiology test for the first time in their first hospital encounter?",
+  "question_id": "689c016c32621989ea39ef0c",
+  "template": "When was patient {patient_id}'s [time_filter_exact1] {spec_name} microbiology test [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2136-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace. I want the final output to be the sum of the retrieved results. I want to use the dose_val_rx column for the dose of any medication.",
+  "patient_fhir_id": "28776290-4349-56d3-8c13-adc554feabb8",
+  "question": "How much simvastatin was prescribed to patient 10025463 in total since 11/2136?",
+  "question_id": "5d1a36d000cf036649466742",
+  "template": "What was the total amount of dose of {drug_name} that patient {patient_id} were prescribed [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2133-12-31 23:59:00.",
+  "patient_fhir_id": "dd2bf984-33c3-5874-8f68-84113327877e",
+  "question": "How many hours have it been since the admission to the icu of patient 10018081?",
+  "question_id": "ab9f098a63937bcf7a768bee",
+  "template": "How many [unit_count] have passed since patient {patient_id} was admitted to the ICU currently?"
+ },
+ {
+  "assumption": "Assume the current time is 2157-12-31 23:59:00.",
+  "patient_fhir_id": "d378a59b-aa80-5bc5-812a-7d59b26e7df4",
+  "question": "Tell me the name of the first specimen test that patient 10036156 since 06/2157 received?",
+  "question_id": "7782eddef35c5010b9b90ac3",
+  "template": "What was the name of the specimen that patient {patient_id} was [time_filter_exact1] tested [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "f5efdf3f-5b53-5c9f-95a6-047275107c46",
+  "question": "When was the last time patient 10002495 was admitted into the hospital?",
+  "question_id": "609e844629d62f94381a53ef",
+  "template": "When was the [time_filter_exact1] hospital admission time of patient {patient_id}?"
+ },
+ {
+  "assumption": "Assume the current time is 2155-12-31 23:59:00.",
+  "patient_fhir_id": "df756e08-6ea8-5d69-b918-67911945f827",
+  "question": "When was the first time patient 10010471 was having less than 27.0 respiratory rate on 12/20/this year?",
+  "question_id": "cb2576703363b2124ae28f7c",
+  "template": "When was the [time_filter_exact1] time that the {vital_name} of patient {patient_id} was [comparison] than {vital_value} [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "bbad4581-d089-54a7-b7a0-8d986c5fb5ec",
+  "question": "What was the first potassium, whole blood lab result for patient 10018423?",
+  "question_id": "bebec164cfe1ff0dced197be",
+  "template": "What was the [time_filter_exact1] measured value of a {lab_name} lab test of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2144-12-31 23:59:00.",
+  "patient_fhir_id": "158f3a39-e3d7-5e7a-93aa-57af894aadd9",
+  "question": "Has patient 10005909 had any procedure throughout this year?",
+  "question_id": "0c85596eb9a5ce81b6fb531c",
+  "template": "Has_verb patient {patient_id} received any procedure [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "a977f4b6-1eb6-5639-80da-3e025744c4ac",
+  "question": "Is rdw of patient 10018501 last measured on the first hospital visit greater than first measured on the first hospital visit?",
+  "question_id": "06ed0a3cc8ab3dc7839b7919",
+  "template": "Is the value of {lab_name} of patient {patient_id} [time_filter_exact2] measured [time_filter_global2] [comparison] than the [time_filter_exact1] value measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2176-12-31 23:59:00.",
+  "patient_fhir_id": "f5a99b42-365c-5f7e-bcab-4fa33b3cc88e",
+  "question": "When was the last lab test that patient 10015931 received since 10/2176?",
+  "question_id": "5a5fd081d30e9927c3c6dad4",
+  "template": "When was the [time_filter_exact1] lab test of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Search for 'Arterial Blood Pressure systolic' to find systolic blood pressure.",
+  "patient_fhir_id": "a3a12d01-dc21-565b-89e2-da60e7fc80dc",
+  "question": "What was the last value of systolic blood pressure of patient 10003046 in the first icu stay?",
+  "question_id": "ea6a1b775d7a1387dac35ee2",
+  "template": "What was the [time_filter_exact1] measured {vital_name} of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2176-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "f5a99b42-365c-5f7e-bcab-4fa33b3cc88e",
+  "question": "Tell me the number of times patient 10015931 had a lab test for osmolality, urine in 2176.",
+  "question_id": "da0d0d0112db58fa527f189f",
+  "template": "Count the number of times that patient {patient_id} received a {lab_name} lab test [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2115-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "752d15e2-bd27-52ed-b055-ed79edb86aba",
+  "question": "How many hours have elapsed since patient 10039831 received his creatinine lab test for the first time on this hospital encounter?",
+  "question_id": "b2aa7e4ded1cb22312719f24",
+  "template": "How many [unit_count] have passed since the [time_filter_exact1] time patient {patient_id} received a {lab_name} lab test on the current hospital visit?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "f3fc719c-f6e0-5c27-a18f-b4e5afaf279b",
+  "question": "When was patient 10014729 admitted to the hospital for the last time through physician referral?",
+  "question_id": "44e4b4d97cbe90cf626c4424",
+  "template": "When was the [time_filter_exact1] hospital admission time that patient {patient_id} was admitted via {admission_route}?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "dd773280-4157-5168-9481-3d29a5ff82d8",
+  "question": "When did patient 10008454 get his/her last prescription of ciprofloxacin hcl on their last hospital visit?",
+  "question_id": "1763cfe655f1ba381ad8e71e",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} was prescribed {drug_name} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2201-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "e2beb281-c44f-579b-8211-a3749c549e92",
+  "question": "Can you tell me the name of the organism detected in the last mini-bal test of patient 10027602 in 12/2201?",
+  "question_id": "c3edbb8f5bd0cfd4858c41be",
+  "template": "What was the organism name found in the [time_filter_exact1] {spec_name} microbiology test of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2150-12-31 23:59:00. I want the final output to be the sum of the retrieved results.",
+  "patient_fhir_id": "8adbf3e4-47ff-561e-b1b6-746ee32e056d",
+  "question": "Tell me the total amount of patient 10020740's output on 04/06/2150.",
+  "question_id": "8cf47ff1a1ec5cf642c7ff41",
+  "template": "What was the total volume of output that patient {patient_id} had [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2111-12-31 23:59:00.",
+  "patient_fhir_id": "a7bbf9a2-f7fe-5815-a637-fa59bd70b374",
+  "question": "Has there been any microbiology test for patient 10006053 since 09/2111?",
+  "question_id": "1c70ab701577302fd7bec691",
+  "template": "Has_verb patient {patient_id} had any microbiology test result [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2115-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "752d15e2-bd27-52ed-b055-ed79edb86aba",
+  "question": "Count the days that have passed since patient 10039831's first stay at careunit discharge lounge during this hospital visit.",
+  "question_id": "66efbf3af38673128432f1ca",
+  "template": "How many [unit_count] have passed since the [time_filter_exact1] time patient {patient_id} stayed in careunit {careunit} on the current hospital visit?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "3886cafb-65f4-5789-9213-64678a202f82",
+  "question": "What's the gender of patient 10005348?",
+  "question_id": "2d6aa3feeed3bfeb72da5fb2",
+  "template": "What is the gender of patient {patient_id}?"
+ },
+ {
+  "assumption": "Assume the current time is 2136-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "28776290-4349-56d3-8c13-adc554feabb8",
+  "question": "Did patient 10025463 receive a laboratory chloride test during the last month?",
+  "question_id": "26fa750dccd4c284472ecb48",
+  "template": "Has_verb patient {patient_id} received a {lab_name} lab test [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2132-12-31 23:59:00.",
+  "patient_fhir_id": "a2605b15-4f1b-5839-b4ce-fb7a6bc1005f",
+  "question": "What was the name of the medicine that was prescribed to patient 10005817 for the first time since 09/2132?",
+  "question_id": "fe2d6c0f694f5a4cc2357932",
+  "template": "What was the name of the drug that patient {patient_id} was [time_filter_exact1] prescribed [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2150-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "8adbf3e4-47ff-561e-b1b6-746ee32e056d",
+  "question": "How many times is chlorhexidine gluconate 0.12% oral rinse in 03/2150 prescribed to patient 10020740?",
+  "question_id": "b0c1e2c1046cc6dad14ddbe4",
+  "template": "Count the number of times that patient {patient_id} were prescribed {drug_name} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2176-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "f5a99b42-365c-5f7e-bcab-4fa33b3cc88e",
+  "question": "Did patient 10015931 have foley on 12/09/this year?",
+  "question_id": "66226330040dffdd0d5fd903",
+  "template": "Has_verb patient {patient_id} had any {output_name} output [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "3bbb6aec-41a3-5825-b6cf-422832002f96",
+  "question": "On the first hospital encounter, when was the last time that patient 10031757 received a alkaline phosphatase lab test?",
+  "question_id": "c03885ae374eb4c770e9069a",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} received a {lab_name} lab test [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2117-12-31 23:59:00.",
+  "patient_fhir_id": "7d61fb4e-dc5e-5b1b-a7a6-1d96a3818546",
+  "question": "What was the total number of distinct drugs prescribed to patient 10024043 since 2117?",
+  "question_id": "72f9afe9d7752f2079ec4df1",
+  "template": "Count the number of drugs patient {patient_id} were prescribed [time_filter_global1]."
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "1cf9e585-806c-513b-80af-4ca565a28231",
+  "question": "When did patient 10015860 get discharged from the hospital for the first time?",
+  "question_id": "4d5c298e863a86919a4a499a",
+  "template": "When was the [time_filter_exact1] hospital discharge time of patient {patient_id}?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "dc332fb6-61f8-552e-8743-765d626f0a4e",
+  "question": "What was the last drug that patient 10035185 was prescribed via the nu route during the last hospital encounter?",
+  "question_id": "882e179f26d1d73b14ec8e40",
+  "template": "What was the name of the drug that patient {patient_id} was [time_filter_exact1] prescribed via {drug_route} route [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "76202c51-1b9d-5cc2-a7bc-3dfb2ac3ab32",
+  "question": "Has any midazolam been prescribed to patient 10019172?",
+  "question_id": "ab2aad38b2169268cce19216",
+  "template": "Has_verb patient {patient_id} been prescribed {drug_name} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2201-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace. I want the final output to be the sum of the retrieved results.",
+  "patient_fhir_id": "e2beb281-c44f-579b-8211-a3749c549e92",
+  "question": "Tell me what was the total cerebral ventricular #1 output of patient 10027602 on last month/27.",
+  "question_id": "c99300a7ea88ef7b82951b42",
+  "template": "What was the total volume of {output_name} output that patient {patient_id} had [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2169-12-31 23:59:00.",
+  "patient_fhir_id": "aeda7084-be35-510e-b171-f00596aed99f",
+  "question": "Throughout this year, what was the admission time of patient 10020187 at the hospital?",
+  "question_id": "d90596b35371ba4a84a1a128",
+  "template": "List the hospital admission time of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2148-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "1ab119a5-aac8-5002-9d2f-b8ff69623387",
+  "question": "Has 0.9% sodium chloride, levetiracetam, or bag been ordered for patient 10038933 since 2148?",
+  "question_id": "b66ed8145c0b562f96f32f22",
+  "template": "Has_verb patient {patient_id} been prescribed {drug_name1}, {drug_name2}, or {drug_name3} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Search for 'Arterial Blood Pressure systolic' to find systolic blood pressure.",
+  "patient_fhir_id": "837b0984-f3bf-5076-baf5-b727decb4bea",
+  "question": "How much does the systolic blood pressure of patient 10037975 change second measured on the first icu visit compared to the first value measured on the first icu visit?",
+  "question_id": "9ea8c0016a33c461c3a77f56",
+  "template": "What is the change in the {vital_name} of patient {patient_id} from the [time_filter_exact2] value measured [time_filter_global2] compared to the [time_filter_exact1] value measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2185-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "837b0984-f3bf-5076-baf5-b727decb4bea",
+  "question": "What is patient 10037975's average value for potassium, whole blood in 02/2185?",
+  "question_id": "bd3ba61db07a88f7a5920ac6",
+  "template": "What was the [agg_function] {lab_name} value of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "c4c29979-f2f5-56db-af5b-1715887727b8",
+  "question": "What was the admission type during patient 10011398's last visit to the hospital?",
+  "question_id": "8df120a9e3e8d73de47c1a11",
+  "template": "What was the [time_filter_exact1] hospital admission type of patient {patient_id}?"
+ },
+ {
+  "assumption": "Assume the current time is 2115-12-31 23:59:00.",
+  "patient_fhir_id": "842680b3-e421-58cc-8050-3b29668b438c",
+  "question": "How many times did patient 10037861 come to the hospital in this year?",
+  "question_id": "93181a0681785a3fc636f0c0",
+  "template": "Count the number of hospital visits of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2128-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "3886cafb-65f4-5789-9213-64678a202f82",
+  "question": "Has any organism been found in the first microbiological blood culture test of patient 10005348 since 1 year ago?",
+  "question_id": "128670f0128422d00c359ab0",
+  "template": "Has_verb there been any organism found in the [time_filter_exact1] {spec_name} microbiology test of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "53b0f2d8-24dc-5c82-903c-1bf98e510e96",
+  "question": "Calculate patient 10006580's duration of stay in days for the last stay in the icu.",
+  "question_id": "f632d74fbbe2ef65a5547997",
+  "template": "What was the [time_filter_exact1] length of ICU stay of patient {patient_id}?"
+ },
+ {
+  "assumption": "Search for 'Arterial Blood Pressure diastolic' to find diastolic blood pressure.",
+  "patient_fhir_id": "23069939-0c4c-517b-a3ec-baae0d4e3988",
+  "question": "Tell me patient 10013049's average diastolic blood pressure on their last icu visit.",
+  "question_id": "c002c7dd1abbdad1014192e2",
+  "template": "What was the [agg_function] {vital_name} of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2146-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace. I want the final output to be the sum of the retrieved results. I want to use the dose_val_rx column for the dose of any medication.",
+  "patient_fhir_id": "cb70e6ae-90b1-562b-8ab0-467c65d18d5e",
+  "question": "In 10/2146, how much glucose gel was patient 10014354 prescribed?",
+  "question_id": "ff8338b63365f7592e0f5601",
+  "template": "What was the total amount of dose of {drug_name} that patient {patient_id} were prescribed [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2129-12-31 23:59:00.",
+  "patient_fhir_id": "74a2fd87-885b-5eca-9f8b-9141915dba51",
+  "question": "Did patient 10007928 go to the e.r. in the previous year?",
+  "question_id": "c3c3a56dc8cd277bd5826031",
+  "template": "Has_verb patient {patient_id} been to an emergency room [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2146-12-31 23:59:00.",
+  "patient_fhir_id": "73fb53d8-f1fa-53cd-a25c-2314caccbb99",
+  "question": "When was patient 10007818's heart rate for the last time less than 83.0 on 07/05/2146?",
+  "question_id": "dcfff42d3b4e18800ea55074",
+  "template": "When was the [time_filter_exact1] time that the {vital_name} of patient {patient_id} was [comparison] than {vital_value} [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "f5efdf3f-5b53-5c9f-95a6-047275107c46",
+  "question": "What was the first value of the pt lab test for patient 10002495?",
+  "question_id": "32dc827809f2f3b381144bfc",
+  "template": "What was the [time_filter_exact1] measured value of a {lab_name} lab test of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "4365e125-c049-525a-9459-16d5e6947ad2",
+  "question": "Is the value of calcium, urine in patient 10021487 last measured on the current hospital visit greater than the first value measured on the current hospital visit?",
+  "question_id": "ffc47b7e01463f229eb09bce",
+  "template": "Is the value of {lab_name} of patient {patient_id} [time_filter_exact2] measured [time_filter_global2] [comparison] than the [time_filter_exact1] value measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "740b7686-fa6d-5574-9779-f17ed7661cbe",
+  "question": "When did patient 10031404 have a lab test for the last time on their last hospital visit?",
+  "question_id": "a991a62ce361a4375831ca50",
+  "template": "When was the [time_filter_exact1] lab test of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "2955c958-192a-50eb-b59d-23a29d7d374e",
+  "question": "Is the value of the respiratory rate of patient 10016742 second measured on the last icu visit less than that first measured on the last icu visit?",
+  "question_id": "b45fe4ea7ffaf00e84199e79",
+  "template": "Is the {vital_name} of patient {patient_id} [time_filter_exact2] measured [time_filter_global2] [comparison] than the [time_filter_exact1] value measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2125-12-31 23:59:00. Search for 'O2 saturation pulseoxymetry' to find SpO2.",
+  "patient_fhir_id": "f572075b-186b-5565-b2d4-1567fe4f925c",
+  "question": "What was the last value of patient 10025612's spo2 on 10/01/this year?",
+  "question_id": "0e13e0edf9b3f935d475fa33",
+  "template": "What was the [time_filter_exact1] measured {vital_name} of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "f5efdf3f-5b53-5c9f-95a6-047275107c46",
+  "question": "How much does patient 10002495's alkaline phosphatase differ from the second value measured on the first hospital visit compared to the first value measured on the first hospital visit?",
+  "question_id": "922e1796a0883763c0252e8b",
+  "template": "What is the change in the value of {lab_name} of patient {patient_id} from the [time_filter_exact2] value measured [time_filter_global2] compared to the [time_filter_exact1] value measured [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2116-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "4365e125-c049-525a-9459-16d5e6947ad2",
+  "question": "How many hours have passed since patient 10021487's first asparate aminotransferase (ast) lab test on their current hospital visit?",
+  "question_id": "fc9243a5cde088d80aaae29a",
+  "template": "How many [unit_count] have passed since the [time_filter_exact1] time patient {patient_id} received a {lab_name} lab test on the current hospital visit?"
+ },
+ {
+  "assumption": "Assume the current time is 2145-12-31 23:59:00.",
+  "patient_fhir_id": "5ddeb201-5de6-5177-a116-fa82ce8ad2f2",
+  "question": "When has patient 10008287 received a prescription for the last time since 01/2145?",
+  "question_id": "953fa6166e8ed2ab67753af8",
+  "template": "When was the [time_filter_exact1] prescription time of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "b410dd44-7d65-56f9-974f-2751e8aa80e2",
+  "question": "When was the first time patient 10004457 came to the hospital through procedure site?",
+  "question_id": "138fe3a23beda4b897c27c94",
+  "template": "When was the [time_filter_exact1] hospital admission time that patient {patient_id} was admitted via {admission_route}?"
+ },
+ {
+  "assumption": "Assume the current time is 2146-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "73fb53d8-f1fa-53cd-a25c-2314caccbb99",
+  "question": "Has performance of urinary filtration, multiple been performed on patient 10007818 since 2146?",
+  "question_id": "7ab5610ee5258787397017e1",
+  "template": "Has_verb patient {patient_id} received a {procedure_name} procedure [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2155-12-31 23:59:00.",
+  "patient_fhir_id": "df756e08-6ea8-5d69-b918-67911945f827",
+  "question": "When did patient 10010471 first receive a microbiology test since 1 month ago?",
+  "question_id": "f99580261637ffba691a9a72",
+  "template": "When was the [time_filter_exact1] microbiology test of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "7ec7078a-0593-5a99-9862-ebbff47fd1c5",
+  "question": "What was the organism that was discovered in the first sputum microbiology test of patient 10029291 during their first hospital visit?",
+  "question_id": "f6c2ec0da1bf93fc0c8595c0",
+  "template": "What was the organism name found in the [time_filter_exact1] {spec_name} microbiology test of patient {patient_id} [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2172-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "22a3e422-663a-561c-b305-a0c04bf42235",
+  "question": "Show me patient 10021666's monthly creatinine, urine in 2172. if multiple creatinine, urine are measured monthly, take the average.",
+  "question_id": "abd48dc45ba90022382e02c9",
+  "template": "List the [unit_average] [agg_function] {lab_name} lab value of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2128-12-31 23:59:00.",
+  "patient_fhir_id": "3886cafb-65f4-5789-9213-64678a202f82",
+  "question": "Has there been any microbiology test results for patient 10005348 since 24 months ago?",
+  "question_id": "c8c821f2bce77aa592def2d7",
+  "template": "Has_verb patient {patient_id} had any microbiology test result [time_filter_global1]?"
+ },
+ {
+  "assumption": "",
+  "patient_fhir_id": "0c2243d2-987b-5cbd-8eb1-170a80647693",
+  "question": "Do you know patient 10005866's gender?",
+  "question_id": "caf2ed4e7d85cf6d0cba15f8",
+  "template": "What is the gender of patient {patient_id}?"
+ },
+ {
+  "assumption": "Assume the current time is 2113-12-31 23:59:00.",
+  "patient_fhir_id": "740b7686-fa6d-5574-9779-f17ed7661cbe",
+  "question": "Was patient 10031404 administered any medication in 08/2113?",
+  "question_id": "9a16562e6c22fbc3ecf55004",
+  "template": "Has_verb patient {patient_id} been prescribed any medication [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2132-12-31 23:59:00. Search for 'Arterial Blood Pressure diastolic' to find diastolic blood pressure.",
+  "patient_fhir_id": "a2605b15-4f1b-5839-b4ce-fb7a6bc1005f",
+  "question": "Show me patient 10005817's daily diastolic blood pressure since 14 months ago? if multiple diastolic blood pressures are measured daily, take the maximum.",
+  "question_id": "0d7f97f7f014369165ccb406",
+  "template": "List the [unit_average] [agg_function] {vital_name} of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2110-12-31 23:59:00.",
+  "patient_fhir_id": "4c9069e4-486b-53a6-8a49-b8520d49ef7e",
+  "question": "Tell me the drug that was prescribed to patient 10001725 for the first time since 28 months ago?",
+  "question_id": "779440f275cacfb10aac9cd9",
+  "template": "What was the name of the drug that patient {patient_id} was [time_filter_exact1] prescribed [time_filter_global1]?"
+ },
+ {
+  "assumption": "Assume the current time is 2125-12-31 23:59:00. Search for 'Daily Weight' to find weight.",
+  "patient_fhir_id": "f3fc719c-f6e0-5c27-a18f-b4e5afaf279b",
+  "question": "What is the daily of patient 10014729's weight in 03/2125? if multiple weights are measured daily, take the average.",
+  "question_id": "230b50a3e6a330e4047ecfd0",
+  "template": "List the [unit_average] [agg_function] weight of patient {patient_id} [time_filter_global1]."
+ },
+ {
+  "assumption": "Assume the current time is 2155-12-31 23:59:00. When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "df756e08-6ea8-5d69-b918-67911945f827",
+  "question": "When did patient 10010471 receive a prescription for the last time since 08/2155, via the iv route?",
+  "question_id": "9c36c694493cc1a4533c0e35",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} was prescribed a medication via {drug_route} route [time_filter_global1]?"
+ },
+ {
+  "assumption": "When searching for values in the database, account for all variations in letter case and surrounding whitespace.",
+  "patient_fhir_id": "8659a6be-db5c-5f66-b629-1a3b858a487a",
+  "question": "What was the first time patient 10004720 had the maximum level of neutrophils on their first hospital visit?",
+  "question_id": "9078d39386848fe27cef5f31",
+  "template": "When was the [time_filter_exact1] time that patient {patient_id} had the [sort] value of {lab_name} [time_filter_global1]?"
+ }
+]

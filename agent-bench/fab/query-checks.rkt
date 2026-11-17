@@ -27,7 +27,10 @@
 ;;; every train query of a kind has. A question of a kind the train split lacks (14 of the test
 ;;; split's kinds) is answered from the nearest kind, whose fixed conditions are not its own.
 ;;;
-;;; A Checks is (hasheq 'phrases (listof Phrase) 'whether (listof n)): `whether` the kinds whose
+;;; A Checks is (hasheq 'phrases (listof Phrase) 'whether (listof n) 'when boolean 'ties (listof n)):
+;;; `ties` the kinds whose examples return every row of the first or last time (`same-time-kinds`); `when` says
+;;; that in the train split a query selects a time exactly where its question asks for one
+;;; (`when-regular?`); `whether` the kinds whose
 ;;; train queries all select a comparison
 ;;; A Phrase is (hasheq 'form <pregexp source> 'conditions (listof Shape) 'example <sql> 'kinds (listof n))
 ;;; A Shape is a condition as text with its literals `?` and its columns `C`.
@@ -36,7 +39,8 @@
          (only-in "make-examples.rkt" train-questions kinds read-python))
 
 (provide phrase-book phrase-notes name-literals name-notes column-names question-names unnamed-notes whole-name-notes
-         query-shape make-checks query-notes comparison? asks-whether whether-kinds hold?)
+         query-shape make-checks query-notes comparison? asks-whether whether-kinds hold?
+         time-select says-when opens-when? when-regular? same-time? same-time-kinds first-pick)
 
 ;; ---- text ----------------------------------------------------------------------------------------
 (define (norm s) (string-downcase (string-trim (regexp-replace* #px"\\s+" s " "))))
@@ -224,12 +228,57 @@
              #:when (andmap (lambda (q) (comparison? (hash-ref q 'sql_query))) (cdr k)))
     i))
 
+;; time-select : string -> (or string #f)   the time column a query selects, when that is all it
+;; selects (`SELECT admissions.dischtime FROM …`): the schema's times are its columns named …time
+(define (time-select sql)
+  (cond [(regexp-match #px"^SELECT (?:DISTINCT )?([a-z_]+[.][a-z_]*time) FROM " (string-trim (regexp-replace* #px"\\s+" sql " "))) => cadr]
+        [else #f]))
+
+;; says-when : string -> (or string #f)   the word by which a question asks for a time
+(define (says-when question)
+  (cond [(regexp-match #px"\\b(when|times?|dates?)\\b" (norm question)) => cadr]
+        [else #f]))
+
+;; opens-when? : string -> boolean   a question that opens with "when"
+(define (opens-when? question) (regexp-match? #px"^when\\b" (norm question)))
+
+;; when-regular? : (listof Question) -> boolean   in the train split, every query that selects a
+;; time answers a question that says when, time or date, and every question that opens with
+;; "when" is answered by a query that selects a time
+(define (when-regular? train)
+  (and (for/and ([q (in-list train)] #:when (time-select (hash-ref q 'sql_query))) (and (says-when (hash-ref q 'question)) #t))
+       (for/and ([q (in-list train)] #:when (opens-when? (hash-ref q 'question))) (and (time-select (hash-ref q 'sql_query)) #t))))
+
+;; same-time? : string -> boolean   a query that returns what every row of the first or last time
+;; says: `SELECT DISTINCT t.a FROM … AND t.charttime = ( SELECT DISTINCT t.charttime FROM … ORDER BY t.charttime DESC LIMIT 1 )`
+(define (same-time? sql)
+  (regexp-match? #px"^ ?SELECT DISTINCT [a-z_]+[.][a-z_]+ FROM .*= \\( ?SELECT DISTINCT [a-z_]+[.][a-z_]+ FROM .* ORDER BY [a-z_]+[.][a-z_]+ (?:ASC|DESC) LIMIT 1 ?\\)" (regexp-replace* #px"\\s+" sql " ")))
+
+;; same-time-kinds : (listof Question) -> (listof n)   the kinds whose train queries are all of that form
+(define (same-time-kinds train)
+  (for/list ([k (in-list (kinds train))] [i (in-naturals 1)]
+             #:when (andmap (lambda (q) (same-time? (hash-ref q 'sql_query))) (cdr k)))
+    i))
+
+;; first-pick : string -> (or (list selected rest order direction) #f)   a query that selects one
+;; column of the row that is first or last by another: `SELECT a FROM … ORDER BY b DESC LIMIT 1`,
+;; the ORDER BY its own (not a sub-select's)
+(define (first-pick sql)
+  (define m (regexp-match #px"^SELECT (?:DISTINCT )?([a-z_]+[.][a-z_]+) FROM (.*) ORDER BY ([a-z_]+[.][a-z_]+) (ASC|DESC) LIMIT 1$"
+                          (string-trim (regexp-replace* #px"\\s+" sql " "))))
+  (and m
+       (let ([rest (caddr m)])
+         (= (length (regexp-match* #rx"[(]" rest)) (length (regexp-match* #rx"[)]" rest))))
+       (cdr m)))
+
 ;; hold? : string -> boolean   a note that keeps the answer from being written the first time
 (define (hold? note) (string-prefix? note "hold: "))
 
 ;; ---- the checks, made and applied ---------------------------------------------------------------------
 ;; make-checks : (listof Question) -> Checks
-(define (make-checks train) (hasheq 'phrases (phrase-book train) 'whether (whether-kinds train)))
+(define (make-checks train)
+  (hasheq 'phrases (phrase-book train) 'whether (whether-kinds train) 'when (when-regular? train)
+          'ties (same-time-kinds train)))
 
 ;; query-notes : string (or string #f) Checks string string (listof string) [(column -> (listof string))]
 ;;               -> (listof string)
@@ -247,7 +296,7 @@
       (format "~a: the question says \"~a\". A query of this schema writes that as `~a` (with its own column and time), and yours has no such condition."
               (if other-kind? "hold" "note") (car p) (cadr p))
       (if other-kind?
-          (format " Kind ~a's questions do not say \"~a\"; the kinds whose questions do: ~a (`cat examples/~a.md`). If yours is one of those, copy its example instead."
+          (format " Kind ~a's questions do not say \"~a\"; the kinds whose questions do: ~a (`./kind ~a`). If yours is one of those, copy its example instead."
                   kind (car p) (string-join (map number->string kinds) ", ") (car kinds))
           "")))
    ;; a value where the question asks whether
@@ -257,6 +306,16 @@
                        words (string-join (map number->string (take whether (min 4 (length whether)))) ", ")
                        (if (> (length whether) 4) ", …" "")))
          '()))
+   ;; a time where the question asks for none, and none where it opens with "when"
+   (let ([column (time-select sql)])
+     (cond
+       [(not (eq? (hash-ref checks 'when #f) #t)) '()]
+       [(and column (not (says-when question)))
+        (list (format "hold: the query selects a time (`~a`), and every query of this schema that selects one answers a question that says \"when\", \"time\" or \"date\". Yours says none of them: it asks what, which or how much. Keep the conditions and select what it asks for, by the schema's column for it."
+                      column))]
+       [(and (opens-when? question) (not column))
+        (list "hold: the question opens with \"when\", and every query of this schema that answers such a question selects one time column and nothing else (`SELECT labevents.charttime FROM …`). Keep the conditions and select the time.")]
+       [else '()]))
    (for/list ([w (in-list whole)])
      (format "note: the question's words \"~a\" are the name '~a' in `~a`, whole: a question gives a name in lower case inside its sentence, however much it reads like ordinary words. Name it alone: your query also names ~a, which the question does not say."
              (cadr w) (caddr w) (car w) (string-join (map (lambda (o) (format "'~a'" o)) (cadddr w)) ", ")))
@@ -346,6 +405,39 @@
                       (car (query-notes "SELECT MAX(c.v) FROM c WHERE c.a = 1" "1" checks "What was the monthly weight of patient 1?" "" '())))
   (check-false (regexp-match? #rx"Kind" (car (query-notes "SELECT MAX(c.v) FROM c WHERE c.a = 1" "2" checks "What was the monthly weight of patient 1?" "" '())))
                "the kind given is one that says it")
+  ;; the first or last row, and every row of the first or last time
+  (check-equal? (first-pick "SELECT m.test_name FROM m WHERE m.hadm_id IN ( SELECT a.hadm_id FROM a WHERE a.s = 1 ) ORDER BY m.charttime DESC LIMIT 1")
+                '("m.test_name" "m WHERE m.hadm_id IN ( SELECT a.hadm_id FROM a WHERE a.s = 1 )" "m.charttime" "DESC"))
+  (check-false (first-pick "SELECT m.test_name FROM m WHERE m.hadm_id IN ( SELECT a.hadm_id FROM a WHERE a.s = 1 ORDER BY a.admittime DESC LIMIT 1 )")
+               "the ORDER BY is a sub-select's")
+  (check-false (first-pick "SELECT COUNT(*) FROM m ORDER BY m.charttime DESC LIMIT 1"))
+  (check-true (same-time? "SELECT DISTINCT p.drug FROM p WHERE p.hadm_id IN ( SELECT 1 ) AND p.starttime = ( SELECT DISTINCT p.starttime FROM p WHERE p.hadm_id IN ( SELECT 1 ) ORDER BY p.starttime ASC LIMIT 1 )"))
+  (check-false (same-time? "SELECT p.drug FROM p ORDER BY p.starttime ASC LIMIT 1"))
+  (check-false (same-time? "SELECT ( SELECT c.v FROM c WHERE c.t = ( SELECT DISTINCT c.t FROM c ORDER BY c.t DESC LIMIT 1 ) ) - ( SELECT 1 )")
+               "a difference of two such values is another kind of answer")
+  (check-equal? (same-time-kinds (list (hasheq 'template "a" 'val_dict "{}" 'question "q" 'sql_query "SELECT p.drug FROM p ORDER BY p.starttime ASC LIMIT 1")
+                                       (hasheq 'template "b" 'val_dict "{}" 'question "q" 'sql_query "SELECT DISTINCT p.drug FROM p WHERE p.starttime = ( SELECT DISTINCT p.starttime FROM p ORDER BY p.starttime ASC LIMIT 1 )")))
+                '(2))
+  ;; when
+  (check-equal? (time-select "SELECT microbiologyevents.charttime FROM microbiologyevents WHERE a = 1 ORDER BY microbiologyevents.charttime DESC LIMIT 1") "microbiologyevents.charttime")
+  (check-equal? (time-select "SELECT  DISTINCT admissions.dischtime\n FROM admissions") "admissions.dischtime")
+  (check-false (time-select "SELECT microbiologyevents.test_name FROM microbiologyevents WHERE microbiologyevents.charttime = ( SELECT m.charttime FROM m )"))
+  (check-false (time-select "SELECT strftime('%Y-%m',chartevents.charttime), MAX(chartevents.valuenum) FROM chartevents"))
+  (check-equal? (says-when "What time was patient 1 discharged?") "time")
+  (check-false (says-when "What microbiology tests did patient 1 have last in 12/this year?"))
+  (check-true (opens-when? " When did patient 1 leave?"))
+  (let ([regular (hash-set (hasheq 'phrases '()) 'when #t)]
+        [times "SELECT microbiologyevents.charttime FROM microbiologyevents WHERE a = 1 ORDER BY microbiologyevents.charttime DESC LIMIT 1"])
+    (define what (query-notes times "6" regular "What microbiology tests did patient 1 have last in 12/this year?" "" '()))
+    (check-equal? (length what) 1)
+    (check-true (hold? (car what)))
+    (check-regexp-match #rx"selects a time \\(`microbiologyevents.charttime`\\)" (car what))
+    (check-equal? (query-notes times "6" regular "When was the last microbiology test of patient 1?" "" '()) '())
+    (check-equal? (query-notes times "6" (hasheq 'phrases '()) "What tests did patient 1 have?" "" '()) '() "no such regularity read from the train split: nothing said")
+    (check-regexp-match #rx"opens with \"when\"" (car (query-notes "SELECT COUNT(*) FROM admissions WHERE a = 1" "29" regular "When was patient 1 admitted?" "" '())))
+    (check-true (when-regular? (list (hasheq 'question "When did patient 1 leave?" 'sql_query "SELECT admissions.dischtime FROM admissions")
+                                     (hasheq 'question "How many visits?" 'sql_query "SELECT COUNT(*) FROM admissions"))))
+    (check-false (when-regular? (list (hasheq 'question "What did patient 1 have?" 'sql_query "SELECT admissions.dischtime FROM admissions")))))
   ;; whether
   (check-equal? (asks-whether "Has patient 1 been prescribed aspirin?") "has")
   (check-equal? (asks-whether "Can you tell me if the or urine event has occurred to patient 1 since 10/04/2119?") "if")

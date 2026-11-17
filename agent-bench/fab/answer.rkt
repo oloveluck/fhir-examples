@@ -3,7 +3,7 @@
 ;;; answer.rkt — a question's query asked of a workspace's tables, and what follows from it written
 ;;; down: the answer, the resources it rests on, and how the query's shape differs from its kind's.
 ;;;
-;;;   racket -l- fhir-examples/agent-bench/fab/answer [--kind N] [--out answer.json] "<SQL>"
+;;;   racket -l- fhir-examples/agent-bench/fab/answer [--kind N] [--say TEXT] [--out answer.json] "<SQL>"
 ;;;
 ;;; run in the question's workspace (the tables, `examples/<n>.md`). It
 ;;;   1. runs the query and prints its rows;
@@ -17,20 +17,23 @@
 ;;;      and, when the workspace holds the question (question.json) and examples/checks.json, says
 ;;;      what query-checks.rkt finds: a phrase of the question with no condition, a name the
 ;;;      question does not give; and says when the first or last row it picked has no value;
-;;;   5. writes {"answer", "resources"} to --out (answer.json) — unless a decisive note stands
+;;;   5. writes {"answer", "resources"} to --out (answer.json), and when it had no note at all ends
+;;;      with a line `done: …` (a session's hook may end the session on it) — unless a decisive note stands
 ;;;      (query-checks.rkt's `hold?`: the averaging unit only other kinds say, a value where the
 ;;;      question asks whether): then nothing is written and it says so; the same query given a
 ;;;      second time is written.
-;;; The agent reads the rows and the notes, and writes the file itself only when it disagrees.
+;;; The agent reads the rows and the notes; when the answer stated is not what the rows say, it gives
+;;; the query again with --say TEXT, and TEXT is written as the answer over the same resources.
 ;;;
 ;;; A Shape is a string: a query with its WHERE conditions left out and its literals as `?`.
 
 (require racket/cmdline racket/file racket/list racket/string json
          (only-in fhir/lang/workspace run-result-columns run-result-rows)
-         (only-in "check-ids.rkt" row-queries id-columns sub-selects)
-         (only-in "query-checks.rkt" query-notes comparison? asks-whether hold?))
+         (only-in "check-ids.rkt" row-queries id-columns sub-selects main-table)
+         (only-in "query-checks.rkt" query-notes comparison? asks-whether hold? first-pick))
 
-(provide answer-text shape example-queries shape-note all-rows empty-pick-note held? shown-note)
+(provide answer-text shape example-queries shape-note all-rows empty-pick-note held? shown-note other-kinds done-line
+         tied-values tie-note)
 
 ;; ---- the answer ---------------------------------------------------------------------------------
 ;; count? : string -> boolean   a query that counts
@@ -58,6 +61,54 @@
 ;; ---- an answer held back -----------------------------------------------------------------------------
 ;; held-file : the query whose answer was held back, kept in the question's workspace
 (define held-file ".held-query")
+
+;; tied-values : (listof (list value key)) -> (listof value)   of rows in order, the distinct
+;; values of those that share the first row's key — when there is more than one
+(define (tied-values rows)
+  (cond [(null? rows) '()]
+        [else
+         (define key (cadr (car rows)))
+         (define values (remove-duplicates (for/list ([r (in-list rows)] #:when (equal? (cadr r) key)) (car r))))
+         (if (> (length values) 1) values '())]))
+
+;; tie-note : string (query -> (listof (listof Cell))) (listof n) -> (or string #f)   said of a
+;; query that takes the first or last row when several rows share that place and differ in what
+;; is selected: which one `LIMIT 1` returns is chance. `kinds` are the kinds whose examples
+;; return every such row. The benchmark's own queries of this shape never meet such a tie (481
+;; in the train and validation splits, none).
+(define (tie-note sql rows-of kinds)
+  (define pick (first-pick sql))
+  (and pick
+       (let* ([selected (car pick)] [rest (cadr pick)] [order (caddr pick)] [direction (cadddr pick)]
+              [rows (with-handlers ([exn:fail? (lambda (_) '())])
+                      (rows-of (format "SELECT ~a, ~a FROM ~a ORDER BY ~a ~a LIMIT 50" selected order rest order direction)))]
+              [tied (tied-values (for/list ([r (in-list rows)] #:when (= (length r) 2)) r))])
+         (and (pair? tied)
+              (format "hold: ~a rows share the ~a `~a` (~a) and differ in `~a`: ~a. `LIMIT 1` returns one of them, by chance. A query of this schema that asks what was first or last returns every row of that time: `SELECT DISTINCT ~a FROM … AND ~a = ( SELECT DISTINCT ~a FROM … ORDER BY ~a ~a LIMIT 1 )`~a."
+                      (length tied) (if (equal? direction "DESC") "last" "first") order (cadr (car rows)) selected
+                      (string-join (for/list ([v (in-list (take tied (min 4 (length tied))))]) (format "~a" v)) ", ")
+                      selected order order order direction
+                      (if (pair? kinds) (format ", as kind ~a's example does (`./kind ~a`)" (car kinds) (car kinds)) ""))))))
+
+;; same-table-first : (listof n) string -> (listof n)   kinds whose first example reads the table
+;; `sql` reads, before the others
+(define (same-table-first kinds sql)
+  (define table (main-table sql))
+  (define (same? k)
+    (define file (build-path "examples" (format "~a.md" k)))
+    (and (file-exists? file)
+         (let ([qs (example-queries (file->string file))]) (and (pair? qs) (equal? (main-table (car qs)) table)))))
+  (define-values (same other) (partition same? kinds))
+  (append same other))
+
+;; done-line : string   what ends the output when the answer is written and no note was printed
+(define done-line "done: the answer is written, and nothing above needs a second look.")
+
+;; other-kinds : (listof string) -> (listof string)   the kinds a decisive note points to
+;; (`./kind 25`), each once, in the order named
+(define (other-kinds notes)
+  (remove-duplicates
+   (for*/list ([n (in-list notes)] #:when (hold? n) [m (in-list (regexp-match* #px"`\\./kind (\\d+)`" n #:match-select cadr))]) m)))
 
 ;; shown-note : string -> string   a note as it is printed: a decisive one reads as any other
 (define (shown-note n) (if (hold? n) (string-append "note: " (substring n 6)) n))
@@ -167,12 +218,14 @@
 
 (module+ main
   (define kind #f)
+  (define said #f)
   (define out "answer.json")
   (define sql
     (command-line
      #:program "answer"
      #:once-each
      [("--kind") n "the kind of question (examples/<n>.md): the query's shape is set beside its examples'" (set! kind n)]
+     [("--say") text "the answer to write, in place of the one read from the rows" (set! said text)]
      [("--out") f "the answer file (default answer.json)" (set! out f)]
      #:args (sql) sql))
   (define open-hub (dynamic-require 'fhir/mcp/workspace 'open-hub))
@@ -198,7 +251,7 @@
                       #:when (and (memq c ids) (string? v))
                       [id (in-list (string-split v #px"[\\s,]+"))] #:when (regexp-match? #rx"/" id))
             id))))))
-  (define answer (answer-text sql rows (pair? resources)))
+  (define answer (or said (answer-text sql rows (pair? resources))))
   (printf "answer: ~a\n" answer)
   (printf "resources: ~a~a\n" (length resources)
           (if (pair? resources) (format " (~a~a)" (string-join (take resources (min 3 (length resources))) ", ") (if (> (length resources) 3) ", …" "")) ""))
@@ -213,8 +266,8 @@
     (if (file-exists? "question.json") (call-with-input-file "question.json" read-json) (hasheq)))
   ;; a comparison where the question asks whether is the question's own shape, whatever the kind's is
   (define asked-shape? (and (asks-whether (hash-ref question 'question "")) (comparison? sql)))
-  (for ([note (in-list (list (and (not asked-shape?) (shape-note sql examples)) (empty-pick-note sql rows)))] #:when note)
-    (printf "~a\n" note))
+  (define own-notes (filter values (list (and (not asked-shape?) (shape-note sql examples)) (empty-pick-note sql rows))))
+  (for ([note (in-list own-notes)]) (printf "~a\n" note))
   (define notes
     (cond
       [(and (file-exists? "question.json") (file-exists? (build-path "examples" "checks.json")))
@@ -226,7 +279,10 @@
          (with-handlers ([exn:fail? (lambda (_) '())])
            (define-values (_cols rs) (cells (run (format "SELECT DISTINCT ~a FROM ~a" (cadr parts) (car parts)))))
            (filter string? (map car rs))))
-       (query-notes sql kind checks (hash-ref q 'question "") (hash-ref q 'assumption "") examples values-of)]
+       (append (query-notes sql kind checks (hash-ref q 'question "") (hash-ref q 'assumption "") examples values-of)
+               (let ([tie (tie-note sql (lambda (query) (let-values ([(_cols rs) (cells (run query))]) rs))
+                                    (same-table-first (hash-ref checks 'ties '()) sql))])
+                 (if tie (list tie) '())))]
       [else '()]))
   (for ([n (in-list notes)]) (printf "~a\n" (shown-note n)))
   ;; a decisive note holds the answer back once: the same query given again is written
@@ -234,15 +290,39 @@
     [(held? sql notes held-file)
      (call-with-output-file held-file #:exists 'truncate (lambda (o) (write-string sql o)))
      (printf "NOT written to ~a: ~a says this query does not answer the question as it is asked. Correct the query and run it again. (If the note is mistaken, run this same command once more and it is written.)\n"
-             out (if (= 1 (count hold? notes)) "the last note" "a note above"))]
+             out (if (= 1 (count hold? notes)) "the last note" "a note above"))
+     ;; the kind the note points to, shown here: the query to copy is one command away, not two
+     (for ([k (in-list (other-kinds notes))])
+       (define file (build-path "examples" (format "~a.md" k)))
+       (when (file-exists? file)
+         (printf "\nKind ~a, which the note names (run it as `./answer --kind ~a …`):\n~a\n" k k (string-trim (file->string file)))))]
     [else
      (when (file-exists? held-file) (delete-file held-file))
      (call-with-output-file out #:exists 'truncate
        (lambda (o) (write-json (hasheq 'answer answer 'resources resources) o)))
-     (printf "written to ~a\n" out)]))
+     (printf "written to ~a\n" out)
+     (when (and (null? own-notes) (null? notes)) (printf "~a\n" done-line))]))
 
 (module+ test
   (require rackunit)
+  ;; a tie at the first or last row
+  (check-equal? (tied-values '(("GRAM STAIN" "2110-01-02 03:00:00") ("RESPIRATORY CULTURE" "2110-01-02 03:00:00") ("URINE CULTURE" "2110-01-01 00:00:00")))
+                '("GRAM STAIN" "RESPIRATORY CULTURE"))
+  (check-equal? (tied-values '(("a" 2) ("a" 2) ("b" 1))) '() "the tied rows say the same")
+  (check-equal? (tied-values '(("a" 2) ("b" 1))) '())
+  (check-equal? (tied-values '()) '())
+  (let ([sql "SELECT m.test_name FROM m WHERE m.hadm_id IN ( SELECT 1 ) ORDER BY m.charttime DESC LIMIT 1"])
+    (define note (tie-note sql (lambda (q) '(("GRAM STAIN" "2110-01-02 03:00:00") ("RESPIRATORY CULTURE" "2110-01-02 03:00:00"))) '(15 24)))
+    (check-true (hold? note))
+    (check-regexp-match #rx"2 rows share the last `m.charttime` \\(2110-01-02 03:00:00\\) and differ in `m.test_name`: GRAM STAIN, RESPIRATORY CULTURE" note)
+    (check-equal? (other-kinds (list note)) '("15"))
+    (check-false (tie-note sql (lambda (q) '(("GRAM STAIN" "2110-01-02 03:00:00"))) '(15)))
+    (check-false (tie-note "SELECT COUNT(*) FROM m" (lambda (q) (error "not asked")) '(15))))
+  ;; the kinds a decisive note names
+  (check-equal? (other-kinds (list "hold: … the kinds whose questions do: 25, 38 (`./kind 25`). If yours is one of those, copy its example instead."
+                                   "note: … (`./kind 7`)" "hold: again (`./kind 25`)"))
+                '("25"))
+  (check-regexp-match #rx"^done: the answer is written" done-line)
   ;; the answer
   (check-equal? (answer-text "SELECT chartevents.valuenum FROM chartevents WHERE x = 1" '((61.7)) #t) "61.7")
   (check-equal? (answer-text "SELECT labevents.valuenum FROM labevents" '((83.6) (84.2)) #t) "83.6, 84.2")
