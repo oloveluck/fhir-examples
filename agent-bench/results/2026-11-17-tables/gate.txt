@@ -1,0 +1,24 @@
+runs 9, questions 409, answers 1227
+as scored       1205 of 1227 (98.2%)
+set aside       8 questions (set-aside.json): 3 of 24 marked right
+in scope        1202 of 1203 (99.9%) over 401 questions: 400 right every time, 0 missed sometimes, 0 missed every time, 1 judged both ways
+
+judged both ways (the same answer marked right in one run and wrong in another: the judge's, no slip):
+  40bd0f4265c38c258e1d9e19  right 2 of 3  Has there been any organism found in patient 10021118's last urine microbiological examination in 12/this year…
+      answered: no: none on record
+
+a question costs  input tokens: mean 45474, median 42277   turns: mean 3.2   seconds: mean 10.0
+citations         precision 0.991   recall 0.971
+
+PASS
+
+validation sample (fab/valid-150.json):
+runs 1, questions 150, answers 150
+as scored       144 of 150 (96.0%)
+set aside       6 questions (set-aside.json): 0 of 6 marked right
+in scope        144 of 144 (100.0%) over 144 questions: 144 right every time, 0 missed sometimes, 0 missed every time
+
+a question costs  input tokens: mean 44717, median 42184   turns: mean 3.15   seconds: mean 10.0
+citations         precision 0.952   recall 0.967
+
+PASS

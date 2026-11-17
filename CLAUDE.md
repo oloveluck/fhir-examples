@@ -90,7 +90,10 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   `--slips` (0) missed sometimes; then what a question costs. Whole test split, three passes:
   402, 401, 402 of 409 as scored, 1202 of 1203 in scope (the one is the judge's), PASS;
   validation sample 144 of 150, 144 of 144 in scope, PASS; 45.5k input tokens, 3.2 turns, 10 s a
-  question — the baseline performance work is compared with (the gate must stay PASS). A turn
+  question — the baseline performance work is compared with (the gate must stay PASS).
+  MedAgentBench run again on the same code, graded against our own server (`mab/grade RUN
+  http://localhost:<port>/` over `serve-store.rkt`; it reproduces the benchmark server's grade
+  of the earlier run): 300 of 300 at 39k tokens, 3.4 turns, 7.8 s a task. A turn
   re-reads ~14k tokens; kinds.md and phrases.md are in every one. Do not edit the modules agents
   invoke (`answer`, `query-checks`, `run`), the examples or the toolkit's sources while a run
   is going: kept views are keyed by the engine's sources.
