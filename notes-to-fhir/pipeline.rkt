@@ -22,6 +22,7 @@
          (only-in fhir/sd/sd-index current-sd-packages)
          (only-in fhir/conformance/operations $validate)
          (only-in fsh/project compile-project project-artifacts project-sd-packages project-diagnostics)
+         (only-in fhir/diagnostic diagnostic-severity)
          (only-in "../model.rkt" ask extract-block))
 
 (provide run-note replay-note check-bundle bundle-facts score-facts note-names ig-artifacts current-spec)
@@ -34,8 +35,11 @@
 
 ;; ---- the contract, compiled -----------------------------------------------------------------------
 (define ig (compile-project ig-dir))
-(unless (null? (project-diagnostics ig))
-  (error 'notes-to-fhir "the IG does not compile: ~a" (project-diagnostics ig)))
+;; a warning is not a failure to compile (fsh warns that a display in an assigned code becomes part
+;; of the pattern; the recorded runs were held to this IG as it is, so it stays as it is)
+(define ig-errors (filter (lambda (d) (eq? (diagnostic-severity d) 'error)) (project-diagnostics ig)))
+(unless (null? ig-errors)
+  (error 'notes-to-fhir "the IG does not compile: ~a" ig-errors))
 (define ig-artifacts (project-artifacts ig))
 (define profiles
   (for/list ([a (in-list ig-artifacts)] #:when (equal? (hash-ref a 'resourceType) "StructureDefinition"))

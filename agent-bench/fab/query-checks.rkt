@@ -28,7 +28,7 @@
 (require racket/file racket/list racket/string json
          (only-in "make-examples.rkt" train-questions kinds read-python))
 
-(provide phrase-book phrase-notes name-literals name-notes column-names question-names unnamed-notes
+(provide phrase-book phrase-notes name-literals name-notes column-names question-names unnamed-notes whole-name-notes
          query-shape make-checks query-notes)
 
 ;; ---- text ----------------------------------------------------------------------------------------
@@ -173,6 +173,23 @@
               #:unless (for/or ([m (in-list mine)]) (and (non-empty-string? m) (string-contains? (norm v) m))))
     (list (car cn) (norm v) v)))
 
+;; whole-name-notes : string string (column -> (listof string)) -> (listof (list column words value others))
+;; for each column the query compares names with: a value of that column the question contains
+;; whole and the query names, beside names of the same column the question does not say (`others`).
+;; The question meant that one name: "or urine" is the output `OR Urine`, not urine outputs
+(define (whole-name-notes sql question values-of)
+  (define text (norm question))
+  (for*/list ([cn (in-list (column-names sql))]
+              [mine (in-value (cdr cn))]
+              [v (in-list (question-names question (values-of (car cn))))]
+              #:when (member (norm v) (map norm mine))
+              [others (in-value (for/list ([m (in-list mine)]
+                                           #:unless (equal? (norm m) (norm v))
+                                           #:unless (string-contains? text (norm m)))
+                                  m))]
+              #:when (pair? others))
+    (list (car cn) (norm v) v others)))
+
 ;; ---- the checks, made and applied ---------------------------------------------------------------------
 ;; make-checks : (listof Question) -> Checks
 (define (make-checks train) (hasheq 'phrases (phrase-book train)))
@@ -183,6 +200,7 @@
 ;; may be given there: "Search for 'Daily Weight' to find weight"; a phrase is the question's
 ;; alone), `examples` the queries of its kind's examples, `values-of` a column's distinct values
 (define (query-notes sql kind checks question assumption examples [values-of (lambda (column) '())])
+  (define whole (whole-name-notes sql question values-of))
   (append
    (for/list ([p (in-list (phrase-notes question sql (hash-ref checks 'phrases '())))])
      (define kinds (caddr p))
@@ -193,7 +211,11 @@
           (format " Kind ~a's questions do not say \"~a\"; the kinds whose questions do: ~a (`cat examples/~a.md`). If yours is one of those, copy its example instead."
                   kind (car p) (string-join (map number->string kinds) ", ") (car kinds))
           "")))
-   (for/list ([n (in-list (name-notes sql (string-append question " " assumption) examples))])
+   (for/list ([w (in-list whole)])
+     (format "note: the question's words \"~a\" are the name '~a' in `~a`, whole: a question gives a name in lower case inside its sentence, however much it reads like ordinary words. Name it alone: your query also names ~a, which the question does not say."
+             (cadr w) (caddr w) (car w) (string-join (map (lambda (o) (format "'~a'" o)) (cadddr w)) ", ")))
+   (for/list ([n (in-list (name-notes sql (string-append question " " assumption) examples))]
+              #:unless (member n (append-map cadddr whole)))
      (format "note: your query names '~a', which the question does not." n))
    (for/list ([u (in-list (unnamed-notes sql question values-of))])
      (format "note: the question says \"~a\", which is '~a' in `~a`, and your query does not name it." (cadr u) (caddr u) (car u)))))
@@ -255,6 +277,12 @@
   (define (label-values col) (if (equal? col "d_items.label") labels '()))
   (check-equal? (unnamed-notes "SELECT 1 FROM d_items WHERE d_items.label IN ('Foley')" "When did patient 1 last have or urine output?" label-values)
                 '(("d_items.label" "or urine" "OR Urine")))
+  (check-equal? (whole-name-notes "SELECT 1 FROM d_items WHERE d_items.label IN ('Foley','OR Urine','PACU Urine')" "When did patient 1 last have or urine output?" label-values)
+                '(("d_items.label" "or urine" "OR Urine" ("Foley" "PACU Urine"))))
+  (check-equal? (whole-name-notes "SELECT 1 FROM d_items WHERE d_items.label = 'OR Urine'" "When did patient 1 last have or urine output?" label-values) '()
+                "named alone")
+  (check-equal? (whole-name-notes "SELECT 1 FROM d_items WHERE d_items.label IN ('OR Urine','Foley')" "the or urine and foley output of patient 1" label-values) '()
+                "the question says both")
   (check-equal? (unnamed-notes "SELECT 1 FROM d_items WHERE d_items.label = 'TF Residual'" "the total tf residual output of patient 1" label-values) '()
                 "the query names a part of it")
   (check-equal? (unnamed-notes "SELECT admissions.admission_type FROM admissions WHERE admissions.subject_id = 1" "What was the admission type of patient 1?" label-values) '()

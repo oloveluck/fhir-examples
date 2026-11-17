@@ -1,0 +1,141 @@
+{
+  "about": "Test- and validation-split questions of FHIR-AgentBench whose recorded answer no agent can be held to: the benchmark's own query contradicts the question and nothing in the train split shows how, or the answer is read from a value the FHIR export it gives its agents does not carry. They are scored like any other (the score as scored counts them); gate.rkt reports the rest beside it. The evidence for each class is in results/2026-11-17-note-to-benchmark-authors.md. Nothing here is given to an agent.",
+  "classes": {
+    "label-lower-case": "The query compares a label (d_items.label, d_labitems.label) with the name in lower case ('or urine' for 'OR Urine', 'lipase' for 'Lipase'), so it finds no item and the recorded answer is 'nothing'. Two templates, each in one split only: \"List the [unit_average] [agg_function] volume of {output_name} output …\" (test) and \"List the [unit_average] [agg_function] {lab_name} lab value …\" (validation). Every other label look-up in the file (82 of outputs, 874 of labs) writes the label as stored.",
+    "after-current-time": "The recorded answer is read from a record dated after the question's own 'Assume the current time is …'. The train split's 27 'since' queries of this template all end at the current time; the test and validation splits' do not.",
+    "not-in-fhir-export": "The answer is read from a prescription's scheduled start time or from a dose written as a range ('5-10'). The MIMIC-IV on FHIR export has neither for these orders: the MedicationRequest carries only the time the order was entered (authoredOn, no dispenseRequest.validityPeriod) and no doseAndRate. No table defined over the export can hold the value; check-tables fails the same four validation queries (and 20 train queries, no test query)."
+  },
+  "questions": [
+    {
+      "id": "204b55b1a8a2dbeafa89b76c",
+      "class": "label-lower-case",
+      "label": "l pleural #1",
+      "stored": "L Pleural #1",
+      "with_stored_label": "70"
+    },
+    {
+      "id": "3ec03a348a536f8a80e9d54e",
+      "class": "label-lower-case",
+      "label": "chest tube #1",
+      "stored": "Chest Tube #1",
+      "with_stored_label": "24.347826086956523"
+    },
+    {
+      "id": "4b72e7b13c37b47053d926d9",
+      "class": "label-lower-case",
+      "label": "pre-admission",
+      "stored": "Pre-Admission",
+      "with_stored_label": "250"
+    },
+    {
+      "id": "5c2b95425f850cf9aee654aa",
+      "class": "label-lower-case",
+      "label": "stool",
+      "stored": "Stool",
+      "with_stored_label": "no row (right either way)"
+    },
+    {
+      "id": "dbf9297a4c1d683faa792fef",
+      "class": "label-lower-case",
+      "label": "emesis",
+      "stored": "Emesis",
+      "with_stored_label": "100"
+    },
+    {
+      "id": "ea9a85005a244ffc9f78a09c",
+      "class": "label-lower-case",
+      "label": "or urine",
+      "stored": "OR Urine",
+      "with_stored_label": "700"
+    },
+    {
+      "id": "eefb26cc5bd74a549f823166",
+      "class": "label-lower-case",
+      "label": "void",
+      "stored": "Void",
+      "with_stored_label": "250"
+    },
+    {
+      "id": "7535579b90cfcb61fed1c380",
+      "class": "after-current-time",
+      "current_time": "2116-12-31 23:59:00",
+      "answer_from": "2117-03-23 17:11:00"
+    },
+    {
+      "id": "249619a43d4c7fe7add673f1",
+      "class": "label-lower-case",
+      "split": "valid",
+      "label": "lactate dehydrogenase (ld)",
+      "stored": "Lactate Dehydrogenase (LD)",
+      "with_stored_label": "282"
+    },
+    {
+      "id": "4ea43bff9e1b8d9f142a816d",
+      "class": "label-lower-case",
+      "split": "valid",
+      "label": "mcv",
+      "stored": "MCV",
+      "with_stored_label": "91"
+    },
+    {
+      "id": "7a60c2c50fa3345765a83271",
+      "class": "label-lower-case",
+      "split": "valid",
+      "label": "lipase",
+      "stored": "Lipase",
+      "with_stored_label": "21"
+    },
+    {
+      "id": "abd48dc45ba90022382e02c9",
+      "class": "label-lower-case",
+      "split": "valid",
+      "label": "creatinine, urine",
+      "stored": "Creatinine, Urine",
+      "with_stored_label": "42"
+    },
+    {
+      "id": "acc9bade197c3728c67fcdd7",
+      "class": "label-lower-case",
+      "split": "valid",
+      "label": "bilirubin, direct",
+      "stored": "Bilirubin, Direct",
+      "with_stored_label": "no row (right either way)"
+    },
+    {
+      "id": "b9c136c1e1d19649caabdeb4",
+      "class": "label-lower-case",
+      "split": "valid",
+      "label": "bilirubin, direct",
+      "stored": "Bilirubin, Direct",
+      "with_stored_label": "5.4"
+    },
+    {
+      "id": "28fd166cd9efc2ab844c870d",
+      "class": "not-in-fhir-export",
+      "split": "valid",
+      "relational": "starttime 2167-05-11 20:00:00 (dose 50)",
+      "fhir": "authoredOn 2167-05-11T08:48:43, no validityPeriod"
+    },
+    {
+      "id": "652c13b3ffbd655d3934525f",
+      "class": "not-in-fhir-export",
+      "split": "valid",
+      "relational": "dose_val_rx '5-10'",
+      "fhir": "dosageInstruction without doseAndRate"
+    },
+    {
+      "id": "9ff61e95883c730111d063bb",
+      "class": "not-in-fhir-export",
+      "split": "valid",
+      "relational": "starttime 2155-12-02 22:00:00",
+      "fhir": "authoredOn 2155-12-02T21:20:57, no validityPeriod"
+    },
+    {
+      "id": "bf8aee434927ad78efbb9c37",
+      "class": "not-in-fhir-export",
+      "split": "valid",
+      "relational": "starttime 2200-09-28 20:00:00",
+      "fhir": "the tables' time from the export: 2200-09-28 11:00:00"
+    }
+  ]
+}
