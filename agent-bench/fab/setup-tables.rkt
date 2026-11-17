@@ -19,6 +19,9 @@
 ;;;
 ;;;   FAB_STORE: the store (a fhir-server SQLite file of MIMIC-IV on FHIR)
 ;;;   FAB_REPO:  a checkout of github.com/glee4810/FHIR-AgentBench
+;;;   FAB_REFERENCE (optional): the relational database itself (the benchmark's create_db.py over
+;;;       the MIMIC-IV demo's CSV files). With it the agent also has `./check-rows`
+;;;       (check-rows.rkt): each table compared with the database row for row.
 
 (require racket/cmdline racket/file racket/string racket/runtime-path json
          "../run-agent.rkt")
@@ -50,6 +53,11 @@ When done, write {answer_file}: {"tables": ["<each table you defined>"], "passin
 EOF
   )
 
+;; what an agent is told of `./check-rows`, when the relational database is at hand
+(define rows-note
+  (string-append
+   "`./check-rows` compares each table, row for row, with the relational database the schema describes (`./check-rows --table admissions --show 20` for one table; all of them take about a minute): the rows only the database has, the rows only your table has, and for each column how many of the database's values your table lacks, which says which column to look at. It reads only the schema's columns.\n\n"))
+
 ;; the task of an agent that changes tables already defined
 (define amend-task #<<END
 This directory is a FHIR workspace in which the tables of a relational schema are already defined over a hospital's FHIR data: ViewDefinitions (`*.view.json`, each one resource type flattened) and tables defined over them (`*.sql`). `raco fhir guide tables` explains the two kinds of file. Every `raco fhir-mcp call …` runs in this directory.
@@ -58,7 +66,7 @@ Make this change: {change}
 
 `./check` asks the workspace queries written for the schema and compares each answer with the known one (`./check --table labevents --show 5` for one table's queries; `./check` for all, a few minutes). Before your change {passing} of them pass; after it the same ones must.
 
-Time: a `.sql` file costs nothing to change. A view over the Observations (more than 800,000) takes about three minutes to compute again when its text changes, so change such a view only if you must, and give such a command a timeout of 10 minutes.
+{rows}Time: a `.sql` file costs nothing to change. A view over the Observations (more than 800,000) takes about three minutes to compute again when its text changes, so change such a view only if you must, and give such a command a timeout of 10 minutes.
 
 When done, write {answer_file}: {"changed": ["<each file you changed>"], "passing": "<n>/<m> as the last full ./check printed", "notes": "<anything a user of the tables should know>"}. Then end with one short line.
 
@@ -84,6 +92,7 @@ END
      #:args (out-dir) out-dir))
   (define store (or (getenv "FAB_STORE") (raise-user-error 'setup-tables "FAB_STORE names the store")))
   (define repo (or (getenv "FAB_REPO") (raise-user-error 'setup-tables "FAB_REPO names a checkout of FHIR-AgentBench")))
+  (define reference (getenv "FAB_REFERENCE"))
   (define work (build-path (path->complete-path out) "workspace"))
   (define schema (string-trim (regexp-replace #px"\n`check-tables.rkt`[^\n]*\n?$" (file->string schema-file) "")))
   ;; prepare : -> void   the workspace over the store, and `./check`: the benchmark's train-split
@@ -103,7 +112,14 @@ END
      (format "#!/bin/sh\n# the schema's own queries (the benchmark's train split) asked of this workspace\nFAB_REPO='~a' exec racket -l- fhir-examples/agent-bench/fab/check-tables --split train \"$@\" \"$(dirname \"$0\")\"\n"
              (path->complete-path repo))
      check)
-    (file-or-directory-permissions check #o755))
+    (file-or-directory-permissions check #o755)
+    (when reference
+      (define rows (build-path work "check-rows"))
+      (display-to-file
+       (format "#!/bin/sh\n# each table of the schema compared, row for row, with the relational database itself\nexec racket -l- fhir-examples/agent-bench/fab/check-rows \"$@\" '~a' \"$(dirname \"$0\")\"\n"
+               (path->complete-path reference))
+       rows #:exists 'truncate)
+      (file-or-directory-permissions rows #o755)))
   (define rec
     (run-item "workspace"
               (lambda (dir)
@@ -116,10 +132,13 @@ END
                           ([kv (list (cons "{schema}" schema)
                                      (cons "{answer_file}" (path->string (build-path dir "answer.json")))
                                      (cons "{change}" (if amend (cdr amend) ""))
-                                     (cons "{passing}" (or passing "")))])
+                                     (cons "{passing}" (or passing ""))
+                                     (cons "{rows}" (if reference rows-note "")))])
                   (string-replace t (car kv) (cdr kv))))
               work model
-              '("Bash(raco fhir-mcp:*)" "Bash(raco fhir guide:*)" "Bash(./check:*)" "Bash(python3:*)" "Bash(jq:*)" "Read" "Write" "Edit")
+              (append '("Bash(raco fhir-mcp:*)" "Bash(raco fhir guide:*)" "Bash(./check:*)")
+                      (if reference '("Bash(./check-rows:*)") '())
+                      '("Bash(python3:*)" "Bash(jq:*)" "Read" "Write" "Edit"))
               #:prepare prepare #:timeout timeout #:max-turns max-turns
               ;; a first query over a view of the Observations takes minutes
               #:env '(("BASH_DEFAULT_TIMEOUT_MS" . "900000") ("BASH_MAX_TIMEOUT_MS" . "1800000"))))

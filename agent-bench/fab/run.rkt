@@ -45,7 +45,8 @@ EOF
     [("tables")
      (string-append
       "Access: the dataset as the tables of a relational schema, in this directory's workspace (the tables are defined over the FHIR data):\n"
-      "  raco fhir-mcp call query language=sql text=\"SELECT …\"      one SQLite statement; rows come back as JSON\n\n"
+      "  raco fhir-mcp call query language=sql text=\"SELECT …\"      one SQLite statement; rows come back as JSON\n"
+      "  ./answer --kind <number> \"SELECT …\"                        the query that answers the question: its rows, the answer, the resources behind it — written to the answer file\n\n"
       (tables-schema) "\n\n"
       "People who compute against this schema write each kind of question's query one way. The kinds (a kind's slots in braces and brackets):\n"
       (examples-file "kinds.md") "\n\n"
@@ -57,8 +58,7 @@ EOF
       "2. Copy the example's query whole and change only three things: the patient's number; the names and values (spelled as the tables have them); the time conditions (take out the example's, put in one for each time phrase of your question — \"today\", \"since 09/2116\", \"on the last ICU visit\" — written as the list above writes it, on the column the example uses). Change nothing else: not how the visit is chosen, not the SELECT, not the ORDER BY or LIMIT, and add no condition of your own. Two readings to keep:\n"
       "   - \"Current\" is what has no end recorded, and only that. A current hospital visit (\"this hospital stay\", \"this admission\", \"since admission\") is `admissions.dischtime IS NULL`; a current ICU stay (\"this ICU encounter\", \"the current ICU visit\") is `icustays.outtime IS NULL`. The people who use this schema do not call a visit current once its end is recorded, whatever the assumed current time is.\n"
       "   - \"Last year\", \"in the last year\", \"the previous month\", \"yesterday\" name the calendar year, month or day before the current one (`datetime(x,'start of year') = datetime(<now>,'start of year','-1 year')`), not the twelve months, thirty days or twenty-four hours up to now. Only \"since N years/months/days ago\" counts back from now.\n"
-      "3. Run it. The answer is the value it returns and nothing else: `61.7`, `-1`, `2133-12-31 02:00:00`, `EW EMER.`, `yes`/`no` for a 1/0; every row's value when there are several, in the order returned (`83.6, 84.2`). No unit, date or explanation beside it, and no other reading. When it returns no row, a null or a count of 0, nothing was found, and the answer says so: \"none: no <what was asked> on record\" (for a yes/no question, \"no: none on record\"). Do not look for another reading of the question that would return something.\n"
-      "For `resources`: every table but the `d_` dictionaries also has a `fhir_id` column (`Type/id`: the FHIR resource a row comes from), and prescriptions a `medication_fhir_id`. Give the fhir_id of the rows the answer rests on, and for a prescription its medication_fhir_id too: select them beside the answer, or in a second query with the same conditions. An answer that nothing was found rests on no resource.")]
+      "3. Run it with `./answer --kind <number> \"SELECT …\"` (the number of the example you copied). It prints the rows; states the answer as the people who use this schema state one — the value alone (`61.7`, `-1`, `2133-12-31 02:00:00`, `EW EMER.`), every row's value in the order returned when there are several, `yes`/`no` for a comparison, and \"none: nothing on record\" when the query returns no row, a null or a count of 0; finds the resources the answer rests on (the rows of the query's table that meet its conditions, each row's `fhir_id` columns); and writes both to the answer file. When it notes that your query's shape is not the example's and the question does not ask for that difference, correct the query and run it again. Otherwise you are done: do not rewrite the file, do not add a unit, a date or an explanation, and do not look for another reading of the question that would return something. (Only when the answer it states is not what the rows say, write the file yourself.)")]
     [("mcp")
      (string-append "Access: the FHIR workspace's tools (mcp__fhir__…: query, describe, explain, run, check, …), over this dataset. "
                     "The card below writes a call as the shell does: `describe ref=X as=fsh` is the describe tool with ref and as.\n\n"
@@ -90,7 +90,8 @@ EOF
 
 ;; tables-workspace! : dir -> void   the question's workspace: the tables the setup agent defined
 ;; (FAB_TABLES: its views and `.sql` files), the rows it already computed (a link to its kept
-;; views: a view over the Observations takes minutes to compute), and the worked examples
+;; views: a view over the Observations takes minutes to compute), the worked examples, and
+;; `./answer` (answer.rkt: the query run, the answer and its resources written)
 (define (tables-workspace! work)
   (define from (or (getenv "FAB_TABLES") (error 'run "set FAB_TABLES to the workspace setup-tables wrote")))
   (for ([f (in-list (directory-list from))]
@@ -99,13 +100,15 @@ EOF
   (make-directory* (build-path work "examples"))
   (for ([f (in-list (directory-list (examples-dir)))] #:when (regexp-match? #rx"^[0-9]+[.]md$" (path->string f)))
     (copy-file (build-path (examples-dir) f) (build-path work "examples" f) #t))
+  (display-to-file "#!/bin/sh\nexec racket -l- fhir-examples/agent-bench/fab/answer \"$@\"\n" (build-path work "answer") #:exists 'truncate)
+  (file-or-directory-permissions (build-path work "answer") #o755)
   (make-directory* (build-path work ".fhir-mcp"))
   (make-file-or-directory-link (path->complete-path (build-path from ".fhir-mcp" "views.db")) (build-path work ".fhir-mcp" "views.db")))
 
 (define (tools arm)
   (append (case arm
             [("workspace") '("Bash(raco fhir-mcp:*)" "Bash(raco fhir guide:*)")]
-            [("tables") '("Bash(raco fhir-mcp:*)" "Bash(cat:*)" "Bash(grep:*)")]
+            [("tables") '("Bash(raco fhir-mcp:*)" "Bash(./answer:*)" "Bash(cat:*)" "Bash(grep:*)")]
             [("mcp") '("mcp__fhir" "Bash(raco fhir guide:*)")]
             [else '("Bash(curl:*)")])
           '("Bash(python3:*)" "Bash(jq:*)" "Read" "Write")))
