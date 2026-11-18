@@ -118,20 +118,53 @@ words ("no: none on record" for "no"), and one had answered a time to "does the 
 go greater than 105" and went on to "yes" — a query the time check above now holds. No agent
 rewrote a clean answer by hand.
 
-The first pass of the test split with iterations 1 and 2 and the changes above:
+The whole test split three times, with iterations 1 and 2 and the changes above (402, 402 and
+401 of 409 as scored):
 
 ```
-runs 3, questions 409, answers 409
-as scored       402 of 409 (98.3%)
-set aside       8 questions (set-aside.json): 1 of 8 marked right
-in scope        401 of 401 (100.0%) over 401 questions: 401 right every time, 0 missed sometimes, 0 missed every time
-a question costs  input tokens: mean 29077, median 24142   turns: mean 3.15   seconds: mean 7.6
+runs 9, questions 409, answers 1227
+as scored       1205 of 1227 (98.2%)
+set aside       8 questions (set-aside.json): 3 of 24 marked right
+in scope        1202 of 1203 (99.9%) over 401 questions: 400 right every time, 0 missed sometimes, 0 missed every time, 1 judged both ways
+
+judged both ways (the same answer marked right in one run and wrong in another: the judge's, no slip):
+  580f56a66f7626bbcd078c21  right 2 of 3  Has patient 10023239 had any organisms detected in his last urine microbiology test in 2137?
+      answered: no: none on record
+
+a question costs  input tokens: mean 29078, median 24142   turns: mean 3.14   seconds: mean 7.7
 citations         precision 0.991   recall 0.99
+
 PASS
 ```
 
-(The runtime counts the ended turn, so "turns" does not fall; the model is called twice where it
-was called three times.)
+and the whole validation split once:
+
+```
+runs 2, questions 424, answers 424
+as scored       415 of 424 (97.9%)
+set aside       10 questions (set-aside.json): 1 of 10 marked right
+in scope        414 of 414 (100.0%) over 414 questions: 414 right every time, 0 missed sometimes, 0 missed every time
+a question costs  input tokens: mean 28530, median 24124   turns: mean 3.15   seconds: mean 7.2
+citations         precision 0.958   recall 0.969
+PASS
+```
+
+| the test split, three passes | before | iteration 1 (one pass) | iteration 2 |
+|---|---|---|---|
+| as scored | 1205 of 1227 | 401 of 409 | 1205 of 1227 |
+| in scope | 1202 of 1203 | 400 of 401 | 1202 of 1203 |
+| input tokens a question, mean | 45,474 | 40,611 | **29,078** (−36%) |
+| … median | 42,277 | 37,999 | 24,142 |
+| … 90th percentile | 58,380 | | 39,513 |
+| seconds a question, mean | 10.0 | 9.6 | **7.7** (−23%) |
+| citations: precision, recall | 0.991, 0.971 | 0.991, 0.990 | 0.991, 0.990 |
+
+77% of sessions ended at the answer (949 of 1,227), at 25.4k tokens; the others, asked again
+after a note, cost 41.6k. The runtime counts the ended turn, so "turns" does not fall: the model
+is called twice where it was called three times. The one answer marked wrong is again the judge's:
+"no: none on record", given all three times to a question whose recorded answer is `[[0]]`,
+marked right twice and wrong once — the second question on which that wording has been judged
+both ways. The gate's output is kept in `2026-11-17-tables/gate-held-out-and-iteration2.txt`.
 
 ## Next in the loop
 
@@ -140,5 +173,8 @@ was called three times.)
   the kept views are keyed by, so the views are computed again once (a few minutes).
 - **The kinds of question** are 2.2k tokens in each turn, with slot names like
   `[time_filter_global1]`; the schema's table 1.3k.
+- **"no: none on record"** is the one wording the benchmark's judge has marked both ways (two
+  questions, once each). "no" alone, or the count, may be judged more steadily;
+  it wants a measurement of its own, since the judge's null-answer rule reads the same words.
 - **The other arms** (the workspace verbs with no tables, MCP, plain REST) have not been run
   since rounds 4 to 6.

@@ -93,7 +93,31 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   question — the baseline performance work is compared with (the gate must stay PASS).
   MedAgentBench run again on the same code, graded against our own server (`mab/grade RUN
   http://localhost:<port>/` over `serve-store.rkt`; it reproduces the benchmark server's grade
-  of the earlier run): 300 of 300 at 39k tokens, 3.4 turns, 7.8 s a task. A turn
+  of the earlier run): 300 of 300 at 39k tokens, 3.4 turns, 7.8 s a task.
+  **Held out, then the loop on tokens and time** (2026-11-17/18;
+  `agent-bench/results/2026-11-17-held-out-and-efficiency.md`). The 274 validation questions
+  nobody had run or read (`fab/valid-rest-274.json`): 268 of 274 as scored, 267 of 270 in scope —
+  the number for unseen questions; the three misses were questions of kinds the train split
+  lacks (112 of 424 validation questions are), answered with the nearest example's SELECT. For
+  them, each read from the train split and said of none of its 2,522 train and validation
+  queries: `./answer` holds a time selected where the question does not ask when, or none where
+  it opens with "when" (`when-regular?`: 471 of 471, 350 of 350), and a first or last row picked
+  from several that differ (`tie-note`; kinds whose examples return every such row:
+  `same-time-kinds`); a held answer prints the kind its note names (an agent in four had given
+  the held command twice, which writes it); two prompt lines (no example selects what is asked:
+  the schema's column; when a visit was is when it began). `transfers` rows name the Location
+  (`location_fhir_id`): citation recall 0.971 -> 0.990. Tokens and time: the tables agent has
+  the shell tool alone (`builtin`: Read and Write were 950 tokens a turn); `./kind N…` prints the
+  kinds asked for and the time phrases once (they were in every turn's prompt); `./answer --say`;
+  and when `./answer` writes the answer with no note it ends `done: …`, on which a PostToolUse
+  hook (`fab/stop-when-answered.sh`, `run-agent.rkt` `#:settings`) ends the session — the closing
+  turn was pure re-reading in 74% of 1,651 replayed sessions. Whole test split, three passes:
+  1205 of 1227 as scored, 1202 of 1203 in scope (the one the judge's), PASS, at 29.1k input
+  tokens (45.5k before) and 7.7 s (10.0) a question; whole validation split 415 of 424, 414 of
+  414 in scope, PASS. Nothing is held out any more. Next, named there: the tool's cold start
+  (0.45 s opening a workspace, half of it the search catalogue SQL does not use — a change to
+  fhir-mcp's sources, so the kept views are computed again once), the kinds list and the schema
+  in the prompt. A turn
   re-reads ~14k tokens; kinds.md and phrases.md are in every one. Do not edit the modules agents
   invoke (`answer`, `query-checks`, `run`), the examples or the toolkit's sources while a run
   is going: kept views are keyed by the engine's sources.

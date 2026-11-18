@@ -1,0 +1,44 @@
+iteration 2 (fab-tables11): the whole test split, three passes
+runs 9, questions 409, answers 1227
+as scored       1205 of 1227 (98.2%)
+set aside       8 questions (set-aside.json): 3 of 24 marked right
+in scope        1202 of 1203 (99.9%) over 401 questions: 400 right every time, 0 missed sometimes, 0 missed every time, 1 judged both ways
+
+judged both ways (the same answer marked right in one run and wrong in another: the judge's, no slip):
+  580f56a66f7626bbcd078c21  right 2 of 3  Has patient 10023239 had any organisms detected in his last urine microbiology test in 2137?
+      answered: no: none on record
+
+a question costs  input tokens: mean 29078, median 24142   turns: mean 3.14   seconds: mean 7.7
+citations         precision 0.991   recall 0.99
+
+PASS
+
+the whole validation split (fab/valid-150.json, fab/valid-rest-274.json), one pass:
+runs 2, questions 424, answers 424
+as scored       415 of 424 (97.9%)
+set aside       10 questions (set-aside.json): 1 of 10 marked right
+in scope        414 of 414 (100.0%) over 414 questions: 414 right every time, 0 missed sometimes, 0 missed every time
+
+a question costs  input tokens: mean 28530, median 24124   turns: mean 3.15   seconds: mean 7.2
+citations         precision 0.958   recall 0.969
+
+PASS
+
+the held-out check, before any change (fab-tables9, fab/valid-rest-274.json):
+runs 1, questions 274, answers 274
+as scored       268 of 274 (97.8%)
+set aside       4 questions (set-aside.json): 1 of 4 marked right
+in scope        267 of 270 (98.9%) over 270 questions: 267 right every time, 0 missed sometimes, 3 missed every time
+
+missed every time:
+  fd2461146ec138678719d7e3  right 0 of 1  What was the microbiology test given to patient 10002495 for the last time in the last hospital visit?
+      answered: SPUTUM
+  6a0f9787ca51fccbc44a087c  right 0 of 1  When was patient 10021938's last hospital visit?
+      answered: 2181-10-27 15:30:00
+  a49efc1cdf3ebbe617aa7d26  right 0 of 1  What microbiology tests did patient 10008454 have last in 12/this year?
+      answered: 2110-12-07 03:05:00
+
+a question costs  input tokens: mean 45139, median 42210   turns: mean 3.18   seconds: mean 10.3
+citations         precision 0.961   recall 0.971
+
+FAIL (allowed: 0 missed every time, 0 missed sometimes)
