@@ -117,10 +117,12 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   414 in scope, PASS. Nothing is held out any more. Next, named there: the tool's cold start
   (0.45 s opening a workspace, half of it the search catalogue SQL does not use — a change to
   fhir-mcp's sources, so the kept views are computed again once), the kinds list and the schema
-  in the prompt. A turn
-  re-reads ~14k tokens; kinds.md and phrases.md are in every one. Do not edit the modules agents
-  invoke (`answer`, `query-checks`, `run`), the examples or the toolkit's sources while a run
-  is going: kept views are keyed by the engine's sources.
+  in the prompt. A
+  call of the model re-reads ~11k tokens at first (4.6k the runtime and its shell tool, the rest
+  the prompt: kinds.md is in every one). Do not edit the modules agents invoke (`answer`,
+  `query-checks`, `run`, the `kind` script), the examples or the toolkit's sources while a run
+  is going: kept views are keyed by the engine's sources. A container restart kills a run;
+  `fab/run --resume` picks it up from the records.
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.
