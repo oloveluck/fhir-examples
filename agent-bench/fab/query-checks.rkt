@@ -28,8 +28,9 @@
 ;;; split's kinds) is answered from the nearest kind, whose fixed conditions are not its own.
 ;;;
 ;;; A Checks is (hasheq 'phrases (listof Phrase) 'whether (listof n) 'when boolean 'ties (listof n)
-;;;                     'times (listof TimeForms) 'one boolean):
-;;; `one` says that every query of the train split selects one thing (`one-selected?`);
+;;;                     'times (listof TimeForms) 'one boolean 'exact boolean):
+;;; `one` says that every query of the train split selects one thing (`one-selected?`); `exact`
+;;; that none of them matches a name by pattern (`exact-names?`);
 ;;; `times` each kind of time phrase with the forms its words take (`time-forms`: what a reader of
 ;;; a question is shown the conditions of, `said-times`);
 ;;; `ties` the kinds whose examples return every row of the first or last time (`same-time-kinds`); `when` says
@@ -45,7 +46,7 @@
 (provide phrase-book phrase-notes name-literals name-notes column-names question-names unnamed-notes whole-name-notes
          query-shape make-checks query-notes comparison? asks-whether whether-kinds hold?
          time-select says-when opens-when? when-regular? same-time? same-time-kinds first-pick
-         time-forms said-times selected one-selected? name-comparisons own-word-readings)
+         time-forms said-times selected one-selected? name-comparisons own-word-readings by-pattern exact-names?)
 
 ;; ---- text ----------------------------------------------------------------------------------------
 (define (norm s) (string-downcase (string-trim (regexp-replace* #px"\\s+" s " "))))
@@ -357,6 +358,16 @@
 (define (one-selected? train)
   (and (pair? train) (for/and ([q (in-list train)]) (= 1 (length (selected (hash-ref q 'sql_query)))))))
 
+;; by-pattern : string -> (or string #f)   the pattern a query matches text by (`LIKE '%…%'`), when it
+;; does
+(define (by-pattern sql)
+  (cond [(regexp-match #px"(?i:\\blike\\s+('[^']*'))" sql) => cadr] [else #f]))
+
+;; exact-names? : (listof Question) -> boolean   no train query matches by pattern (0 of 2,098):
+;; each names what it reads exactly, as the tables write it
+(define (exact-names? train)
+  (and (pair? train) (for/and ([q (in-list train)]) (not (by-pattern (hash-ref q 'sql_query))))))
+
 ;; hold? : string -> boolean   a note that keeps the answer from being written the first time
 (define (hold? note) (string-prefix? note "hold: "))
 
@@ -364,7 +375,8 @@
 ;; make-checks : (listof Question) -> Checks
 (define (make-checks train)
   (hasheq 'phrases (phrase-book train) 'whether (whether-kinds train) 'when (when-regular? train)
-          'ties (same-time-kinds train) 'times (time-forms train) 'one (one-selected? train)))
+          'ties (same-time-kinds train) 'times (time-forms train) 'one (one-selected? train)
+          'exact (exact-names? train)))
 
 ;; query-notes : string (or string #f) Checks string string (listof string) [(column -> (listof string))]
 ;;               -> (listof string)
@@ -414,6 +426,12 @@
         (list (format "hold: the query selects ~a things (~a), and every query of this schema selects one: what the question asks for. The day, month or year a value belongs to, a visit's number or a name beside it is not part of the answer. Keep the conditions, the grouping and the order, and select that one thing."
                       (length things) (string-join (map (lambda (t) (format "`~a`" t)) things) ", ")))]
        [else '()]))
+   ;; a name matched by pattern
+   (let ([pattern (and (eq? (hash-ref checks 'exact #f) #t) (by-pattern sql))])
+     (if pattern
+         (list (format "hold: the query matches by pattern (`LIKE ~a`), and no query of this schema does: each names what it reads exactly, as the tables write it (`= 'Name'`). A pattern that finds nothing may be looking in the wrong table: a name the question gives can be a charted item or an output (`d_items.label`), a lab test (`d_labitems.label`), a procedure or a diagnosis (`d_icd_procedures.long_title`, `d_icd_diagnoses.long_title`), a drug (`prescriptions.drug`), a specimen, test or organism (`microbiologyevents`). Find the name where it is, take the kind of question that reads that table, and name it exactly."
+                       pattern))
+         '()))
    (for/list ([w (in-list whole)])
      (format "note: the question's words \"~a\" are the name '~a' in `~a`, whole: a question gives a name in lower case inside its sentence, however much it reads like ordinary words. Name it alone: your query also names ~a, which the question does not say."
              (cadr w) (caddr w) (car w) (string-join (map (lambda (o) (format "'~a'" o)) (cadddr w)) ", ")))
@@ -501,6 +519,17 @@
     (check-equal? (length (star "SELECT * FROM admissions")) 1)
     (check-equal? (star "SELECT COUNT(*) FROM admissions") '())
     (check-equal? (star "SELECT COUNT(*)>0 FROM admissions") '()))
+  ;; a name matched by pattern
+  (check-equal? (by-pattern "SELECT COUNT(*) FROM p WHERE p.code IN ( SELECT d.code FROM d WHERE lower(d.title) like '%cerebral ventricle%' )") "'%cerebral ventricle%'")
+  (check-false (by-pattern "SELECT COUNT(*) FROM p WHERE p.drug = 'I like it'"))
+  (check-true (exact-names? (list (hasheq 'sql_query "SELECT a.b FROM a WHERE a.c = 'x'"))))
+  (check-false (exact-names? (list (hasheq 'sql_query "SELECT a.b FROM a WHERE a.c LIKE 'x%'"))))
+  (let ([notes (lambda (sql exact) (filter (lambda (n) (regexp-match? #rx"matches by pattern" n))
+                                           (query-notes sql #f (hasheq 'exact exact) "How many times did patient 1 get a cerebral ventricular #1?" "" '())))])
+    (check-equal? (length (notes "SELECT COUNT(*) FROM p WHERE p.c IN ( SELECT d.c FROM d WHERE lower(d.t) LIKE '%cerebral ventricle%' )" #t)) 1)
+    (check-true (hold? (car (notes "SELECT COUNT(*) FROM p WHERE lower(d.t) LIKE '%x%'" #t))))
+    (check-equal? (notes "SELECT COUNT(*) FROM p WHERE d.t = 'Cerebral Ventricular #1'" #t) '())
+    (check-equal? (notes "SELECT COUNT(*) FROM p WHERE lower(d.t) LIKE '%x%'" #f) '()))
   ;; the kinds of time phrase a question says
   (define (typed key nlq type) (format "'~a': {'nlq': '~a', 'sql': \"AND x\", 'type': '~a'}" key nlq type))
   (define timed
