@@ -403,11 +403,17 @@
         (list "hold: the question opens with \"when\", and every query of this schema that answers such a question selects one time column and nothing else (`SELECT labevents.charttime FROM …`). Keep the conditions and select the time.")]
        [else '()]))
    ;; more than one thing selected
-   (let ([things (selected sql)])
-     (if (and (eq? (hash-ref checks 'one #f) #t) (> (length things) 1))
-         (list (format "hold: the query selects ~a things (~a), and every query of this schema selects one: what the question asks for. The day, month or year a value belongs to, a visit's number or a name beside it is not part of the answer. Keep the conditions, the grouping and the order, and select that one thing."
-                       (length things) (string-join (map (lambda (t) (format "`~a`" t)) things) ", ")))
-         '()))
+   (let* ([things (selected sql)]
+          [every (findf (lambda (t) (regexp-match? #px"^(?:[a-z_]+[.])?[*]$" t)) things)])
+     (cond
+       [(not (eq? (hash-ref checks 'one #f) #t)) '()]
+       [every
+        (list (format "hold: the query selects every column (`~a`), and every query of this schema selects one thing: what the question asks for (\"the details of the time a patient was admitted\" are the admission's time). Keep the conditions and the order, and select that one column."
+                      every))]
+       [(> (length things) 1)
+        (list (format "hold: the query selects ~a things (~a), and every query of this schema selects one: what the question asks for. The day, month or year a value belongs to, a visit's number or a name beside it is not part of the answer. Keep the conditions, the grouping and the order, and select that one thing."
+                      (length things) (string-join (map (lambda (t) (format "`~a`" t)) things) ", ")))]
+       [else '()]))
    (for/list ([w (in-list whole)])
      (format "note: the question's words \"~a\" are the name '~a' in `~a`, whole: a question gives a name in lower case inside its sentence, however much it reads like ordinary words. Name it alone: your query also names ~a, which the question does not say."
              (cadr w) (caddr w) (car w) (string-join (map (lambda (o) (format "'~a'" o)) (cadddr w)) ", ")))
@@ -490,6 +496,11 @@
     (check-true (hold? (car (notes "SELECT strftime('%Y',o.t), MAX(o.v) FROM o GROUP BY strftime('%Y',o.t)" #t))))
     (check-equal? (notes "SELECT MAX(o.v) FROM o GROUP BY strftime('%Y',o.t)" #t) '())
     (check-equal? (notes "SELECT strftime('%Y',o.t), MAX(o.v) FROM o" #f) '() "said only where the train split is regular"))
+  (let ([star (lambda (sql) (filter (lambda (n) (regexp-match? #rx"selects every column" n)) (query-notes sql #f (hasheq 'one #t) "Give me the details of the admission." "" '())))])
+    (check-equal? (length (star "SELECT admissions.* FROM admissions WHERE admissions.subject_id = 1")) 1)
+    (check-equal? (length (star "SELECT * FROM admissions")) 1)
+    (check-equal? (star "SELECT COUNT(*) FROM admissions") '())
+    (check-equal? (star "SELECT COUNT(*)>0 FROM admissions") '()))
   ;; the kinds of time phrase a question says
   (define (typed key nlq type) (format "'~a': {'nlq': '~a', 'sql': \"AND x\", 'type': '~a'}" key nlq type))
   (define timed
