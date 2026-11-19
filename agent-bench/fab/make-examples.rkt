@@ -113,11 +113,14 @@
 
 ;; slot-names : (listof (cons string string))   the benchmark's names for a template's slots, and
 ;; what each is shown as: what the slot holds, in fewer characters (the list of kinds is in every
-;; call of a model that reads it; `[time_filter_global1]` is 39 of its 45 lines)
+;; call of a model that reads it; `[time_filter_global1]` is 39 of its 45 lines). A template with
+;; two times shows both slots alike, told apart by their place in the sentence: numbered
+;; (`[first/last 2]`), the first of them was read as "second to last" and a comparison's two
+;; values were written the wrong way round.
 (define slot-names
   '(("{patient_id}" . "{patient}")
-    ("[time_filter_global1]" . "[when]") ("[time_filter_global2]" . "[when 2]")
-    ("[time_filter_exact1]" . "[first/last]") ("[time_filter_exact2]" . "[first/last 2]")
+    ("[time_filter_global1]" . "[when]") ("[time_filter_global2]" . "[when]")
+    ("[time_filter_exact1]" . "[first/last]") ("[time_filter_exact2]" . "[first/last]")
     ("[agg_function]" . "[min/max/avg]") ("[sort]" . "[min/max]")
     ("[unit_average]" . "[daily/monthly/yearly]") ("[unit_count]" . "[hours/days]")
     ("[comparison]" . "[less/greater]")
@@ -194,5 +197,8 @@
   (check-equal? (phrase-line '("abs-year-in" "in 2142" "AND y(c)  = '2142'" #f)) "- \"in 2142\": `AND y(c) = '2142'`")
   (check-equal? (shown-template "Has_verb patient {patient_id} had a  {lab_name} test [time_filter_exact1] [time_filter_global1]?")
                 "Has patient {patient} had a {lab_name} test [first/last] [when]?")
+  (check-equal? (shown-template "Is the {vital_name} [time_filter_exact2] measured [time_filter_global2] [comparison] than the [time_filter_exact1] value measured [time_filter_global1]?")
+                "Is the {vital_name} [first/last] measured [when] [less/greater] than the [first/last] value measured [when]?"
+                "two times: alike, in the sentence's order")
   (check-equal? (kinds-text (kinds train)) "1. T1 {x}\n2. T3")
   (delete-file f))
