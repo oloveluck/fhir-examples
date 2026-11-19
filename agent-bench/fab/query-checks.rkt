@@ -40,12 +40,12 @@
 ;;; A Shape is a condition as text with its literals `?` and its columns `C`.
 
 (require racket/file racket/list racket/string json
-         (only-in "make-examples.rkt" train-questions kinds read-python))
+         (only-in "make-examples.rkt" train-questions kinds read-python shown-template))
 
 (provide phrase-book phrase-notes name-literals name-notes column-names question-names unnamed-notes whole-name-notes
          query-shape make-checks query-notes comparison? asks-whether whether-kinds hold?
          time-select says-when opens-when? when-regular? same-time? same-time-kinds first-pick
-         time-forms said-times selected one-selected?)
+         time-forms said-times selected one-selected? name-comparisons own-word-readings)
 
 ;; ---- text ----------------------------------------------------------------------------------------
 (define (norm s) (string-downcase (string-trim (regexp-replace* #px"\\s+" s " "))))
@@ -156,23 +156,29 @@
 ;; ---- names ------------------------------------------------------------------------------------------
 ;; name-literals : string -> (listof string)   the names a query compares a column with (`= 'x'`,
 ;; `IN ( 'x', 'y' )`): not a time, a date or a number, and not what a dictionary row links to
-(define (name-literals sql)
-  (remove-duplicates
-   (for*/list ([m (in-list (regexp-match* #px"\\b([a-z_]+\\.[a-z_]+)\\s*(?:=|IN)\\s*(\\(\\s*'[^']*'(?:\\s*,\\s*'[^']*')*\\s*\\)|'[^']*')" sql #:match-select values))]
-               #:unless (regexp-match? #px"linksto$|time" (cadr m))
-               [name (in-list (regexp-match* #px"'([^']*)'" (caddr m) #:match-select cadr))]
-               #:unless (regexp-match? #px"^[-0-9: ./%]*$" name))
-     name)))
+;; name-comparisons : string -> (listof (cons column name))   each name a query compares a column
+;; with, in the query's order: the column bare or inside `lower(…)`, `upper(…)`, `trim(…)` (one in
+;; the other too: a question that says to disregard case and spaces is answered so, and the
+;; checks below saw no name at all in such a query)
+(define (name-comparisons sql)
+  (define wrap "(?i:lower|upper|trim)\\s*\\(\\s*")
+  (define col "([a-z_]+\\.[a-z_]+)")
+  (define px
+    (pregexp (string-append "(?:" wrap wrap col "\\s*\\)\\s*\\)|" wrap col "\\s*\\)|\\b" col ")"
+                            "\\s*(?:=|IN)\\s*(\\(\\s*'[^']*'(?:\\s*,\\s*'[^']*')*\\s*\\)|'[^']*')")))
+  (for*/list ([m (in-list (regexp-match* px sql #:match-select values))]
+              [column (in-value (or (cadr m) (caddr m) (cadddr m)))]
+              #:unless (regexp-match? #px"linksto$|time" column)
+              [name (in-list (regexp-match* #px"'([^']*)'" (list-ref m 4) #:match-select cadr))]
+              #:unless (regexp-match? #px"^[-0-9: ./%]*$" name))
+    (cons column name)))
+
+(define (name-literals sql) (remove-duplicates (map cdr (name-comparisons sql))))
 
 ;; column-names : string -> (listof (cons column (listof name)))   the names of a query by the
 ;; column each is compared with
 (define (column-names sql)
-  (define pairs
-    (for*/list ([m (in-list (regexp-match* #px"\\b([a-z_]+\\.[a-z_]+)\\s*(?:=|IN)\\s*(\\(\\s*'[^']*'(?:\\s*,\\s*'[^']*')*\\s*\\)|'[^']*')" sql #:match-select values))]
-                #:unless (regexp-match? #px"linksto$|time" (cadr m))
-                [name (in-list (regexp-match* #px"'([^']*)'" (caddr m) #:match-select cadr))]
-                #:unless (regexp-match? #px"^[-0-9: ./%]*$" name))
-      (cons (cadr m) name)))
+  (define pairs (name-comparisons sql))
   (for/list ([col (in-list (remove-duplicates (map car pairs)))])
     (cons col (remove-duplicates (for/list ([p (in-list pairs)] #:when (equal? (car p) col)) (cdr p))))))
 
@@ -236,6 +242,26 @@
                                   m))]
               #:when (pair? others))
     (list (car cn) (norm v) v others)))
+
+;; own-word-readings : string string string (column -> (listof string)) -> (listof (list column name value word))
+;; the names of a query that can be read another way: a kind's template says a word of its own
+;; after a name's slot ("{output_name} output", "{lab_name} lab test"), so a question's words
+;; "tf residual output" are the name `TF Residual Output` or the name `TF Residual` and that word.
+;; For each name the query compares a column with, that ends in such a word and is in the
+;; question: the column's value that is the name without the word, when there is one.
+(define (own-word-readings sql question template values-of)
+  (define text (norm question))
+  (define words (remove-duplicates (regexp-match* #px"[{][a-z_0-9]+[}] ([a-z]+)" (norm template) #:match-select cadr)))
+  (for*/list ([cn (in-list (column-names sql))]
+              [name (in-list (cdr cn))]
+              [n (in-value (norm name))]
+              #:when (string-contains? text n)
+              [w (in-list words)]
+              #:when (string-suffix? n (string-append " " w))
+              [shorter (in-value (substring n 0 (- (string-length n) (string-length w) 1)))]
+              [v (in-value (findf (lambda (v) (equal? (norm v) shorter)) (values-of (car cn))))]
+              #:when v)
+    (list (car cn) name v w)))
 
 ;; ---- what is asked for ------------------------------------------------------------------------------
 ;; comparison? : string -> boolean   a query whose select list is a comparison: its 1/0 is yes/no
@@ -435,6 +461,22 @@
   (check-equal? (said "What was the weight of patient 1 since 3 months ago?" "SELECT MAX(c.v) FROM c WHERE strftime('%Y',labevents.charttime) >= '2140'")
                 '("since 3 months ago") "not the year form: \"since 3\" is inside the longer phrase")
   (check-equal? (said "What was the weight of patient 1 since 2141?" "SELECT MAX(c.v) FROM c WHERE strftime('%Y',labevents.charttime) >= '2141'") '())
+  ;; names compared through lower(trim(…)) are names too
+  (check-equal? (name-comparisons "SELECT 1 FROM d WHERE lower(trim(d_items.label)) = 'tf residual output' AND d_items.linksto = 'outputevents' AND TRIM( p.drug ) IN ('A b', 'C') AND p.route = 'IV' AND x.t = '2100-01-01'")
+                '(("d_items.label" . "tf residual output") ("p.drug" . "A b") ("p.drug" . "C") ("p.route" . "IV")))
+  (check-equal? (column-names "SELECT 1 FROM p WHERE lower(p.drug) = 'a' AND p.drug IN ('B')") '(("p.drug" "a" "B")))
+  (check-equal? (name-comparisons "SELECT ( SELECT a.b FROM a ) = 'x'") '() "a subquery's column is not compared")
+  ;; a name that ends in the kind's own word
+  (let ([values-of (lambda (c) (if (equal? c "d_items.label") '("TF Residual" "TF Residual Output" "Void" "OR Urine") '()))]
+        [template "What was the total volume of {output_name} output that patient {patient} had [when]?"])
+    (check-equal? (own-word-readings "SELECT SUM(o.value) FROM o WHERE o.itemid IN ( SELECT d_items.itemid FROM d_items WHERE lower(trim(d_items.label)) = 'tf residual output' )"
+                                     "Tell me patient 1's total tf residual output amount on 12/16/2116." template values-of)
+                  '(("d_items.label" "tf residual output" "TF Residual" "output")))
+    (check-equal? (own-word-readings "SELECT SUM(o.value) FROM o WHERE d_items.label = 'TF Residual'" "total tf residual output amount" template values-of) '()
+                  "the shorter name is named")
+    (check-equal? (own-word-readings "SELECT SUM(o.value) FROM o WHERE d_items.label = 'Void'" "total void output" template values-of) '())
+    (check-equal? (own-word-readings "SELECT SUM(o.value) FROM o WHERE d_items.label = 'TF Residual Output'" "total tf residual output" "What is the {lab_name} value?" values-of) '()
+                  "another kind's template has no such word"))
   ;; what a query selects
   (check-equal? (selected "SELECT MAX(c.v) FROM c WHERE c.x IN ( SELECT a, b FROM d )") '("MAX(c.v)"))
   (check-equal? (selected "select distinct strftime('%Y', c.t),  MAX(c.v) from c group by strftime('%Y', c.t)") '("strftime('%Y', c.t)" "MAX(c.v)"))
@@ -596,4 +638,12 @@
         (list (hash-ref q 'split) (substring (hash-ref q 'question_id) 0 8) n)))
     (for ([n (in-list (take noted (min 12 (length noted))))]) (eprintf "~s\n" n))
     (check-true (<= (length noted) 5) (format "~a notes on the train and validation splits' own queries" (length noted)))
-    (printf "~a notes on ~a train and validation queries\n" (length noted) (count (lambda (q) (member (hash-ref q 'split) '("train" "valid"))) all))))
+    (printf "~a notes on ~a train and validation queries\n" (length noted) (count (lambda (q) (member (hash-ref q 'split) '("train" "valid"))) all))
+    ;; none of those queries names a label that ends in its own template's word where the shorter
+    ;; label exists too (`own-word-readings`: said of an agent's query whose answer is empty)
+    (when (and reference (file-exists? reference))
+      (define read-another-way
+        (for/sum ([q (in-list all)] #:when (member (hash-ref q 'split) '("train" "valid")))
+          (if (pair? (own-word-readings (hash-ref q 'sql_query) (hash-ref q 'question) (shown-template (hash-ref q 'template)) values-of)) 1 0)))
+      (printf "~a of them name a label that ends in the template's own word\n" read-another-way)
+      (check-equal? read-another-way 0))))

@@ -30,10 +30,10 @@
 (require racket/cmdline racket/file racket/list racket/string json
          (only-in fhir/lang/workspace run-result-columns run-result-rows)
          (only-in "check-ids.rkt" row-queries id-columns sub-selects main-table)
-         (only-in "query-checks.rkt" query-notes comparison? asks-whether hold? first-pick))
+         (only-in "query-checks.rkt" query-notes comparison? asks-whether hold? first-pick own-word-readings))
 
 (provide answer-text shape example-queries shape-note all-rows empty-pick-note held? shown-note other-kinds done-line
-         tied-values tie-note answer! open-run)
+         tied-values tie-note answer! open-run own-word-note kind-template)
 
 ;; ---- the answer ---------------------------------------------------------------------------------
 ;; count? : string -> boolean   a query that counts
@@ -208,6 +208,23 @@
        (format "note: the row this query picks has no value in `~a`. When the question asks for the first or the last one on record, a row without a value is not one: add `AND ~a IS NOT NULL` and run it again."
                (cadr m) (cadr m))))
 
+;; kind-template : string -> string   a kind's template: the first line of its examples file
+(define (kind-template text)
+  (cond [(regexp-match #px"^Kind: ([^\n]*)" text) => cadr] [else ""]))
+
+;; own-word-note : string (listof (listof Cell)) string string (column -> (listof string)) -> string or #f
+;; said when nothing was found under a name the question's words give another way: a shorter name
+;; of the same column followed by a word the kind's own questions say there (query-checks.rkt
+;; `own-word-readings`). Nothing on record under `TF Residual Output` for "total tf residual
+;; output amount" may be 230 under `TF Residual`.
+(define (own-word-note sql rows template question values-of)
+  (define nothing? (null? (filter (lambda (c) (not (eq? c 'null))) (append* rows))))
+  (define readings (if nothing? (own-word-readings sql question template values-of) '()))
+  (and (pair? readings)
+       (let ([r (car readings)])
+         (format "note: nothing is on record under '~a'. Questions of this kind say a name and then \"~a\" (~a), so the question's words may be the name '~a' of `~a` followed by that word. Run the query with that name in its place; if it returns something, that is the answer."
+                 (cadr r) (cadddr r) template (caddr r) (car r)))))
+
 ;; ---- running ---------------------------------------------------------------------------------------
 ;; cells : run-result -> (values (listof symbol) (listof (listof Cell)))
 (define (cells r)
@@ -246,28 +263,30 @@
           (if (pair? resources) (format " (~a~a)" (string-join (take resources (min 3 (length resources))) ", ") (if (> (length resources) 3) ", …" "")) ""))
   ;; the notes: the query's shape beside its kind's examples, and what the train split's queries
   ;; say a query of this kind and of this question holds (query-checks.rkt)
-  (define examples
+  (define kind-text
     (let ([file (and kind (build-path "examples" (format "~a.md" kind)))])
-      (cond [(not kind) '()]
-            [(file-exists? file) (example-queries (file->string file))]
-            [else (printf "note: there is no examples/~a.md\n" kind) '()])))
+      (cond [(not kind) ""]
+            [(file-exists? file) (file->string file)]
+            [else (printf "note: there is no examples/~a.md\n" kind) ""])))
+  (define examples (example-queries kind-text))
+  ;; a column's distinct values, asked of the workspace when a check needs them
+  (define (values-of column)
+    (define parts (string-split column "."))
+    (with-handlers ([exn:fail? (lambda (_) '())])
+      (define-values (_cols rs) (cells (run (format "SELECT DISTINCT ~a FROM ~a" (cadr parts) (car parts)))))
+      (filter string? (map car rs))))
   (define question
     (if (file-exists? "question.json") (call-with-input-file "question.json" read-json) (hasheq)))
   ;; a comparison where the question asks whether is the question's own shape, whatever the kind's is
   (define asked-shape? (and (asks-whether (hash-ref question 'question "")) (comparison? sql)))
-  (define own-notes (filter values (list (and (not asked-shape?) (shape-note sql examples)) (empty-pick-note sql rows))))
+  (define own-notes (filter values (list (and (not asked-shape?) (shape-note sql examples)) (empty-pick-note sql rows)
+                                         (own-word-note sql rows (kind-template kind-text) (hash-ref question 'question "") values-of))))
   (for ([note (in-list own-notes)]) (printf "~a\n" note))
   (define notes
     (cond
       [(and (file-exists? "question.json") (file-exists? (build-path "examples" "checks.json")))
        (define q question)
        (define checks (call-with-input-file (build-path "examples" "checks.json") read-json))
-       ;; a column's distinct values, asked of the workspace when a check needs them
-       (define (values-of column)
-         (define parts (string-split column "."))
-         (with-handlers ([exn:fail? (lambda (_) '())])
-           (define-values (_cols rs) (cells (run (format "SELECT DISTINCT ~a FROM ~a" (cadr parts) (car parts)))))
-           (filter string? (map car rs))))
        (append (query-notes sql kind checks (hash-ref q 'question "") (hash-ref q 'assumption "") examples values-of)
                (let ([tie (tie-note sql (lambda (query) (let-values ([(_cols rs) (cells (run query))]) rs))
                                     (same-table-first (hash-ref checks 'ties '()) sql))])
@@ -371,6 +390,17 @@
   (check-regexp-match #rx"AND transfers.careunit IS NOT NULL" (empty-pick-note pick '((null))))
   (check-false (empty-pick-note pick '(("Transplant"))))
   (check-false (empty-pick-note pick '()) "no row: nothing on record")
+  ;; nothing under a name that reads another way
+  (check-equal? (kind-template "Kind: What was the total volume of {output_name} output that patient {patient} had [when]?\n\nQ: q\nSQL: SELECT 1\n")
+                "What was the total volume of {output_name} output that patient {patient} had [when]?")
+  (let ([values-of (lambda (c) '("TF Residual" "TF Residual Output"))]
+        [template "What was the total volume of {output_name} output that patient {patient} had [when]?"]
+        [longer "SELECT SUM(o.value) FROM o WHERE o.itemid IN ( SELECT d_items.itemid FROM d_items WHERE lower(trim(d_items.label)) = 'tf residual output' )"]
+        [question "Tell me patient 1's total tf residual output amount on 12/16/2116."])
+    (check-regexp-match #rx"nothing is on record under 'tf residual output'.*the name 'TF Residual' of `d_items.label`"
+                        (own-word-note longer '((null)) template question values-of))
+    (check-false (own-word-note longer '((230)) template question values-of) "something was found")
+    (check-false (own-word-note "SELECT SUM(o.value) FROM o WHERE d_items.label = 'TF Residual'" '((null)) template question values-of)))
   (check-false (empty-pick-note "SELECT MAX(t.v) FROM t WHERE t.a = 1" '((null))) "an aggregate over nothing")
   (check-false (empty-pick-note "SELECT t.v FROM t WHERE t.a = 1" '((null))) "no ordering picks the row")
   ;; held back
