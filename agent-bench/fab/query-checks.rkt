@@ -28,7 +28,8 @@
 ;;; split's kinds) is answered from the nearest kind, whose fixed conditions are not its own.
 ;;;
 ;;; A Checks is (hasheq 'phrases (listof Phrase) 'whether (listof n) 'when boolean 'ties (listof n)
-;;;                     'times (listof TimeForms)):
+;;;                     'times (listof TimeForms) 'one boolean):
+;;; `one` says that every query of the train split selects one thing (`one-selected?`);
 ;;; `times` each kind of time phrase with the forms its words take (`time-forms`: what a reader of
 ;;; a question is shown the conditions of, `said-times`);
 ;;; `ties` the kinds whose examples return every row of the first or last time (`same-time-kinds`); `when` says
@@ -44,7 +45,7 @@
 (provide phrase-book phrase-notes name-literals name-notes column-names question-names unnamed-notes whole-name-notes
          query-shape make-checks query-notes comparison? asks-whether whether-kinds hold?
          time-select says-when opens-when? when-regular? same-time? same-time-kinds first-pick
-         time-forms said-times)
+         time-forms said-times selected one-selected?)
 
 ;; ---- text ----------------------------------------------------------------------------------------
 (define (norm s) (string-downcase (string-trim (regexp-replace* #px"\\s+" s " "))))
@@ -306,6 +307,30 @@
          (= (length (regexp-match* #rx"[(]" rest)) (length (regexp-match* #rx"[)]" rest))))
        (cdr m)))
 
+;; selected : string -> (listof string)   what a query selects: the expressions of its SELECT list
+;; (commas inside parentheses are an expression's own)
+(define (selected sql)
+  (define s (string-trim (regexp-replace* #px"\\s+" sql " ")))
+  (define m (regexp-match-positions #px"^(?i:SELECT) (?:(?i:DISTINCT) )?" s))
+  (define n (string-length s))
+  (define (from? i) (and (<= (+ i 6) n) (string-ci=? (substring s i (+ i 6)) " FROM ")))
+  (if (not m) '()
+      (let loop ([i (cdar m)] [depth 0] [start (cdar m)] [acc '()])
+        (define (done) (reverse (cons (string-trim (substring s start i)) acc)))
+        (cond
+          [(>= i n) (done)]
+          [(char=? (string-ref s i) #\() (loop (add1 i) (add1 depth) start acc)]
+          [(char=? (string-ref s i) #\)) (loop (add1 i) (sub1 depth) start acc)]
+          [(and (zero? depth) (char=? (string-ref s i) #\,)) (loop (add1 i) depth (add1 i) (cons (string-trim (substring s start i)) acc))]
+          [(and (zero? depth) (from? i)) (done)]
+          [else (loop (add1 i) depth start acc)]))))
+
+;; one-selected? : (listof Question) -> boolean   every train query selects one thing (2,098 of
+;; 2,098: what a question asks for is one thing, and the day, the visit or the name a row belongs
+;; to is not part of it)
+(define (one-selected? train)
+  (and (pair? train) (for/and ([q (in-list train)]) (= 1 (length (selected (hash-ref q 'sql_query)))))))
+
 ;; hold? : string -> boolean   a note that keeps the answer from being written the first time
 (define (hold? note) (string-prefix? note "hold: "))
 
@@ -313,7 +338,7 @@
 ;; make-checks : (listof Question) -> Checks
 (define (make-checks train)
   (hasheq 'phrases (phrase-book train) 'whether (whether-kinds train) 'when (when-regular? train)
-          'ties (same-time-kinds train) 'times (time-forms train)))
+          'ties (same-time-kinds train) 'times (time-forms train) 'one (one-selected? train)))
 
 ;; query-notes : string (or string #f) Checks string string (listof string) [(column -> (listof string))]
 ;;               -> (listof string)
@@ -351,6 +376,12 @@
        [(and (opens-when? question) (not column))
         (list "hold: the question opens with \"when\", and every query of this schema that answers such a question selects one time column and nothing else (`SELECT labevents.charttime FROM …`). Keep the conditions and select the time.")]
        [else '()]))
+   ;; more than one thing selected
+   (let ([things (selected sql)])
+     (if (and (eq? (hash-ref checks 'one #f) #t) (> (length things) 1))
+         (list (format "hold: the query selects ~a things (~a), and every query of this schema selects one: what the question asks for. The day, month or year a value belongs to, a visit's number or a name beside it is not part of the answer. Keep the conditions, the grouping and the order, and select that one thing."
+                       (length things) (string-join (map (lambda (t) (format "`~a`" t)) things) ", ")))
+         '()))
    (for/list ([w (in-list whole)])
      (format "note: the question's words \"~a\" are the name '~a' in `~a`, whole: a question gives a name in lower case inside its sentence, however much it reads like ordinary words. Name it alone: your query also names ~a, which the question does not say."
              (cadr w) (caddr w) (car w) (string-join (map (lambda (o) (format "'~a'" o)) (cadddr w)) ", ")))
@@ -404,6 +435,19 @@
   (check-equal? (said "What was the weight of patient 1 since 3 months ago?" "SELECT MAX(c.v) FROM c WHERE strftime('%Y',labevents.charttime) >= '2140'")
                 '("since 3 months ago") "not the year form: \"since 3\" is inside the longer phrase")
   (check-equal? (said "What was the weight of patient 1 since 2141?" "SELECT MAX(c.v) FROM c WHERE strftime('%Y',labevents.charttime) >= '2141'") '())
+  ;; what a query selects
+  (check-equal? (selected "SELECT MAX(c.v) FROM c WHERE c.x IN ( SELECT a, b FROM d )") '("MAX(c.v)"))
+  (check-equal? (selected "select distinct strftime('%Y', c.t),  MAX(c.v) from c group by strftime('%Y', c.t)") '("strftime('%Y', c.t)" "MAX(c.v)"))
+  (check-equal? (selected "SELECT ( SELECT a.v FROM a WHERE x = 1 ) - ( SELECT a.v FROM a WHERE x = 2 )") '("( SELECT a.v FROM a WHERE x = 1 ) - ( SELECT a.v FROM a WHERE x = 2 )"))
+  (check-equal? (selected "SELECT COUNT(*)>0 FROM p") '("COUNT(*)>0"))
+  (check-true (one-selected? (list (hasheq 'sql_query "SELECT a.b FROM a") (hasheq 'sql_query "SELECT COUNT( DISTINCT a.b ) FROM a"))))
+  (check-false (one-selected? (list (hasheq 'sql_query "SELECT a.b FROM a") (hasheq 'sql_query "SELECT a.b, a.c FROM a"))))
+  (let ([notes (lambda (sql one) (filter (lambda (n) (regexp-match? #rx"selects [0-9]+ things" n))
+                                         (query-notes sql #f (hasheq 'one one) "What was the yearly maximum output of patient 1?" "" '())))])
+    (check-equal? (length (notes "SELECT strftime('%Y',o.t), MAX(o.v) FROM o GROUP BY strftime('%Y',o.t)" #t)) 1)
+    (check-true (hold? (car (notes "SELECT strftime('%Y',o.t), MAX(o.v) FROM o GROUP BY strftime('%Y',o.t)" #t))))
+    (check-equal? (notes "SELECT MAX(o.v) FROM o GROUP BY strftime('%Y',o.t)" #t) '())
+    (check-equal? (notes "SELECT strftime('%Y',o.t), MAX(o.v) FROM o" #f) '() "said only where the train split is regular"))
   ;; the kinds of time phrase a question says
   (define (typed key nlq type) (format "'~a': {'nlq': '~a', 'sql': \"AND x\", 'type': '~a'}" key nlq type))
   (define timed
