@@ -136,6 +136,25 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   the words it shares with train questions (the kind used is in the top 3 for 350 of 424
   validation questions, the top 8 for 405). A second working copy (`git worktree`) is where the
   next iteration is written while a run uses this one.
+  **Iteration 4: the prompt holds what the first call needs** (2026-11-19, the same write-up).
+  A call of the model re-reads everything before it, so the tools arm's prompt keeps what the
+  first call uses (schema, kinds, how to pick one and look names up) and the `kind` tool says
+  the rest with the first example, once (`examples/next.md`, written by `tables-workspace!`):
+  how to write the query and give it to `answer`, and the conditions of the time phrases the
+  question's own words hold (`query-checks.rkt` `time-forms`, `said-times`: 424 of 424
+  validation questions' phrases found, 1.7 kinds a question, where all 31 were printed;
+  `every_phrase` lists them all). kinds.md names a slot by what it holds (`[when]`,
+  `[first/last]`, `{patient}`: `make-examples.rkt` `shown-template`; two time slots of one
+  question read alike — numbered, one answer compared them the wrong way round). Four checks
+  came with it, each said of no train query: more than one thing selected, or every column
+  (`one-selected?`: held); a name compared through `lower(trim(…))` is a name
+  (`name-comparisons`); an empty answer under a name that is another name of its column plus
+  the kind's own next word ("tf residual output": `own-word-readings`, `answer.rkt`
+  `own-word-note`); a name matched by pattern (`by-pattern`, `exact-names?`: held — 0 of 2,098
+  train queries use `LIKE`). Whole test split, three passes: 1206 of 1227 as scored, 1203 of
+  1203 in scope, PASS, at 17.0k input tokens (22.4k) and 6.3 s (6.5) a question; validation
+  414 of 414 at 16.7k. The confirming run was started three times (a validation miss, then a
+  test-pass miss, each fixed by one of the checks above from the train split).
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.
