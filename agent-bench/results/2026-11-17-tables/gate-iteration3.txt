@@ -1,0 +1,21 @@
+# Iteration 3 (arm tables-tools): the whole test split, three passes
+runs 9, questions 409, answers 1227
+as scored       1206 of 1227 (98.3%)
+set aside       8 questions (set-aside.json): 3 of 24 marked right
+in scope        1203 of 1203 (100.0%) over 401 questions: 401 right every time, 0 missed sometimes, 0 missed every time
+
+a question costs  input tokens: mean 22441, median 19007   turns: mean 3.7   seconds: mean 6.5
+citations         precision 0.991   recall 0.99
+
+PASS
+
+# the whole validation split, one pass
+runs 2, questions 424, answers 424
+as scored       415 of 424 (97.9%)
+set aside       10 questions (set-aside.json): 1 of 10 marked right
+in scope        414 of 414 (100.0%) over 414 questions: 414 right every time, 0 missed sometimes, 0 missed every time
+
+a question costs  input tokens: mean 21975, median 18971   turns: mean 3.69   seconds: mean 6.3
+citations         precision 0.957   recall 0.967
+
+PASS

@@ -123,6 +123,19 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   `query-checks`, `run`, the `kind` script), the examples or the toolkit's sources while a run
   is going: kept views are keyed by the engine's sources. A container restart kills a run;
   `fab/run --resume` picks it up from the records.
+  **Iteration 3: three tools of one process** (2026-11-19, the same write-up). Arm
+  `tables-tools`: `fab/tables-server.rkt` is an MCP server over the question's workspace whose
+  tools are the arm's commands (`kind`, `sql`, `answer`: answer.rkt's `answer!`, the text
+  `./answer` prints in tool wording, `tool-wording`); the agent has those alone (`--tools ""`,
+  `mcp__tables`), a one-sentence system prompt (`run-agent.rkt` `#:system`), and the stop hook
+  on `mcp__tables__answer`. Measured before building: a call carries 4.7k tokens with the shell
+  tool and the runtime's system prompt, 1.4k with neither. Whole test split, three passes: 1206
+  of 1227 as scored, 1203 of 1203 in scope, PASS, at 22.4k input tokens (29.1k) and 6.5 s (7.7)
+  a question; validation 414 of 414 in scope at 22.0k. The `tables` arm's prompt is unchanged to
+  the byte (the two run side by side). Tried and dropped first: picking a question's kinds by
+  the words it shares with train questions (the kind used is in the top 3 for 350 of 424
+  validation questions, the top 8 for 405). A second working copy (`git worktree`) is where the
+  next iteration is written while a run uses this one.
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.

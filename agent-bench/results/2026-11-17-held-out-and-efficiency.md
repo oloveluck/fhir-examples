@@ -166,15 +166,96 @@ is called twice where it was called three times. The one answer marked wrong is 
 marked right twice and wrong once — the second question on which that wording has been judged
 both ways. The gate's output is kept in `2026-11-17-tables/gate-held-out-and-iteration2.txt`.
 
+## Iteration 3: three tools of one process, no shell (2026-11-19)
+
+Tried first and dropped: picking a question's likely kinds for it by the words it shares with the
+train questions, so that the list of 45 kinds need not be in the prompt. The kind an agent went on
+to use is among the first three such picks for 350 of the 424 validation questions, among the
+first eight for 405. A question is worded freely; a list that misses the kind one time in six
+costs more calls than it saves.
+
+What a call of the model carries before the prompt was measured instead (one call, no question):
+
+| the agent has | tokens |
+|---|---|
+| the shell tool, the runtime's system prompt (iterations 1 and 2) | 4,669 |
+| no tool, the runtime's system prompt | 2,901 |
+| no tool, a system prompt of one sentence | 1,380 |
+
+The shell tool's definition is 1.8k tokens and the runtime's own system prompt (written for
+someone working in a code base) 1.5k, in every call, for an agent that runs three commands. And
+each command started a process that loaded the toolkit and opened the workspace (1.2 to 1.4 s)
+before it read a row.
+
+So the arm `tables-tools`: the same tables, examples, checks and instructions, with the three
+commands as the three tools of one process (`fab/tables-server.rkt`, a Model Context Protocol
+server over the question's workspace: `kind`, `sql`, `answer`, each answering the text the
+command printed; their definitions are 400 tokens). The agent has those tools alone, and a system
+prompt of one sentence. The workspace is opened once, while the model reads the question. The
+prompt lost what was about the shell ("each command line is checked before it runs …"), and the
+hook that ends the session is on the `answer` tool. The `tables` arm is unchanged (its prompt to
+the byte), so the two can be run side by side.
+
+The whole test split three times (402, 402 and 402 of 409 as scored), and the whole validation
+split once:
+
+```
+runs 9, questions 409, answers 1227
+as scored       1206 of 1227 (98.3%)
+set aside       8 questions (set-aside.json): 3 of 24 marked right
+in scope        1203 of 1203 (100.0%) over 401 questions: 401 right every time, 0 missed sometimes, 0 missed every time
+
+a question costs  input tokens: mean 22441, median 19007   turns: mean 3.7   seconds: mean 6.5
+citations         precision 0.991   recall 0.99
+
+PASS
+```
+
+```
+runs 2, questions 424, answers 424
+as scored       415 of 424 (97.9%)
+set aside       10 questions (set-aside.json): 1 of 10 marked right
+in scope        414 of 414 (100.0%) over 414 questions: 414 right every time, 0 missed sometimes, 0 missed every time
+
+a question costs  input tokens: mean 21975, median 18971   turns: mean 3.69   seconds: mean 6.3
+citations         precision 0.957   recall 0.967
+
+PASS
+```
+
+| the test split, three passes | iteration 2 | iteration 3 |
+|---|---|---|
+| as scored | 1205 of 1227 | 1206 of 1227 |
+| in scope | 1202 of 1203 | 1203 of 1203 |
+| input tokens a question, mean | 29,078 | **22,441** (−23%) |
+| … median | 24,142 | 19,007 |
+| … 90th percentile | 39,466 | 31,026 |
+| output tokens a question, mean | 491 | 500 |
+| seconds a question, mean | 7.7 | **6.5** (−16%) |
+| … 90th percentile | 11.0 | 9.4 |
+| citations: precision, recall | 0.991, 0.990 | 0.991, 0.990 |
+
+"Turns" rose because the runtime counts each tool call, and a kind and a name looked up at once
+are two calls where they were one command line; the model is called as often as before. 407 of
+the first pass's 409 answers are word for word iteration 2's. The answer given once ends 1,195 of
+the 1,227 sessions (21.9k tokens); iteration 2: 1,153. Of a session's 6.5 seconds the model takes
+3.6 (two calls), the tools 1.1, and the agent runtime's own start and end the rest. The gate's
+output is in `2026-11-17-tables/gate-iteration3.txt`.
+
+Against the baseline the loop began from (45,474 tokens and 10.0 s a question): half the tokens,
+two thirds of the time, the same answers.
+
 ## Next in the loop
 
-- **The tool's cold start** (0.45 s of opening a workspace that a SQL call does not need, twice a
-  question): open the search catalogue when a search is run. It changes fhir-mcp's sources, which
-  the kept views are keyed by, so the views are computed again once (a few minutes).
-- **The kinds of question** are 2.2k tokens in each turn, with slot names like
-  `[time_filter_global1]`; the schema's table 1.3k.
+- **What the prompt holds.** A two-call session reads the prompt twice (6k tokens each time of
+  the 22k). How to write the query and give it to `answer` is needed only with the example, and
+  of the 31 time phrases a question says one or two.
+- **A statement in an open workspace** takes 200 ms where the query itself takes a few: every view
+  it reads lists the workspace's files and hashes the defining ones again, and some twenty views of
+  the store are made for a statement that names none. It is the tools' second of every session.
+- **Answers that select two things** ("2161 | 70" for a yearly maximum): 14 of the last 2,116
+  final queries, judged right so far, where every query of the train split selects one.
 - **"no: none on record"** is the one wording the benchmark's judge has marked both ways (two
-  questions, once each). "no" alone, or the count, may be judged more steadily;
-  it wants a measurement of its own, since the judge's null-answer rule reads the same words.
+  questions, once each, in iteration 2; not in iteration 3's passes).
 - **The other arms** (the workspace verbs with no tables, MCP, plain REST) have not been run
-  since rounds 4 to 6.
+  since rounds 4 to 6; MedAgentBench's workspace arm pays the same two costs iteration 3 removed.

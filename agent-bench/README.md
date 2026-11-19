@@ -89,6 +89,12 @@ SQL:
    The agent has the shell tool alone, and its session ends when `./answer` writes the answer
    with nothing to look at again (`fab/stop-when-answered.sh`, a hook of the agent runtime): two
    calls of the model a question where there were three.
+   **`fab/run … tables-tools`** is the same arm with the three commands as the three tools of one
+   process (`fab/tables-server.rkt`, a Model Context Protocol server over the question's
+   workspace: `kind`, `sql`, `answer`) and no shell: every call of the model carried the shell
+   tool's definition and the runtime's own system prompt (3.3k tokens), and every command started
+   a process that loaded the toolkit. 22k input tokens and 6.5 s a question where `tables` takes
+   29k and 7.7 s, the same answers.
 4. **`fab/query-checks`** — from the train split alone: what a question's query should hold (the
    condition each time phrase and averaging unit is written as, the names a question gives, a
    comparison where a question asks whether, a time exactly where it asks when). `./answer`
