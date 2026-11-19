@@ -9,6 +9,8 @@
 ;;;        <out-dir>/<n>.md        kind n: a question or two of that kind, what each assumes, its query
 ;;;        <out-dir>/phrases.md    each kind of time phrase ("today", "since 2 month ago", "on the
 ;;;                                current hospital visit") with the condition it is written as
+;;;        <out-dir>/phrases.json  the same lines, each with its kind of phrase: [{"type", "line"}]
+;;;                                (a reader that knows which kinds a question says shows those)
 ;;;
 ;;; The benchmark's questions are 76 templates filled in, and each template has one way of being
 ;;; answered: which visit "the last hospital visit" is, how "since 4 months ago" and "this year" are
@@ -19,10 +21,10 @@
 ;;;
 ;;; Only the train split is read: a test or validation question is never an example.
 
-(require racket/file racket/list racket/string racket/match
+(require racket/file racket/list racket/string racket/match json
          (only-in "make-sample.rkt" read-csv))
 
-(provide train-questions kinds phrases read-python)
+(provide train-questions kinds phrases read-python shown-template phrase-line)
 
 ;; A Question is a (hash column -> string), a row of the benchmark's CSV.
 
@@ -109,14 +111,30 @@
 ;; ---- written -------------------------------------------------------------------------------------
 (define (one-line s) (string-normalize-spaces s))
 
+;; slot-names : (listof (cons string string))   the benchmark's names for a template's slots, and
+;; what each is shown as: what the slot holds, in fewer characters (the list of kinds is in every
+;; call of a model that reads it; `[time_filter_global1]` is 39 of its 45 lines)
+(define slot-names
+  '(("{patient_id}" . "{patient}")
+    ("[time_filter_global1]" . "[when]") ("[time_filter_global2]" . "[when 2]")
+    ("[time_filter_exact1]" . "[first/last]") ("[time_filter_exact2]" . "[first/last 2]")
+    ("[agg_function]" . "[min/max/avg]") ("[sort]" . "[min/max]")
+    ("[unit_average]" . "[daily/monthly/yearly]") ("[unit_count]" . "[hours/days]")
+    ("[comparison]" . "[less/greater]")
+    ("Has_verb" . "Has")))
+
+;; shown-template : string -> string   a template as a reader is shown it
+(define (shown-template t)
+  (for/fold ([s (one-line t)]) ([n (in-list slot-names)]) (string-replace s (car n) (cdr n))))
+
 ;; kinds-text : (listof kind) -> string
 (define (kinds-text ks)
-  (string-join (for/list ([k (in-list ks)] [i (in-naturals 1)]) (format "~a. ~a" i (one-line (car k)))) "\n"))
+  (string-join (for/list ([k (in-list ks)] [i (in-naturals 1)]) (format "~a. ~a" i (shown-template (car k)))) "\n"))
 
 ;; kind-text : kind -> string
 (define (kind-text k)
   (string-append
-   (format "Kind: ~a\n" (one-line (car k)))
+   (format "Kind: ~a\n" (shown-template (car k)))
    (string-append*
     (for/list ([q (in-list (cdr k))])
       (format "\nQ: ~a\nAssume: ~a\nSQL: ~a\n"
@@ -124,13 +142,14 @@
               (let ([a (one-line (hash-ref q 'assumption))]) (if (string=? a "") "(nothing)" a))
               (one-line (hash-ref q 'sql_query)))))))
 
+;; phrase-line : Phrase -> string   a phrase as it is shown: its words, the current time its
+;; condition counts from (when it does), the condition
+(define (phrase-line p)
+  (match-define (list _ words condition at) p)
+  (format "- \"~a\"~a: `~a`" words (if (and at (regexp-match? (regexp-quote (substring at 0 10)) condition)) (format " (the current time ~a)" at) "") (one-line condition)))
+
 ;; phrases-text : (listof Phrase) -> string
-(define (phrases-text ps)
-  (string-join
-   (for/list ([p (in-list ps)])
-     (match-define (list _ words condition at) p)
-     (format "- \"~a\"~a: `~a`" words (if (and at (regexp-match? (regexp-quote (substring at 0 10)) condition)) (format " (the current time ~a)" at) "") (one-line condition)))
-   "\n"))
+(define (phrases-text ps) (string-join (map phrase-line ps) "\n"))
 
 (module+ main
   (define args (current-command-line-arguments))
@@ -145,6 +164,8 @@
     (display-to-file (kind-text k) (build-path out (format "~a.md" i)) #:exists 'truncate))
   (define ps (phrases train))
   (display-to-file (phrases-text ps) (build-path out "phrases.md") #:exists 'truncate)
+  (call-with-output-file (build-path out "phrases.json") #:exists 'truncate
+    (lambda (o) (write-json (for/list ([p (in-list ps)]) (hasheq 'type (car p) 'line (phrase-line p))) o)))
   (printf "~a kinds of question, ~a kinds of time phrase, from ~a train questions\n" (length ks) (length ps) (length train)))
 
 (module+ test
@@ -170,4 +191,8 @@
                 '(("rel-day-this" "today" "AND d(c) = d('2133-12-31 00:00:00')" "2133-12-31 23:59:00")
                   ("abs-year-in" "in 2142" "AND y(c) = '2142'" #f)))
   (check-regexp-match #rx"\"today\" \\(the current time 2133-12-31 23:59:00\\): `AND d" (phrases-text (phrases train)))
+  (check-equal? (phrase-line '("abs-year-in" "in 2142" "AND y(c)  = '2142'" #f)) "- \"in 2142\": `AND y(c) = '2142'`")
+  (check-equal? (shown-template "Has_verb patient {patient_id} had a  {lab_name} test [time_filter_exact1] [time_filter_global1]?")
+                "Has patient {patient} had a {lab_name} test [first/last] [when]?")
+  (check-equal? (kinds-text (kinds train)) "1. T1 {x}\n2. T3")
   (delete-file f))

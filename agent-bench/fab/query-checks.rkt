@@ -27,7 +27,10 @@
 ;;; every train query of a kind has. A question of a kind the train split lacks (14 of the test
 ;;; split's kinds) is answered from the nearest kind, whose fixed conditions are not its own.
 ;;;
-;;; A Checks is (hasheq 'phrases (listof Phrase) 'whether (listof n) 'when boolean 'ties (listof n)):
+;;; A Checks is (hasheq 'phrases (listof Phrase) 'whether (listof n) 'when boolean 'ties (listof n)
+;;;                     'times (listof TimeForms)):
+;;; `times` each kind of time phrase with the forms its words take (`time-forms`: what a reader of
+;;; a question is shown the conditions of, `said-times`);
 ;;; `ties` the kinds whose examples return every row of the first or last time (`same-time-kinds`); `when` says
 ;;; that in the train split a query selects a time exactly where its question asks for one
 ;;; (`when-regular?`); `whether` the kinds whose
@@ -40,7 +43,8 @@
 
 (provide phrase-book phrase-notes name-literals name-notes column-names question-names unnamed-notes whole-name-notes
          query-shape make-checks query-notes comparison? asks-whether whether-kinds hold?
-         time-select says-when opens-when? when-regular? same-time? same-time-kinds first-pick)
+         time-select says-when opens-when? when-regular? same-time? same-time-kinds first-pick
+         time-forms said-times)
 
 ;; ---- text ----------------------------------------------------------------------------------------
 (define (norm s) (string-downcase (string-trim (regexp-replace* #px"\\s+" s " "))))
@@ -116,6 +120,37 @@
                               (for/or ([c (in-list (hash-ref (cdr g) 'conditions))]) (string-contains? shape c)))))
      (list (car f) (hash-ref (cdr f) 'example) (hash-ref (cdr f) 'kinds '())))
    #:key car))
+
+;; ---- the kinds of time phrase a question says ----------------------------------------------------------
+;; A TimeForms is (hasheq 'type string 'forms (listof <pregexp source>)): a kind of time phrase as
+;; the benchmark names it ("rel-day-this", "abs-year-in", "exact-first"), and each form the train
+;; split's questions word it in
+
+;; time-slots : Question -> (listof (cons type words))   the time phrases a question holds
+(define (time-slots q)
+  (for/list ([(_ t) (in-hash (hash-ref (read-python (hash-ref q 'val_dict)) "time_placeholder" (hash)))]
+             #:when (and (hash? t) (not (member (hash-ref t "type" "null") '("null" "")))
+                         (non-empty-string? (hash-ref t "nlq" ""))))
+    (cons (hash-ref t "type") (hash-ref t "nlq"))))
+
+;; time-forms : (listof Question) -> (listof TimeForms)   in the order the kinds first appear
+(define (time-forms train)
+  (define-values (order forms)
+    (for*/fold ([order '()] [forms (hash)]) ([q (in-list train)] [s (in-list (time-slots q))])
+      (define form (phrase-form (cdr s)))
+      (values (if (hash-has-key? forms (car s)) order (cons (car s) order))
+              (hash-update forms (car s) (lambda (l) (if (member form l) l (cons form l))) '()))))
+  (for/list ([type (in-list (reverse order))])
+    (hasheq 'type type 'forms (sort (hash-ref forms type) string<?))))
+
+;; said-times : string (listof TimeForms) -> (listof type)   the kinds of time phrase a question's
+;; words hold. "Previous" is read as "last" ("in the previous month" is the phrase "last month").
+;; It errs on the side of more: a word that only looks like a phrase ("the first", "last") counts.
+(define (said-times question times)
+  (define text (regexp-replace* #px"\\bprevious\\b" (norm question) "last"))
+  (for/list ([t (in-list times)]
+             #:when (for/or ([f (in-list (hash-ref t 'forms))]) (regexp-match? (pregexp f) text)))
+    (hash-ref t 'type)))
 
 ;; ---- names ------------------------------------------------------------------------------------------
 ;; name-literals : string -> (listof string)   the names a query compares a column with (`= 'x'`,
@@ -278,7 +313,7 @@
 ;; make-checks : (listof Question) -> Checks
 (define (make-checks train)
   (hasheq 'phrases (phrase-book train) 'whether (whether-kinds train) 'when (when-regular? train)
-          'ties (same-time-kinds train)))
+          'ties (same-time-kinds train) 'times (time-forms train)))
 
 ;; query-notes : string (or string #f) Checks string string (listof string) [(column -> (listof string))]
 ;;               -> (listof string)
@@ -335,7 +370,7 @@
   (printf "~a phrases\n" (length (hash-ref checks 'phrases))))
 
 (module+ test
-  (require rackunit (only-in "make-sample.rkt" read-csv))
+  (require rackunit racket/set (only-in "make-sample.rkt" read-csv))
   (define q1 "SELECT transfers.careunit FROM transfers WHERE transfers.hadm_id IN ( SELECT admissions.hadm_id FROM admissions WHERE admissions.subject_id = 10004235 AND admissions.dischtime IS NULL ) AND transfers.careunit IS NOT NULL ORDER BY transfers.intime DESC LIMIT 1")
   ;; phrases
   (define (vd . slots) (format "{'op_placeholder': {~a}, 'time_placeholder': {~a}}"
@@ -369,6 +404,21 @@
   (check-equal? (said "What was the weight of patient 1 since 3 months ago?" "SELECT MAX(c.v) FROM c WHERE strftime('%Y',labevents.charttime) >= '2140'")
                 '("since 3 months ago") "not the year form: \"since 3\" is inside the longer phrase")
   (check-equal? (said "What was the weight of patient 1 since 2141?" "SELECT MAX(c.v) FROM c WHERE strftime('%Y',labevents.charttime) >= '2141'") '())
+  ;; the kinds of time phrase a question says
+  (define (typed key nlq type) (format "'~a': {'nlq': '~a', 'sql': \"AND x\", 'type': '~a'}" key nlq type))
+  (define timed
+    (list (hasheq 'val_dict (vd (list 'time (typed "time_filter_global1" "last month" "rel-month-last")) (list 'time (typed "time_filter_exact1" "first" "exact-first"))))
+          (hasheq 'val_dict (vd (list 'time (typed "time_filter_global1" "since 2 month ago" "rel-month-since"))))
+          (hasheq 'val_dict (vd (list 'time (typed "time_filter_global1" "since 14 day ago" "rel-day-since")) (list 'time (typed "time_filter_exact1" "null" "null"))))
+          (hasheq 'val_dict (vd (list 'time (typed "time_filter_global1" "on the last hospital visit" "rel-hosp-last"))))
+          (hasheq 'val_dict "{}")))
+  (define times (time-forms timed))
+  (check-equal? (list->set (map (lambda (t) (hash-ref t 'type)) times))
+                (set "rel-month-last" "exact-first" "rel-month-since" "rel-day-since" "rel-hosp-last") "a slot of no kind is none")
+  (check-equal? (list->set (said-times "When was patient 1 first prescribed heparin in the previous month?" times)) (set "rel-month-last" "exact-first"))
+  (check-equal? (said-times "What was the weight of patient 1 since 3 months ago?" times) '("rel-month-since"))
+  (check-equal? (said-times "What did patient 1 weigh during their last hospital stay?" times) '("rel-hosp-last"))
+  (check-equal? (said-times "What is the gender of patient 1?" times) '())
   ;; names
   (define q2 "SELECT o.charttime FROM outputevents WHERE outputevents.itemid IN ( SELECT d_items.itemid FROM d_items WHERE d_items.label IN ('Foley','OR Urine') AND d_items.linksto = 'outputevents' ) AND strftime('%Y-%m-%d',outputevents.charttime) >= '2119-02-26' AND outputevents.charttime = '2119-02-26 10:00:00'")
   (check-equal? (name-literals q2) '("Foley" "OR Urine"))
@@ -468,6 +518,16 @@
     (define rows (read-csv (file->string csv)))
     (define header (map string->symbol (car rows)))
     (define all (for/list ([r (in-list (cdr rows))] #:when (= (length r) (length header))) (for/hasheq ([k (in-list header)] [v (in-list r)]) (values k v))))
+    ;; the kinds of time phrase a question holds are among those its words are read as: every
+    ;; validation question (a reader shown only those conditions has each one it needs)
+    (let* ([valid (filter (lambda (q) (equal? (hash-ref q 'split) "valid")) all)]
+           [found (for/list ([q (in-list valid)]) (said-times (hash-ref q 'question) (hash-ref real 'times)))]
+           [whole (for/sum ([q (in-list valid)] [f (in-list found)])
+                    (if (andmap (lambda (s) (member (car s) f)) (time-slots q)) 1 0))])
+      (printf "every kind of time phrase of a validation question is found in its words: ~a of ~a; kinds found a question: ~a of ~a\n"
+              whole (length valid) (exact->inexact (/ (round (* 10 (/ (apply + (map length found)) (length valid)))) 10))
+              (length (hash-ref real 'times)))
+      (check-equal? whole (length valid)))
     ;; a column's values from the relational database, when FAB_REFERENCE names it
     (define reference (getenv "FAB_REFERENCE"))
     (define values-of

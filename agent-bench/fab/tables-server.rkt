@@ -8,7 +8,9 @@
 ;;; workspace DIR (the current directory when none is given). Its tools are the commands of the
 ;;; `tables` arm, each answering the text the command prints:
 ;;;
-;;;   kind    {numbers}           `./kind N …`: the examples of those kinds, then the time phrases
+;;;   kind    {numbers [every_phrase]}  `./kind N …`: the examples of those kinds, then the time phrases
+;;;                               the question says (all of them with `every_phrase`), and — the first
+;;;                               time — what to do next (examples/next.md, when the run wrote one)
 ;;;   sql     {text}              `raco fhir-mcp call query language=sql text=…`: the rows, as JSON
 ;;;   answer  {kind, sql [say]}   `./answer --kind N [--say TEXT] "SQL"`: rows, answer, resources,
 ;;;                               notes; the answer file written (answer.rkt's `answer!`)
@@ -20,14 +22,21 @@
 ;;; definitions are a few hundred tokens and the workspace is opened once, while the model is
 ;;; reading the question.
 ;;;
+;;; What a call of the model carries, it carries again in every later call. So the tools say what
+;;; is needed when it is needed: the conditions of the two or so time phrases the question's words
+;;; hold (query-checks.rkt `said-times`: every phrase of every validation question is among them)
+;;; where `./kind` printed all 31, and the instructions for writing and submitting the query with
+;;; the example they are about, once, where the prompt held them from the first call.
+;;;
 ;;; The protocol is the little of MCP a tool server needs (initialize, ping, tools/list,
 ;;; tools/call): no resources, no prompts, nothing announced that a client would turn into more
 ;;; definitions.
 
 (require racket/file racket/list racket/port racket/promise racket/string json
-         (only-in "answer.rkt" answer!))
+         (only-in "answer.rkt" answer!)
+         (only-in "query-checks.rkt" said-times))
 
-(provide handle tool tables-tools kind-text tool-wording)
+(provide handle tool tables-tools kind-text phrases-text tool-wording)
 
 ;; A Tool is (tool name description schema run): run : (hash symbol -> jsexpr) -> string, the text
 ;; answered; it raises exn:fail for what the caller got wrong, which is answered as the tool's error.
@@ -39,17 +48,43 @@
 (struct workspace (run query))
 
 ;; ---- what each tool says --------------------------------------------------------------------------
-;; kind-text : dir (listof integer) -> string   the examples of those kinds, then how a time phrase
-;; is written: what run.rkt's `./kind` script prints
-(define (kind-text dir numbers)
+;; json-file : path -> jsexpr | #f
+(define (json-file f) (and (file-exists? f) (with-handlers ([exn:fail? (lambda (_) #f)]) (call-with-input-file f read-json))))
+
+;; phrases-text : dir boolean -> string   how the time phrases are written in a query: those the
+;; question's words hold (question.json, read by checks.json's `times`; phrases.json has each
+;; kind's line), or all of them — when asked, or when the workspace cannot say which
+(define (phrases-text dir all?)
+  (define head "How a time phrase is written in such a query (with your column and your current time in place of the ones shown):\n")
+  (define lines (json-file (build-path dir "examples" "phrases.json")))
+  (define times (let ([c (json-file (build-path dir "examples" "checks.json"))]) (and (hash? c) (hash-ref c 'times #f))))
+  (define question (let ([q (json-file (build-path dir "question.json"))]) (and (hash? q) (hash-ref q 'question #f))))
+  (cond
+    [(or all? (not (and (list? lines) (list? times) (string? question))))
+     (define phrases (build-path dir "examples" "phrases.md"))
+     (string-append head (if (file-exists? phrases) (file->string phrases) "") "\n")]
+    [else
+     (define said (said-times question times))
+     (define mine (for/list ([l (in-list lines)] #:when (member (hash-ref l 'type #f) said)) (hash-ref l 'line "")))
+     (define others (format "the ~a kinds of time phrase these queries know: `kind` with `every_phrase: true` lists how each is written" (length lines)))
+     (if (null? mine)
+         (format "Your question's words hold none of ~a.\n" others)
+         (string-append "How the time phrases of your question are written in such a query (with your column and your current time in place of the ones shown):\n"
+                        (string-join mine "\n")
+                        (format "\n(If your question has a time phrase that is none of these, they are ~a of ~a.)\n" (length mine) others)))]))
+
+;; kind-text : dir (listof integer) [all-phrases? first?] -> string   the examples of those kinds,
+;; then how a time phrase is written (run.rkt's `./kind` script prints these, with every phrase),
+;; and, the first time, what to do next (examples/next.md)
+(define (kind-text dir numbers [all? #t] [first? #f])
   (define (example n)
     (define file (build-path dir "examples" (format "~a.md" n)))
     (if (file-exists? file) (string-append (file->string file) "\n") (format "there is no kind ~a\n" n)))
+  (define next (build-path dir "examples" "next.md"))
   (string-append
    (string-append* (map example numbers))
-   "How a time phrase is written in such a query (with your column and your current time in place of the ones shown):\n"
-   (let ([phrases (build-path dir "examples" "phrases.md")]) (if (file-exists? phrases) (file->string phrases) ""))
-   "\n"))
+   (phrases-text dir all?)
+   (if (and first? (file-exists? next)) (string-append "\n" (file->string next) "\n") "")))
 
 ;; tool-wording : string -> string   answer.rkt's text, which names its shell commands, in the
 ;; words of a caller that has tools: `./kind 25` is the kind tool, "this same command" a call
@@ -77,12 +112,17 @@
 ;; tables-tools : dir (promise Workspace) -> (listof Tool)
 (define (tables-tools dir opened)
   (define text (hasheq 'type "string"))
+  (define asked-before? (box #f))   ; what to do next is said with the first example, once
   (list
    (tool "kind"
-         "How a kind of question is answered: for each number, a question or two of that kind, what each assumes and the query that answers it; then how each time phrase is written in such a query."
+         "How a kind of question is answered: for each number, a question or two of that kind, what each assumes and the query that answers it; then how the time phrases of your question are written in such a query."
          (hasheq 'type "object" 'required '("numbers")
-                 'properties (hasheq 'numbers (hasheq 'type "array" 'items (hasheq 'type "integer"))))
-         (lambda (args) (kind-text dir (integers (hash-ref args 'numbers '())))))
+                 'properties (hasheq 'numbers (hasheq 'type "array" 'items (hasheq 'type "integer"))
+                                     'every_phrase (hasheq 'type "boolean" 'description "Leave out. True only after a time phrase of your question was not among those shown.")))
+         (lambda (args)
+           (define first? (not (unbox asked-before?)))
+           (set-box! asked-before? #t)
+           (kind-text dir (integers (hash-ref args 'numbers '())) (eq? (hash-ref args 'every_phrase #f) #t) first?)))
    (tool "sql"
          "One SQLite statement over the tables; its rows come back as JSON. For looking a name up as the tables write it."
          (hasheq 'type "object" 'required '("text") 'properties (hasheq 'text text))
@@ -183,6 +223,27 @@
                                "there is no kind 9\n"
                                "How a time phrase is written in such a query (with your column and your current time in place of the ones shown):\n"
                                "- \"today\": `AND x`\n"))
+  ;; the phrases a question says: with the question, the phrases by kind and the forms of each kind
+  (define (write-json-file v . path) (call-with-output-file (apply build-path dir path) #:exists 'truncate (lambda (o) (write-json v o))))
+  (write-json-file (list (hasheq 'type "day" 'line "- \"today\": `AND x`") (hasheq 'type "year" 'line "- \"in 2142\": `AND y`")
+                         (hasheq 'type "first" 'line "- \"first\": `ORDER BY t ASC LIMIT 1`"))
+                   "examples" "phrases.json")
+  (write-json-file (hasheq 'times (list (hasheq 'type "day" 'forms '("\\btoday\\b")) (hasheq 'type "year" 'forms '("\\bin [0-9]+\\b"))
+                                        (hasheq 'type "first" 'forms '("\\bfirst\\b"))))
+                   "examples" "checks.json")
+  (write-json-file (hasheq 'question "What was the first weight of patient 1 in 2150?") "question.json")
+  (check-equal? (phrases-text dir #f)
+                (string-append "How the time phrases of your question are written in such a query (with your column and your current time in place of the ones shown):\n"
+                               "- \"in 2142\": `AND y`\n- \"first\": `ORDER BY t ASC LIMIT 1`\n"
+                               "(If your question has a time phrase that is none of these, they are 2 of the 3 kinds of time phrase these queries know: `kind` with `every_phrase: true` lists how each is written.)\n"))
+  (check-regexp-match #rx"\"today\": `AND x`\n$" (phrases-text dir #t))
+  (write-json-file (hasheq 'question "What is the gender of patient 1?") "question.json")
+  (check-equal? (phrases-text dir #f)
+                "Your question's words hold none of the 3 kinds of time phrase these queries know: `kind` with `every_phrase: true` lists how each is written.\n")
+  ;; what to do next comes with the first example, once
+  (display-to-file "Next: write it." (build-path dir "examples" "next.md"))
+  (check-regexp-match #rx"none of the 3 kinds.*\n\nNext: write it[.]\n$" (kind-text dir '(3) #f #t))
+  (check-false (regexp-match? #rx"Next:" (kind-text dir '(3) #f #f)))
   (define asked '())
   (define tools (tables-tools dir (delay (workspace (lambda (sql) (error "not asked in this test"))
                                                      (lambda (sql) (set! asked (cons sql asked))
@@ -200,8 +261,12 @@
                 '("kind" "sql" "answer"))
   ;; the definitions are what every call of the model carries: held small
   (check-true (< (string-length (jsexpr->string (hash-ref (handle (request "tools/list") tools) 'result))) 1500))
-  (check-regexp-match #rx"^Kind: K three"
-                      (hash-ref (car (answered (handle (request "tools/call" (hasheq 'name "kind" 'arguments (hasheq 'numbers '(3)))) tools))) 'text))
+  (let ([first (hash-ref (car (answered (handle (request "tools/call" (hasheq 'name "kind" 'arguments (hasheq 'numbers '(3)))) tools))) 'text)]
+        [second (hash-ref (car (answered (handle (request "tools/call" (hasheq 'name "kind" 'arguments (hasheq 'numbers '(3) 'every_phrase #t))) tools))) 'text)])
+    (check-regexp-match #rx"^Kind: K three" first)
+    (check-regexp-match #rx"Next: write it" first)
+    (check-false (regexp-match? #rx"Next: write it" second) "said once")
+    (check-regexp-match #rx"\"today\"" second "every phrase when asked"))
   (check-equal? (hash-ref (car (answered (handle (request "tools/call" (hasheq 'name "sql" 'arguments (hasheq 'text "SELECT 1"))) tools))) 'text)
                 "{\"rows\":[]}")
   (check-equal? asked '("SELECT 1"))
