@@ -84,12 +84,14 @@ EOF
   (string-append "People who compute against this schema write each kind of question's query one way. The kinds (a kind's slots in braces and brackets):\n"
                  (examples-file "kinds.md")))
 
-;; step-1 : boolean -> string   picking the kind, looking the names up
+;; step-1 : boolean -> string   picking the kind, looking the names up: with a shell the agent
+;; asks the tables for each name; with the tools it gives the names to `kind`, which asks
 (define (step-1 tools?)
   (string-append
    "1. Read the example of your question's kind. When none is your question, take the nearest by what is asked for first — a yes/no question's example selects a comparison (`COUNT(*)>0`), a \"when\" or \"list the times\" question's the time column, \"how many\" a count, \"how much\" a sum or the value — and then by what it reads. When no kind's example selects what your question asks for (the name of a test, where the examples give a specimen's or an organism's), the nearest example still gives the conditions and the order, and you select the schema's column that holds what is asked. "
-   (if tools? "In the same turn, with `sql`, look up each name your question gives" "In the same command, look up each name your question gives")
-   " — a lab test, a drug, an output, a care unit, a specimen: the tables have it as the hospital writes it, capitals included, and the question gives it in lower case, where it can read like ordinary words (\"or urine\" is the output `OR Urine`, not urine outputs). Ask for the name exactly as the question words it, case aside: `SELECT DISTINCT drug FROM prescriptions WHERE lower(trim(drug)) = '5% dextrose'`. Use every spelling that returns (`drug IN ('Amlodipine', 'amLODIPine')`); search by pattern (`LIKE`) only when it returns nothing.\n"))
+   (if tools?
+       "In the same call give `kind`, as `names`, each name your question gives — a lab test, a drug, an output, a care unit, a specimen, a procedure — worded as the question words it: the tables have it as the hospital writes it, capitals included, and the question gives it in lower case, where it can read like ordinary words (\"or urine\" is the output `OR Urine`, not urine outputs). `kind` answers how the tables write each one.\n"
+       "In the same command, look up each name your question gives — a lab test, a drug, an output, a care unit, a specimen: the tables have it as the hospital writes it, capitals included, and the question gives it in lower case, where it can read like ordinary words (\"or urine\" is the output `OR Urine`, not urine outputs). Ask for the name exactly as the question words it, case aside: `SELECT DISTINCT drug FROM prescriptions WHERE lower(trim(drug)) = '5% dextrose'`. Use every spelling that returns (`drug IN ('Amlodipine', 'amLODIPine')`); search by pattern (`LIKE`) only when it returns nothing.\n")))
 
 ;; step-2 : -> string   the query, written from the example
 (define (step-2)
@@ -110,10 +112,12 @@ EOF
        "(Only when the answer it states is not what the rows say, give the same query once more with the answer said, as `say`.)"
        "(Only when the answer it states is not what the rows say, run the same query once more with the answer said: `./answer --kind <number> --say \"<the answer>\" \"SELECT …\"`.)")))
 
-;; next-steps : -> string   steps 2 and 3 for an agent with the tools: said by the `kind` tool
-;; with the first example it shows (tables-workspace! writes it to examples/next.md)
+;; next-steps : -> string   the schema, and steps 2 and 3, for an agent with the tools: said by
+;; the `kind` tool with the first example it shows (tables-workspace! writes it to
+;; examples/next.md). The first call picks a kind and gives the names, which needs neither.
 (define (next-steps)
-  (string-append "What to do next (steps 2 and 3). Write a query whole, a condition that occurs twice written out twice.\n"
+  (string-append (tables-schema) "\n\n"
+                 "What to do next (steps 2 and 3). Write a query whole, a condition that occurs twice written out twice.\n"
                  (step-2) (step-3 #t)))
 
 (define (access arm rest)
@@ -134,17 +138,17 @@ EOF
       "Work like this:\n"
       (step-1 #f) (step-2) (step-3 #f))]
     [("tables-tools")
-     ;; what the first call needs: the tools, the schema, the kinds, how to pick one and look a
-     ;; name up. How to write the query and give it to `answer` comes with the example
-     ;; (`next-steps`, which the `kind` tool says once): in the prompt it was read again in every call
+     ;; what the first call needs: the tools, the kinds, how to pick one and which names to
+     ;; give. The schema, and how to write the query and give it to `answer`, come with the
+     ;; example (`next-steps`, which the `kind` tool says once): in the prompt they were read
+     ;; again in every call
      (string-append
       "Access: the dataset as the tables of a relational schema (the tables are defined over the FHIR data), through three tools:\n"
-      "  sql      one SQLite statement; rows come back as JSON\n"
-      "  kind     how a kind of question is answered (below)\n"
-      "  answer   the query that answers the question: its rows, the answer, the resources behind it — written to the answer file\n\n"
-      (tables-schema) "\n\n"
+      "  kind     how a kind of question is answered (below), how the tables write the names you give it, and, with the first example, the schema\n"
+      "  answer   the query that answers the question: its rows, the answer, the resources behind it — written to the answer file\n"
+      "  sql      one SQLite statement; rows come back as JSON\n\n"
       (kinds-list) "\n\n"
-      "The `kind` tool shows the kinds whose numbers you give it: a question or two of that kind, what each assumes, the query that answers it, and then how the time phrases of your question are written in such a query.\n\n"
+      "The `kind` tool shows the kinds whose numbers you give it: a question or two of that kind, what each assumes, the query that answers it, and then how the tables write your names and how the time phrases of your question are written in such a query.\n\n"
       "Work like this:\n"
       (step-1 #t)
       "2 and 3. Write your query from the example and give it to `answer`: how is said with what `kind` answers. Do as it says there.")]
@@ -350,4 +354,12 @@ EOF
 (module+ test
   (require rackunit)
   (check-equal? (resources-by-type (hasheq 'resources '("Observation/a" "Encounter/b" "Observation/c" "nope")))
-                (hasheq 'Observation '("a" "c") 'Encounter '("b"))))
+                (hasheq 'Observation '("a" "c") 'Encounter '("b")))
+  ;; with the tools the names go to `kind`, and the schema comes with the first example; with a
+  ;; shell the agent asks the tables for each name
+  (check-regexp-match #rx"give `kind`, as `names`, each name your question gives" (step-1 #t))
+  (check-false (regexp-match? #rx"SELECT DISTINCT drug" (step-1 #t)))
+  (check-regexp-match #rx"SELECT DISTINCT drug FROM prescriptions WHERE lower[(]trim[(]drug[)][)] = '5% dextrose'" (step-1 #f))
+  (check-regexp-match #rx"^The schema [(].*[|] `patients` [|] `subject_id` [|].*
+
+What to do next [(]steps 2 and 3[)]" (next-steps)))

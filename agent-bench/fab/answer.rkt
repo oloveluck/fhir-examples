@@ -13,8 +13,9 @@
 ;;;      `row-queries`): the rows of the query's main table that meet its conditions, each row's
 ;;;      `…fhir_id` columns — every row of a sum, a count or a group, not one of them;
 ;;;   4. with --kind N, sets the query's shape (what it selects, groups by, orders by and limits,
-;;;      literals aside) beside the shapes of kind N's examples, and says so when it is none of them;
-;;;      and, when the workspace holds the question (question.json) and examples/checks.json, says
+;;;      literals aside) beside the shapes of kind N's examples, and says so when it is none of them
+;;;      and there is another note to look at (alone it is not said: a question of a kind the
+;;;      examples lack is rightly answered with another shape); and, when the workspace holds the question (question.json) and examples/checks.json, says
 ;;;      what query-checks.rkt finds: a phrase of the question with no condition, a name the
 ;;;      question does not give; and says when the first or last row it picked has no value;
 ;;;   5. writes {"answer", "resources"} to --out (answer.json), and when it had no note at all ends
@@ -32,7 +33,7 @@
          (only-in "check-ids.rkt" row-queries id-columns sub-selects main-table)
          (only-in "query-checks.rkt" query-notes comparison? asks-whether hold? first-pick own-word-readings))
 
-(provide answer-text shape example-queries shape-note all-rows empty-pick-note held? shown-note other-kinds done-line
+(provide answer-text shape example-queries shape-note all-rows empty-pick-note held? shown-note other-kinds done-line cells
          tied-values tie-note answer! open-run own-word-note kind-template)
 
 ;; ---- the answer ---------------------------------------------------------------------------------
@@ -279,9 +280,12 @@
     (if (file-exists? "question.json") (call-with-input-file "question.json" read-json) (hasheq)))
   ;; a comparison where the question asks whether is the question's own shape, whatever the kind's is
   (define asked-shape? (and (asks-whether (hash-ref question 'question "")) (comparison? sql)))
-  (define own-notes (filter values (list (and (not asked-shape?) (shape-note sql examples)) (empty-pick-note sql rows)
+  ;; the shape beside the example's is said with another note, never alone: alone it kept a fifth of
+  ;; the sessions going one call longer (most of them questions of kinds the train split lacks,
+  ;; answered rightly with another select) and changed none of 479 answers
+  (define shape (and (not asked-shape?) (shape-note sql examples)))
+  (define own-notes (filter values (list (empty-pick-note sql rows)
                                          (own-word-note sql rows (kind-template kind-text) (hash-ref question 'question "") values-of))))
-  (for ([note (in-list own-notes)]) (printf "~a\n" note))
   (define notes
     (cond
       [(and (file-exists? "question.json") (file-exists? (build-path "examples" "checks.json")))
@@ -292,6 +296,8 @@
                                     (same-table-first (hash-ref checks 'ties '()) sql))])
                  (if tie (list tie) '())))]
       [else '()]))
+  (when (and shape (or (pair? own-notes) (pair? notes))) (printf "~a\n" shape))
+  (for ([note (in-list own-notes)]) (printf "~a\n" note))
   (for ([n (in-list notes)]) (printf "~a\n" (shown-note n)))
   ;; a decisive note holds the answer back once: the same query given again is written
   (cond
@@ -334,7 +340,7 @@
     (answer! (open-run (current-directory)) sql kind said out)))
 
 (module+ test
-  (require rackunit)
+  (require rackunit racket/port (only-in fhir/lang/workspace run-result))
   ;; a tie at the first or last row
   (check-equal? (tied-values '(("GRAM STAIN" "2110-01-02 03:00:00") ("RESPIRATORY CULTURE" "2110-01-02 03:00:00") ("URINE CULTURE" "2110-01-01 00:00:00")))
                 '("GRAM STAIN" "RESPIRATORY CULTURE"))
@@ -353,6 +359,21 @@
                                    "note: … (`./kind 7`)" "hold: again (`./kind 25`)"))
                 '("25"))
   (check-regexp-match #rx"^done: the answer is written" done-line)
+  ;; the shape note is said beside another note, and alone it is not: the answer is done
+  (let ([dir (make-temporary-file "answer-test-~a" 'directory)])
+    (make-directory* (build-path dir "examples"))
+    (display-to-file "Kind: Has t a v?\n\nQ: q\nSQL: SELECT COUNT(*)>0 FROM t WHERE t.a = 1\n" (build-path dir "examples" "7.md"))
+    (define (said sql cell)
+      (parameterize ([current-directory dir])
+        (with-output-to-string
+          (lambda () (answer! (lambda (q) (run-result "sql" '(v) (list (hasheq 'v cell)) (hasheq))) sql "7" #f "answer.json")))))
+    (let ([alone (said "SELECT t.v FROM t WHERE t.a = 2" 5)])
+      (check-false (regexp-match? #rx"this kind's example" alone))
+      (check-regexp-match #rx"written to answer.json\ndone: " alone))
+    (let ([beside (said "SELECT t.v FROM t WHERE t.a = 2 ORDER BY t.c DESC LIMIT 1" 'null)])
+      (check-regexp-match #rx"note: this kind's example is\n  select count\\(\\*\\)>\\? from t\n.*note: the row this query picks has no value" beside)
+      (check-false (regexp-match? #rx"done: " beside)))
+    (delete-directory/files dir))
   ;; the answer
   (check-equal? (answer-text "SELECT chartevents.valuenum FROM chartevents WHERE x = 1" '((61.7)) #t) "61.7")
   (check-equal? (answer-text "SELECT labevents.valuenum FROM labevents" '((83.6) (84.2)) #t) "83.6, 84.2")

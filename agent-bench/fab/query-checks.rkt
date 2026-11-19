@@ -46,7 +46,8 @@
 (provide phrase-book phrase-notes name-literals name-notes column-names question-names unnamed-notes whole-name-notes
          query-shape make-checks query-notes comparison? asks-whether whether-kinds hold?
          time-select says-when opens-when? when-regular? same-time? same-time-kinds first-pick
-         time-forms said-times selected one-selected? name-comparisons own-word-readings by-pattern exact-names?)
+         time-forms said-times selected one-selected? name-comparisons own-word-readings by-pattern exact-names?
+         name-columns)
 
 ;; ---- text ----------------------------------------------------------------------------------------
 (define (norm s) (string-downcase (string-trim (regexp-replace* #px"\\s+" s " "))))
@@ -368,6 +369,12 @@
 (define (exact-names? train)
   (and (pair? train) (for/and ([q (in-list train)]) (not (by-pattern (hash-ref q 'sql_query))))))
 
+;; name-columns : (listof Question) -> (listof column)   the columns the train split's queries
+;; compare with a name (`d_items.label`, `prescriptions.drug`, …), in the order they first appear:
+;; where a name the question gives may be written
+(define (name-columns train)
+  (remove-duplicates (for*/list ([q (in-list train)] [p (in-list (name-comparisons (hash-ref q 'sql_query)))]) (car p))))
+
 ;; hold? : string -> boolean   a note that keeps the answer from being written the first time
 (define (hold? note) (string-prefix? note "hold: "))
 
@@ -376,7 +383,7 @@
 (define (make-checks train)
   (hasheq 'phrases (phrase-book train) 'whether (whether-kinds train) 'when (when-regular? train)
           'ties (same-time-kinds train) 'times (time-forms train) 'one (one-selected? train)
-          'exact (exact-names? train)))
+          'exact (exact-names? train) 'names (name-columns train)))
 
 ;; query-notes : string (or string #f) Checks string string (listof string) [(column -> (listof string))]
 ;;               -> (listof string)
@@ -524,6 +531,9 @@
   (check-false (by-pattern "SELECT COUNT(*) FROM p WHERE p.drug = 'I like it'"))
   (check-true (exact-names? (list (hasheq 'sql_query "SELECT a.b FROM a WHERE a.c = 'x'"))))
   (check-false (exact-names? (list (hasheq 'sql_query "SELECT a.b FROM a WHERE a.c LIKE 'x%'"))))
+  (check-equal? (name-columns (list (hasheq 'sql_query "SELECT a.b FROM a WHERE a.c = 'x' AND a.t >= '2100-01-01'")
+                                    (hasheq 'sql_query "SELECT d.v FROM d WHERE lower(d.label) IN ('p', 'q') AND a.c = 'y'")))
+                '("a.c" "d.label") "the columns compared with a name, once each, in the order met; a time is no name")
   (let ([notes (lambda (sql exact) (filter (lambda (n) (regexp-match? #rx"matches by pattern" n))
                                            (query-notes sql #f (hasheq 'exact exact) "How many times did patient 1 get a cerebral ventricular #1?" "" '())))])
     (check-equal? (length (notes "SELECT COUNT(*) FROM p WHERE p.c IN ( SELECT d.c FROM d WHERE lower(d.t) LIKE '%cerebral ventricle%' )" #t)) 1)

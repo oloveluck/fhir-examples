@@ -72,8 +72,18 @@
                                                                                           "--verbs" mcp-verbs))))))
 
 (define disallowed '("Task" "Agent" "WebFetch" "WebSearch" "NotebookEdit"))
-;; what the agent's environment must not carry over from this session
-(define withheld '("CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD" "PLTADDONDIR" "FHIR_MCP_DAEMON"))
+;; what the agent's environment must not carry over from this session. The last three are a
+;; hosted session's own identity: with them an agent started from inside such a session takes
+;; itself for part of it — every call of the model then carries that session's reminders (how to
+;; attribute its commits, where its scratch files go: 816 tokens, measured on a session that says
+;; one word) and the agent reports its events there (1.3 s of a session). An agent started from
+;; a terminal has none of the three, so withholding them changes nothing there.
+;; AGENT_BENCH_KEEP_SESSION=1 leaves them in, to measure what they cost.
+(define withheld
+  (append '("CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD" "PLTADDONDIR" "FHIR_MCP_DAEMON")
+          (if (getenv "AGENT_BENCH_KEEP_SESSION")
+              '()
+              '("CLAUDE_CODE_REMOTE" "CLAUDE_CODE_REMOTE_SESSION_ID" "CLAUDE_CODE_ENTRYPOINT"))))
 
 (define (in-parallel k items f)
   (define results (make-vector (length items) #f))
