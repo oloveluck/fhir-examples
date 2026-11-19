@@ -12,6 +12,9 @@
 ;;;              (setup-tables.rkt; FAB_TABLES is that workspace): the question is answered in SQL
 ;;;              over those tables, from the worked example of its kind (FAB_EXAMPLES, a directory made
 ;;;              by make-examples.rkt from the train split)
+;;;   tables-tools  the same tables, examples and checks, the arm's three commands as the three tools
+;;;              of one process (tables-server.rkt) and no shell: the agent has those tools alone and
+;;;              a system prompt of one sentence
 ;;; Every arm has the same built-in tools (Bash, Read, Write: `--tools`), and the same closing
 ;;; instruction; the workspace arms get the reading card (`raco fhir guide data`) where the rest
 ;;; arm gets its curl lines.
@@ -20,6 +23,9 @@
 
 (require racket/cmdline racket/file racket/list racket/string racket/system racket/port racket/runtime-path json
          "../run-agent.rkt")
+
+;; prompt : arm rest-base Question answer-file -> string   (below) is what an agent is given
+(provide prompt)
 
 (define common #<<EOF
 You are answering a question about a patient from a hospital dataset held as FHIR R4 resources (about 930,000 of them: Patient, Encounter, Observation, Condition, Procedure, Medication, MedicationRequest, MedicationAdministration, MedicationDispense, MedicationStatement, Specimen, Location, Organization). The dates are shifted far into the future on purpose.
@@ -30,36 +36,68 @@ The patient: Patient/{patient_fhir_id} (the number in the question is that patie
 
 Find the answer in the data and note which resources it rests on. Answer as a clinician's assistant would: a value with its unit, a date-time, a name, a count, yes/no — or "none" when the data holds nothing that answers the question (a legitimate answer; do not guess). "Hospital visit", "hospital stay" and "hospital encounter" mean an inpatient hospital admission; "ICU visit" an intensive-care stay; "current hospital visit" one that has not ended at the assumed current time.
 
-When done, write {answer_file}: {"answer": "<your answer>", "resources": ["Type/id", ...the resources the answer rests on]}. Once it is written you are done: end with one short line, no summary.
+{written}
 
 {access}
-Use only that access to read the data; you may use python3 or jq to compute over what it returned. Do not look for the benchmark's files or answers.
+{only}
 EOF
   )
+
+;; written, only : arm -> string   how the answer file comes to be, and what the agent may use
+(define (written arm)
+  (if (equal? arm "tables-tools")
+      "The `answer` tool writes the answer and the resources it rests on to {answer_file}. Once it is written you are done: end with one short line, no summary."
+      "When done, write {answer_file}: {\"answer\": \"<your answer>\", \"resources\": [\"Type/id\", ...the resources the answer rests on]}. Once it is written you are done: end with one short line, no summary."))
+(define (only arm)
+  (if (equal? arm "tables-tools")
+      "Use only those tools to read the data."
+      "Use only that access to read the data; you may use python3 or jq to compute over what it returned. Do not look for the benchmark's files or answers."))
+
+;; tables-arm? : arm -> boolean   an arm that answers over the tables
+(define (tables-arm? arm) (and (member arm '("tables" "tables-tools")) #t))
 
 (define (access arm rest)
   (case arm
     [("workspace")
      (string-append "Access: the FHIR workspace in this directory, from the shell. Its data is this dataset (a store).\n\n"
                     (reading-card))]
-    [("tables")
+    [("tables" "tables-tools")
+     ;; the same instructions in two wordings: commands of a shell, or the tools of tables-server.rkt
+     (define tools? (equal? arm "tables-tools"))
      (string-append
-      "Access: the dataset as the tables of a relational schema, in this directory's workspace (the tables are defined over the FHIR data):\n"
-      "  raco fhir-mcp call query language=sql text=\"SELECT …\"      one SQLite statement; rows come back as JSON\n"
-      "  ./kind <number> [<number> …]                               how a kind of question is answered (below)\n"
-      "  ./answer --kind <number> \"SELECT …\"                        the query that answers the question: its rows, the answer, the resources behind it — written to the answer file\n"
-      "Each command line is checked before it runs, and only plain ones pass: these three commands and `cat`/`grep` on the examples, several joined by `;`. A shell variable (`C=…`), `$(…)`, a here-document or a script is refused and costs you the turn. Write the whole query inside the quotes, a condition that occurs twice written out twice.\n\n"
+      (if tools?
+          (string-append
+           "Access: the dataset as the tables of a relational schema (the tables are defined over the FHIR data), through three tools:\n"
+           "  sql      one SQLite statement; rows come back as JSON\n"
+           "  kind     how a kind of question is answered (below)\n"
+           "  answer   the query that answers the question: its rows, the answer, the resources behind it — written to the answer file\n"
+           "Write a query whole, a condition that occurs twice written out twice.\n\n")
+          (string-append
+           "Access: the dataset as the tables of a relational schema, in this directory's workspace (the tables are defined over the FHIR data):\n"
+           "  raco fhir-mcp call query language=sql text=\"SELECT …\"      one SQLite statement; rows come back as JSON\n"
+           "  ./kind <number> [<number> …]                               how a kind of question is answered (below)\n"
+           "  ./answer --kind <number> \"SELECT …\"                        the query that answers the question: its rows, the answer, the resources behind it — written to the answer file\n"
+           "Each command line is checked before it runs, and only plain ones pass: these three commands and `cat`/`grep` on the examples, several joined by `;`. A shell variable (`C=…`), `$(…)`, a here-document or a script is refused and costs you the turn. Write the whole query inside the quotes, a condition that occurs twice written out twice.\n\n"))
       (tables-schema) "\n\n"
       "People who compute against this schema write each kind of question's query one way. The kinds (a kind's slots in braces and brackets):\n"
       (examples-file "kinds.md") "\n\n"
-      "`./kind <number>` shows a kind: a question or two of that kind, what each assumes, the query that answers it, and then how each time phrase is written in such a query.\n\n"
+      (if tools? "The `kind` tool shows the kinds whose numbers you give it" "`./kind <number>` shows a kind")
+      ": a question or two of that kind, what each assumes, the query that answers it, and then how each time phrase is written in such a query.\n\n"
       "Work like this:\n"
-      "1. Read the example of your question's kind. When none is your question, take the nearest by what is asked for first — a yes/no question's example selects a comparison (`COUNT(*)>0`), a \"when\" or \"list the times\" question's the time column, \"how many\" a count, \"how much\" a sum or the value — and then by what it reads. When no kind's example selects what your question asks for (the name of a test, where the examples give a specimen's or an organism's), the nearest example still gives the conditions and the order, and you select the schema's column that holds what is asked. In the same command, look up each name your question gives — a lab test, a drug, an output, a care unit, a specimen: the tables have it as the hospital writes it, capitals included, and the question gives it in lower case, where it can read like ordinary words (\"or urine\" is the output `OR Urine`, not urine outputs). Ask for the name exactly as the question words it, case aside: `SELECT DISTINCT drug FROM prescriptions WHERE lower(trim(drug)) = '5% dextrose'`. Use every spelling that returns (`drug IN ('Amlodipine', 'amLODIPine')`); search by pattern (`LIKE`) only when it returns nothing.\n"
+      "1. Read the example of your question's kind. When none is your question, take the nearest by what is asked for first — a yes/no question's example selects a comparison (`COUNT(*)>0`), a \"when\" or \"list the times\" question's the time column, \"how many\" a count, \"how much\" a sum or the value — and then by what it reads. When no kind's example selects what your question asks for (the name of a test, where the examples give a specimen's or an organism's), the nearest example still gives the conditions and the order, and you select the schema's column that holds what is asked. "
+      (if tools? "In the same turn, with `sql`, look up each name your question gives" "In the same command, look up each name your question gives")
+      " — a lab test, a drug, an output, a care unit, a specimen: the tables have it as the hospital writes it, capitals included, and the question gives it in lower case, where it can read like ordinary words (\"or urine\" is the output `OR Urine`, not urine outputs). Ask for the name exactly as the question words it, case aside: `SELECT DISTINCT drug FROM prescriptions WHERE lower(trim(drug)) = '5% dextrose'`. Use every spelling that returns (`drug IN ('Amlodipine', 'amLODIPine')`); search by pattern (`LIKE`) only when it returns nothing.\n"
       "2. Copy the example's query whole and change only three things: the patient's number; the names and values (spelled as the tables have them); the time conditions (take out the example's, put in one for each time phrase of your question — \"today\", \"since 09/2116\", \"on the last ICU visit\" — written as the list under the example writes it, on the column the example uses). Change nothing else: not how the visit is chosen, not the SELECT (unless no example selects what is asked, as in step 1), not the ORDER BY or LIMIT, and add no condition of your own. Three readings to keep:\n"
       "   - \"Current\" is what has no end recorded, and only that. A current hospital visit (\"this hospital stay\", \"this admission\", \"since admission\") is `admissions.dischtime IS NULL`; a current ICU stay (\"this ICU encounter\", \"the current ICU visit\") is `icustays.outtime IS NULL`. Time elapsed since an admission (\"how many hours since the patient was admitted\", to the hospital or to the ICU) is asked of the current one. The people who use this schema do not call a visit current once its end is recorded, whatever the assumed current time is.\n"
       "   - \"Last year\", \"in the last year\", \"the previous month\", \"yesterday\" name the calendar year, month or day before the current one (`datetime(x,'start of year') = datetime(<now>,'start of year','-1 year')`), not the twelve months, thirty days or twenty-four hours up to now. Only \"since N years/months/days ago\" counts back from now.\n"
       "   - When a visit or a stay *was* is when it began (`admittime`, `intime`), and the first or last visit is the first or last to begin; its end is asked for as a discharge or a leaving.\n"
-      "3. Run it with `./answer --kind <number> \"SELECT …\"` (the number of the example you copied). It prints the rows; states the answer as the people who use this schema state one — the value alone (`61.7`, `-1`, `2133-12-31 02:00:00`, `EW EMER.`), every row's value in the order returned when there are several, `yes`/`no` for a comparison, and \"none: nothing on record\" when the query returns no row, a null or a count of 0; finds the resources the answer rests on (the rows of the query's table that meet its conditions, each row's `fhir_id` columns); and writes both to the answer file. Each `note:` it prints names something to look at again: a shape that is not the example's, a phrase of your question (\"today\", \"this hospital stay\", \"daily\") with no condition for it, a name the question does not give or one it gives that the query leaves out, a first or last row with no value, a value selected where the question asks whether something is so, a time selected where it does not ask when. Unless a note is plainly mistaken, correct the query and run it again. When it says `NOT written`, there is no answer file yet: correct the query and run it again. When it ends with `done:`, the answer stands and the session ends there. Otherwise you are done: do not rewrite the file, do not add a unit, a date or an explanation, and do not look for another reading of the question that would return something. (Only when the answer it states is not what the rows say, run the same query once more with the answer said: `./answer --kind <number> --say \"<the answer>\" \"SELECT …\"`.)")]
+      (if tools?
+          "3. Give it to `answer`, with `kind` the number of the example you copied. It prints the rows;"
+          "3. Run it with `./answer --kind <number> \"SELECT …\"` (the number of the example you copied). It prints the rows;")
+      " states the answer as the people who use this schema state one — the value alone (`61.7`, `-1`, `2133-12-31 02:00:00`, `EW EMER.`), every row's value in the order returned when there are several, `yes`/`no` for a comparison, and \"none: nothing on record\" when the query returns no row, a null or a count of 0; finds the resources the answer rests on (the rows of the query's table that meet its conditions, each row's `fhir_id` columns); and writes both to the answer file. Each `note:` it prints names something to look at again: a shape that is not the example's, a phrase of your question (\"today\", \"this hospital stay\", \"daily\") with no condition for it, a name the question does not give or one it gives that the query leaves out, a first or last row with no value, a value selected where the question asks whether something is so, a time selected where it does not ask when. Unless a note is plainly mistaken, correct the query and run it again. When it says `NOT written`, there is no answer file yet: correct the query and run it again. When it ends with `done:`, the answer stands and the session ends there. Otherwise you are done: do not rewrite the file, do not add a unit, a date or an explanation, and do not look for another reading of the question that would return something. "
+      (if tools?
+          "(Only when the answer it states is not what the rows say, give the same query once more with the answer said, as `say`.)"
+          "(Only when the answer it states is not what the rows say, run the same query once more with the answer said: `./answer --kind <number> --say \"<the answer>\" \"SELECT …\"`.)"))]
     [("mcp")
      (string-append "Access: the FHIR workspace's tools (mcp__fhir__…: query, describe, explain, run, check, …), over this dataset. "
                     "The card below writes a call as the shell does: `describe ref=X as=fsh` is the describe tool with ref and as.\n\n"
@@ -74,7 +112,10 @@ EOF
 ;; prompt : arm rest-base question answer-file -> string   the answer file named by its absolute path:
 ;; agents told "this directory" have written it to a mistyped one
 (define (prompt arm rest q answer-file)
-  (for/fold ([s (string-replace (string-replace common "{access}" (access arm rest)) "{answer_file}" answer-file)])
+  (for/fold ([s (string-replace (for/fold ([s common]) ([part (list (cons "{written}" (written arm)) (cons "{only}" (only arm))
+                                                                    (cons "{access}" (access arm rest)))])
+                                  (string-replace s (car part) (cdr part)))
+                                "{answer_file}" answer-file)])
             ([k '(question assumption patient_fhir_id)])
     (string-replace s (format "{~a}" k) (hash-ref q k))))
 
@@ -127,25 +168,41 @@ EOF
   (append (case arm
             [("workspace") '("Bash(raco fhir-mcp:*)" "Bash(raco fhir guide:*)")]
             [("tables") '("Bash(raco fhir-mcp:*)" "Bash(./answer:*)" "Bash(./kind:*)" "Bash(cat:*)" "Bash(grep:*)")]
+            [("tables-tools") '("mcp__tables")]
             [("mcp") '("mcp__fhir" "Bash(raco fhir guide:*)")]
             [else '("Bash(curl:*)")])
-          '("Bash(python3:*)" "Bash(jq:*)")
-          (if (equal? arm "tables") '() '("Read" "Write"))))
+          (if (equal? arm "tables-tools") '() '("Bash(python3:*)" "Bash(jq:*)"))
+          (if (tables-arm? arm) '() '("Read" "Write"))))
 
-;; stop-settings : -> string   Claude Code settings whose one hook ends a tables session when
-;; `./answer` says it is done (stop-when-answered.sh): three in four sessions had nothing left to
+;; stop-settings : arm -> string   Claude Code settings whose one hook ends a tables session when
+;; `./answer` (the `answer` tool) says it is done (stop-when-answered.sh): three in four sessions had nothing left to
 ;; do then but be asked again, with the whole conversation, and say so
 (define-runtime-path stop-hook "stop-when-answered.sh")
-(define (stop-settings)
+(define (stop-settings arm)
   (jsexpr->string
-   (hasheq 'hooks (hasheq 'PostToolUse (list (hasheq 'matcher "Bash"
+   (hasheq 'hooks (hasheq 'PostToolUse (list (hasheq 'matcher (if (equal? arm "tables-tools") "mcp__tables__answer" "Bash")
                                                       'hooks (list (hasheq 'type "command" 'command (path->string stop-hook)))))))))
 
 ;; builtin : arm -> (listof string)   the built-in tools an arm's agent has at all. Each tool's
 ;; definition is in every turn's context (Read and Write: about 950 tokens a turn), and the tables
 ;; arm needs neither: `./answer` writes the answer file, `cat` reads an example.
 (define (builtin arm)
-  (if (equal? arm "tables") '("Bash") builtin-tools))
+  (case arm
+    [("tables") '("Bash")]
+    [("tables-tools") '()]
+    [else builtin-tools]))
+
+;; tables-mcp : dir -> string   an MCP configuration: tables-server.rkt over the question's workspace
+(define (tables-mcp work)
+  (jsexpr->string
+   (hasheq 'mcpServers
+           (hasheq 'tables (hasheq 'command "racket"
+                                   'args (list "-l-" "fhir-examples/agent-bench/fab/tables-server" (path->string (path->complete-path work))))))))
+
+;; tools-system : string   the system prompt of an agent that has the three tools and nothing else,
+;; in place of the runtime's own (about 1.5k tokens in every call, about working in a code base)
+(define tools-system
+  "You answer one question about a hospital's records with the tools you are given, following the instructions you are given with it.")
 
 
 ;; resources-by-type : answer -> hash   "Type/id"s as the benchmark's {Type: [ids]}
@@ -197,7 +254,8 @@ EOF
      [("--collect") "run nothing: rebuild agent_results.json from the run's directories" (set! collect? #t)]
      [("--resume") "skip the items that already have a record (a killed run, resumed)" (current-resume? #t)]
      #:args (arm sample out) (values arm sample out)))
-  (unless (member arm '("rest" "workspace" "mcp" "tables")) (raise-user-error 'run "the arm is rest, workspace, mcp or tables"))
+  (unless (member arm '("rest" "workspace" "mcp" "tables" "tables-tools"))
+    (raise-user-error 'run "the arm is rest, workspace, mcp, tables or tables-tools"))
   (define rest (or (getenv "FAB_REST") "http://localhost:8765"))
   (define qs (let ([all (read-json-file sample-file)]) (if limit (take all (min limit (length all))) all)))
   (define dir (path->complete-path out))
@@ -209,9 +267,11 @@ EOF
       (when (member arm '("workspace" "mcp"))
         (display-to-file (format "fhirVersion: 4.0.1\ndata: ~a\n" (or (getenv "FAB_STORE") (error 'run "set FAB_STORE")))
                          (build-path work "workspace.yaml")))
-      (when (equal? arm "tables") (tables-workspace! work q)))
+      (when (tables-arm? arm) (tables-workspace! work q)))
     (define rec (run-item id (lambda (real) (prompt arm rest q (path->string (build-path real "answer.json")))) work model (tools arm)
-                          #:prepare prepare #:builtin (builtin arm) #:settings (and (equal? arm "tables") (stop-settings)) #:mcp (and (equal? arm "mcp") (workspace-mcp work))))
+                          #:prepare prepare #:builtin (builtin arm) #:settings (and (tables-arm? arm) (stop-settings arm))
+                          #:mcp (case arm [("mcp") (workspace-mcp work)] [("tables-tools") (tables-mcp work)] [else #f])
+                          #:system (and (equal? arm "tables-tools") tools-system)))
     (void (system* (find-executable-path "pkill") "-f" (format "mcp-daemon.*~a" work)))
     ;; the benchmark's files, and the other questions' directories (an agent's own is its cwd)
     (define others (for/list ([o (in-list qs)] #:unless (equal? (hash-ref o 'question_id) id))

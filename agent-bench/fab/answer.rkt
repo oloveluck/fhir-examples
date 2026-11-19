@@ -33,7 +33,7 @@
          (only-in "query-checks.rkt" query-notes comparison? asks-whether hold? first-pick))
 
 (provide answer-text shape example-queries shape-note all-rows empty-pick-note held? shown-note other-kinds done-line
-         tied-values tie-note)
+         tied-values tie-note answer! open-run)
 
 ;; ---- the answer ---------------------------------------------------------------------------------
 ;; count? : string -> boolean   a query that counts
@@ -216,24 +216,13 @@
           (for/list ([row (in-list (run-result-rows r))])
             (for/list ([c (in-list cols)]) (let ([v (hash-ref row c 'null)]) (if (or (string? v) (real? v)) v 'null))))))
 
-(module+ main
-  (define kind #f)
-  (define said #f)
-  (define out "answer.json")
-  (define sql
-    (command-line
-     #:program "answer"
-     #:once-each
-     [("--kind") n "the kind of question (examples/<n>.md): the query's shape is set beside its examples'" (set! kind n)]
-     [("--say") text "the answer to write, in place of the one read from the rows" (set! said text)]
-     [("--out") f "the answer file (default answer.json)" (set! out f)]
-     #:args (sql) sql))
-  (define open-hub (dynamic-require 'fhir/mcp/workspace 'open-hub))
-  (define execute (dynamic-require 'fhir/mcp/run 'execute))
-  (define h (open-hub (current-directory)))
-  (define (run q) (execute h "sql" #f q (hasheq)))
+;; answer! : (string -> run-result) string kind|#f text|#f file -> void   the query run by `run` in the
+;; current directory (the question's workspace): rows, answer, resources and notes printed, the
+;; answer file written unless a decisive note stands. A query that does not run raises exn:fail:user
+;; with the first line of what the tables said. `kind` is the kind's number as text.
+(define (answer! run sql kind said out)
   (define-values (columns rows)
-    (with-handlers ([exn:fail? (lambda (e) (eprintf "~a\n" (car (string-split (exn-message e) "\n"))) (exit 1))])
+    (with-handlers ([exn:fail? (lambda (e) (raise-user-error "~a" (car (string-split (exn-message e) "\n"))))])
       (cells (run sql))))
   (printf "~a row~a (~a)\n" (length rows) (if (= (length rows) 1) "" "s")
           (string-join (for/list ([c (in-list columns)]) (let ([n (symbol->string c)]) (if (> (string-length n) 40) (string-append (substring n 0 40) "…") n))) ", "))
@@ -302,6 +291,28 @@
        (lambda (o) (write-json (hasheq 'answer answer 'resources resources) o)))
      (printf "written to ~a\n" out)
      (when (and (null? own-notes) (null? notes)) (printf "~a\n" done-line))]))
+
+;; open-run : dir -> (string -> run-result)   the workspace in dir opened once; each query asked of it
+(define (open-run dir)
+  (define open-hub (dynamic-require 'fhir/mcp/workspace 'open-hub))
+  (define execute (dynamic-require 'fhir/mcp/run 'execute))
+  (define h (open-hub dir))
+  (lambda (q) (execute h "sql" #f q (hasheq))))
+
+(module+ main
+  (define kind #f)
+  (define said #f)
+  (define out "answer.json")
+  (define sql
+    (command-line
+     #:program "answer"
+     #:once-each
+     [("--kind") n "the kind of question (examples/<n>.md): the query's shape is set beside its examples'" (set! kind n)]
+     [("--say") text "the answer to write, in place of the one read from the rows" (set! said text)]
+     [("--out") f "the answer file (default answer.json)" (set! out f)]
+     #:args (sql) sql))
+  (with-handlers ([exn:fail:user? (lambda (e) (eprintf "~a\n" (exn-message e)) (exit 1))])
+    (answer! (open-run (current-directory)) sql kind said out)))
 
 (module+ test
   (require rackunit)

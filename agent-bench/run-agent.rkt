@@ -22,13 +22,15 @@
   ;; run-item : id prompt workdir model tools -> Record
   ;; #:builtin: the built-in tools the agent has at all (`--tools`; #f = Claude Code's default set,
   ;; whose definitions are most of every turn's context); #:mcp: an MCP configuration (JSON text),
-  ;; its servers the only ones the agent sees
+  ;; its servers the only ones the agent sees; #:system: a system prompt in place of Claude Code's
+  ;; own (about 1.5k tokens in every call, written for someone working in a code base)
   ;; prompt: the text, or a function of the directory the agent works in (a short one, see
   ;; agent-directory) when the prompt names a path there
   [run-item (->* (string? (or/c string? (-> path? string?)) path-string? string? (listof string?))
                  (#:prepare (or/c #f (-> any)) #:timeout real? #:max-turns exact-positive-integer?
                   #:env (listof (cons/c string? string?))
-                  #:builtin (or/c #f (listof string?)) #:mcp (or/c #f string?) #:settings (or/c #f string?))
+                  #:builtin (or/c #f (listof string?)) #:mcp (or/c #f string?) #:settings (or/c #f string?)
+                  #:system (or/c #f string?))
                  hash?)]
   ;; claude-turn : dir text model [session] -> (values reply session cost)   one turn of a conversation
   ;; with no tools (the model only writes text), resumed when a session is given
@@ -131,15 +133,15 @@
 
 (define (run-item id prompt workdir model tools
                   #:prepare [prepare #f] #:timeout [timeout 1200] #:max-turns [max-turns 60] #:env [env-extra '()]
-                  #:builtin [builtin #f] #:mcp [mcp #f] #:settings [settings #f])
+                  #:builtin [builtin #f] #:mcp [mcp #f] #:settings [settings #f] #:system [system #f])
   (define work (path->complete-path workdir))
   (define kept (build-path work "record.json"))
   (if (and (current-resume?) (not (link-exists? work)) (file-exists? kept))
       (read-json-file kept)
-      (run-item/fresh id prompt work model tools prepare timeout max-turns env-extra builtin mcp settings)))
+      (run-item/fresh id prompt work model tools prepare timeout max-turns env-extra builtin mcp settings system)))
 
 ;; run-item/fresh : … -> Record   the item run by a new agent
-(define (run-item/fresh id prompt work model tools prepare timeout max-turns env-extra builtin mcp settings)
+(define (run-item/fresh id prompt work model tools prepare timeout max-turns env-extra builtin mcp settings system)
   (when (or (link-exists? work) (file-exists? work)) (delete-file work))
   (when (directory-exists? work) (delete-directory/files work))
   (make-directory* (let-values ([(parent _n _d) (split-path work)]) parent))
@@ -148,7 +150,7 @@
   (when prepare (prepare))
   (define-values (status seconds out err)
     (dynamic-wind void
-                  (lambda () (run-claude real (if (procedure? prompt) (prompt real) prompt) model tools timeout max-turns env-extra builtin mcp settings))
+                  (lambda () (run-claude real (if (procedure? prompt) (prompt real) prompt) model tools timeout max-turns env-extra builtin mcp settings system))
                   ;; the workspace's warm process, if a call started one, ends with the item
                   (lambda () (void (system* (find-executable-path "pkill") "-f" (format "mcp-daemon.*~a" real))))))
   (settle! real work)
@@ -184,13 +186,15 @@
   (values (hash-ref meta 'result "") (hash-ref meta 'session_id) (let ([c (hash-ref meta 'total_cost_usd 0)]) (if (real? c) c 0))))
 
 ;; run-claude : dir prompt model tools timeout max-turns env -> (values status seconds stdout stderr)
-;; `settings` is Claude Code settings as JSON text (hooks, for one), given beside the user's own
-(define (run-claude work prompt model tools timeout max-turns env-extra [builtin #f] [mcp #f] [settings #f])
+;; `settings` is Claude Code settings as JSON text (hooks, for one), given beside the user's own;
+;; `system` a system prompt in place of the runtime's
+(define (run-claude work prompt model tools timeout max-turns env-extra [builtin #f] [mcp #f] [settings #f] [system #f])
   (claude work prompt (append (list "-p" "--model" model "--output-format" "json"
                                     "--max-turns" (number->string max-turns))
                               (if builtin (list "--tools" (string-join builtin ",")) '())
                               (if mcp (list "--mcp-config" mcp "--strict-mcp-config") '())
                               (if settings (list "--settings" settings) '())
+                              (if system (list "--system-prompt" system) '())
                               (list "--allowedTools") tools (list "--disallowedTools") disallowed)
           timeout env-extra))
 
