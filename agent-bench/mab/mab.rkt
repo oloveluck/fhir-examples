@@ -14,7 +14,7 @@
 
 (require racket/port racket/string racket/file racket/system json)
 
-(provide main)
+(provide main post! finish!)
 
 (define usage
   (string-append "usage: ./mab post <url> [payload.json]   (the payload on stdin when no file is given)\n"
@@ -39,10 +39,38 @@
         ;; a create: the server gives the id (the Instance name is FSH's, not the record's)
         [else (hash-remove (car resources) (quote id))]))
 
+;; record-post! : dir url jsexpr -> string   one {"url", "payload"} line added to dir's posts.jsonl
+(define (record-post! here url payload)
+  (call-with-output-file (build-path here "posts.jsonl") #:exists 'append
+    (lambda (o) (write-string (jsexpr->string (hasheq 'url url 'payload payload)) o) (newline o)))
+  "POST request accepted and executed successfully.")
+
+;; post! : dir url (or jsexpr #f) (or string #f) (format-string any ... -> any) -> string
+;; a POST recorded in `here`: `payload` the resource as JSON, or `fsh` one FSH Instance (compiled
+;; for FHIR R4, the id it would give left out). What is wrong with either goes to `fail`, which
+;; does not return.
+(define (post! here url payload fsh fail)
+  (define resource
+    (cond [fsh
+           (define file (make-temporary-file "mab-post-~a.fsh"))
+           (display-to-file fsh file #:exists 'truncate)
+           (begin0 (fsh-payload file (lambda (fmt . vs) (delete-file file) (apply fail fmt vs)))
+                   (when (file-exists? file) (delete-file file)))]
+          [else payload]))
+  (unless (hash? resource) (fail "Invalid POST request: the payload is not a JSON object"))
+  (record-post! here url resource))
+
+;; finish! : dir string (format-string any ... -> any) -> string   the answers — a JSON list, as
+;; text — written to dir's answer.json as {"finish": text}
+(define (finish! here text fail)
+  (unless (list? (read-json-text text))
+    (fail "FINISH needs a JSON list, e.g. [\"S1234567\"]"))
+  (call-with-output-file (build-path here "answer.json") #:exists 'truncate
+    (lambda (o) (write-json (hasheq 'finish text) o)))
+  "Finished.")
+
 (define (main args)
   (define here (current-directory))
-  (define (append-line file s)
-    (call-with-output-file (build-path here file) #:exists 'append (lambda (o) (write-string s o) (newline o))))
   (define (fail fmt . vs) (apply printf fmt vs) (newline) (exit 1))
   (cond
     [(and (member (length args) '(2 3)) (equal? (car args) "post"))
@@ -53,15 +81,12 @@
                       (port->string (current-input-port))))
      (define payload (if fsh? (fsh-payload (caddr args) fail) (read-json-text text)))
      (unless (hash? payload) (fail "Invalid POST request: the payload is not a JSON object"))
-     (append-line "posts.jsonl" (jsexpr->string (hasheq 'url (cadr args) 'payload payload)))
-     (displayln "POST request accepted and executed successfully.")]
+     (displayln (record-post! here (cadr args) payload))]
     [(and (= (length args) 2) (equal? (car args) "finish"))
      (define text (string-trim (cadr args)))
      (unless (list? (read-json-text text))
        (fail "FINISH needs a JSON list, e.g. ./mab finish '[\"S1234567\"]'"))
-     (call-with-output-file (build-path here "answer.json") #:exists 'truncate
-       (lambda (o) (write-json (hasheq 'finish text) o)))
-     (displayln "Finished.")]
+     (displayln (finish! here text fail))]
     [else (display usage) (exit 2)]))
 
 (module+ main (main (vector->list (current-command-line-arguments))))
@@ -77,5 +102,15 @@
     (check-equal? (string->jsexpr (file->string "posts.jsonl"))
                   (hasheq 'url "http://x/fhir/Observation" 'payload (hasheq 'resourceType "Observation")))
     (check-equal? (hash-ref (call-with-input-file "answer.json" read-json) 'finish) "[\"S1\", 3]")
-    (check-equal? (with-handlers ([number? values]) (main '("finish" "S1"))) 1))
+    (check-equal? (with-handlers ([number? values]) (main '("finish" "S1"))) 1)
+    ;; the same two actions as procedures (the tools of mab/tools-server.rkt)
+    (define (refuse fmt . vs) (raise (apply format fmt vs)))
+    (check-equal? (post! dir "http://x/fhir/MedicationRequest" (hasheq 'resourceType "MedicationRequest") #f refuse)
+                  "POST request accepted and executed successfully.")
+    (check-equal? (string->jsexpr (cadr (file->lines "posts.jsonl")))
+                  (hasheq 'url "http://x/fhir/MedicationRequest" 'payload (hasheq 'resourceType "MedicationRequest")))
+    (check-regexp-match #rx"not a JSON object" (with-handlers ([string? values]) (post! dir "http://x" '(1) #f refuse)))
+    (check-equal? (finish! dir "[4.2]" refuse) "Finished.")
+    (check-equal? (hash-ref (call-with-input-file "answer.json" read-json) 'finish) "[4.2]")
+    (check-regexp-match #rx"needs a JSON list" (with-handlers ([string? values]) (finish! dir "4.2" refuse))))
   (delete-directory/files dir))

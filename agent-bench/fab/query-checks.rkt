@@ -47,7 +47,7 @@
          query-shape make-checks query-notes comparison? asks-whether whether-kinds hold?
          time-select says-when opens-when? when-regular? same-time? same-time-kinds first-pick
          time-forms said-times selected one-selected? name-comparisons own-word-readings by-pattern exact-names?
-         name-columns)
+         name-columns name-companions literal-comparisons)
 
 ;; ---- text ----------------------------------------------------------------------------------------
 (define (norm s) (string-downcase (string-trim (regexp-replace* #px"\\s+" s " "))))
@@ -163,6 +163,12 @@
 ;; the other too: a question that says to disregard case and spaces is answered so, and the
 ;; checks below saw no name at all in such a query)
 (define (name-comparisons sql)
+  (filter (lambda (p) (not (regexp-match? #px"linksto$" (car p)))) (literal-comparisons sql)))
+
+;; literal-comparisons : string -> (listof (cons column literal))   the same with what a
+;; dictionary row links to: every column a query compares with a quoted literal that is no time,
+;; date or number
+(define (literal-comparisons sql)
   (define wrap "(?i:lower|upper|trim)\\s*\\(\\s*")
   (define col "([a-z_]+\\.[a-z_]+)")
   (define px
@@ -170,7 +176,7 @@
                             "\\s*(?:=|IN)\\s*(\\(\\s*'[^']*'(?:\\s*,\\s*'[^']*')*\\s*\\)|'[^']*')")))
   (for*/list ([m (in-list (regexp-match* px sql #:match-select values))]
               [column (in-value (or (cadr m) (caddr m) (cadddr m)))]
-              #:unless (regexp-match? #px"linksto$|time" column)
+              #:unless (regexp-match? #px"time" column)
               [name (in-list (regexp-match* #px"'([^']*)'" (list-ref m 4) #:match-select cadr))]
               #:unless (regexp-match? #px"^[-0-9: ./%]*$" name))
     (cons column name)))
@@ -375,6 +381,25 @@
 (define (name-columns train)
   (remove-duplicates (for*/list ([q (in-list train)] [p (in-list (name-comparisons (hash-ref q 'sql_query)))]) (car p))))
 
+;; name-companions : (listof Question) -> (hash symbol -> (listof column))   for a name column, the
+;; other columns of its table — not names themselves — that EVERY train query naming it also
+;; compares with a literal (`d_items.linksto` beside `d_items.label`, 449 of 449: the table an
+;; item's records are in). A name is given with them: two things may share a name, and a query
+;; that leaves them out reads the wrong one's table.
+(define (name-companions train)
+  (define queries (for/list ([q (in-list train)]) (remove-duplicates (map car (literal-comparisons (hash-ref q 'sql_query))))))
+  (define (table c) (car (string-split c ".")))
+  (define names (name-columns train))
+  (for*/hasheq ([c (in-list names)]
+                [mine (in-value (filter (lambda (cols) (member c cols)) queries))]
+                [others (in-value (for/list ([o (in-list (remove-duplicates (append* mine)))]
+                                             #:unless (member o names)
+                                             #:when (equal? (table o) (table c))
+                                             #:when (andmap (lambda (cols) (member o cols)) mine))
+                                    o))]
+                #:when (pair? others))
+    (values (string->symbol c) others)))
+
 ;; hold? : string -> boolean   a note that keeps the answer from being written the first time
 (define (hold? note) (string-prefix? note "hold: "))
 
@@ -383,7 +408,7 @@
 (define (make-checks train)
   (hasheq 'phrases (phrase-book train) 'whether (whether-kinds train) 'when (when-regular? train)
           'ties (same-time-kinds train) 'times (time-forms train) 'one (one-selected? train)
-          'exact (exact-names? train) 'names (name-columns train)))
+          'exact (exact-names? train) 'names (name-columns train) 'beside (name-companions train)))
 
 ;; query-notes : string (or string #f) Checks string string (listof string) [(column -> (listof string))]
 ;;               -> (listof string)
@@ -534,6 +559,11 @@
   (check-equal? (name-columns (list (hasheq 'sql_query "SELECT a.b FROM a WHERE a.c = 'x' AND a.t >= '2100-01-01'")
                                     (hasheq 'sql_query "SELECT d.v FROM d WHERE lower(d.label) IN ('p', 'q') AND a.c = 'y'")))
                 '("a.c" "d.label") "the columns compared with a name, once each, in the order met; a time is no name")
+  (check-equal? (name-companions (list (hasheq 'sql_query "SELECT e.v FROM e WHERE e.i IN ( SELECT d.i FROM d WHERE d.label = 'x' AND d.linksto = 'e' ) AND p.drug = 'y'")
+                                       (hasheq 'sql_query "SELECT e.v FROM e WHERE e.i IN ( SELECT d.i FROM d WHERE d.label = 'z' AND d.linksto = 'f' ) AND p.drug = 'y' AND p.route = 'IV'")))
+                (hasheq 'd.label '("d.linksto")) "said beside the name in every query that names it; a route is beside a drug in one only")
+  (check-equal? (map car (name-comparisons "SELECT 1 FROM d WHERE d.label = 'x' AND d.linksto = 'e'")) '("d.label"))
+  (check-equal? (map car (literal-comparisons "SELECT 1 FROM d WHERE d.label = 'x' AND d.linksto = 'e' AND d.t >= '2100-01-01'")) '("d.label" "d.linksto"))
   (let ([notes (lambda (sql exact) (filter (lambda (n) (regexp-match? #rx"matches by pattern" n))
                                            (query-notes sql #f (hasheq 'exact exact) "How many times did patient 1 get a cerebral ventricular #1?" "" '())))])
     (check-equal? (length (notes "SELECT COUNT(*) FROM p WHERE p.c IN ( SELECT d.c FROM d WHERE lower(d.t) LIKE '%cerebral ventricle%' )" #t)) 1)

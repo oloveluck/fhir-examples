@@ -9,6 +9,9 @@
 ;;;   rest-ours       curl against this family's fhir-server over the same data
 ;;;   workspace       the fhir-mcp workspace verbs (`raco fhir-mcp call …`) over the same data
 ;;;   mcp             the same verbs as MCP tools (`raco fhir-mcp` as the agent's MCP server)
+;;;   workspace-tools the two reading verbs, POST and FINISH as the four tools of one process
+;;;                   (tools-server.rkt), and no others: no shell, a one-sentence system prompt, and
+;;;                   the session ends when `finish` has the answers
 ;;; The agent arms share the built-in tools (Bash, Read, Write) and the closing instruction; the
 ;;; workspace arms get the reading card (`raco fhir guide data`) and may write a POST as FSH.
 ;;;   official-hapi   the benchmark's own protocol (below) against HAPI
@@ -42,11 +45,27 @@ Use only the access described here; do not look for the benchmark's files or ans
 EOF
   )
 
+;; the same for an agent whose only tools are tools-server.rkt's: a POST and the answers are tool
+;; calls, with no file between
+(define tools-template #<<EOF
+
+How to act here:
+- {access}
+- A POST is recorded, not sent: give `post` the url (for example {api_base}Observation) and the resource, as a JSON object (`payload`) or as one FSH Instance (`fsh`; FHIR R4: `Instance: p` / `InstanceOf: Observation` / `* status = #final` / …), which it compiles, saying where it is wrong. Make only the POSTs the question calls for, before you finish.
+- The benchmark's grader reads a medication order's route as plain text, not as the object the function list and FHIR describe: write `"dosageInstruction": [{"route": "IV", "doseAndRate": [...]}]` (or `"oral"`), as a JSON payload (FSH cannot say it). A ServiceRequest's `note` is one object, `{"text": "..."}`.
+- When you have the answers and have done what was asked, give them to `finish` as a list, the equivalent of FINISH([answer1, answer2, ...]): the list holds the answers themselves (values: `[123]`, `["S1234567"]`), not sentences, and a measurement is its number, without its unit. That ends the task.
+Use only these tools.
+EOF
+  )
+
 (define (access kind base)
   (case kind
     [(workspace)
      (string-append "Read the EHR through the FHIR workspace in this directory, from the shell; there is no other access to the EHR. "
                     "For example: raco fhir-mcp call query language=search text='Observation?patient=Patient/S1234567&code=MG'\n\n" (reading-card) "\n")]
+    [(tools)
+     (string-append "Read the EHR through the tools `query` and `describe`; there is no other access to the EHR. "
+                    "The card below writes a call as the shell does: `describe ref=X as=fsh` is the describe tool with ref and as.\n\n" (reading-card) "\n")]
     [(mcp)
      (string-append "Read the EHR through the FHIR workspace's tools (mcp__fhir__…); there is no other access to the EHR. "
                     "The card below writes a call as the shell does: `describe ref=X as=fsh` is the describe tool with ref and as.\n\n" (reading-card) "\n")]
@@ -65,9 +84,30 @@ EOF
   (define tail (car (regexp-match #rx"(?s:Here is a list of functions.*)$" official)))
   (string-append "You are an expert in using FHIR functions to assist medical professionals. You are given a question and a set of possible functions. Based on the question, you will need to make one or more function/tool calls to achieve the purpose.\n\n"
                  tail
-                 (string-replace (string-replace (string-replace agent-template "{access}" (access kind base)) "{fsh}" (fsh-note kind)) "{api_base}" base)))
+                 (if (eq? kind 'tools)
+                     (string-replace (string-replace tools-template "{access}" (access kind base)) "{api_base}" base)
+                     (string-replace (string-replace (string-replace agent-template "{access}" (access kind base)) "{fsh}" (fsh-note kind)) "{api_base}" base))))
+
+;; the tools arm: tools-server.rkt (the file beside this one) over the task's workspace, a hook
+;; that ends the session when `finish` has the answers, and a system prompt of one sentence in
+;; place of the runtime's own
+(define-runtime-path tools-server "tools-server.rkt")
+(define-runtime-path stop-hook "stop-when-finished.sh")
+(define (tools-mcp work)
+  (jsexpr->string
+   (hasheq 'mcpServers
+           (hasheq 'mab (hasheq 'command "racket"
+                                'args (list (path->string tools-server) (path->string (path->complete-path work))))))))
+(define stop-settings
+  (jsexpr->string
+   (hasheq 'hooks (hasheq 'PostToolUse (list (hasheq 'matcher "mcp__mab__finish"
+                                                      'hooks (list (hasheq 'type "command" 'command (path->string stop-hook)))))))))
+(define tools-system
+  "You carry out one task in a hospital's records with the tools you are given, following the instructions you are given with it.")
 
 (define (tools kind)
+  (if (eq? kind 'tools) '("mcp__mab") (tools* kind)))
+(define (tools* kind)
   (append (case kind
             [(workspace) '("Bash(raco fhir-mcp:*)" "Bash(raco fhir guide:*)")]
             [(mcp) '("mcp__fhir" "Bash(raco fhir guide:*)")]
@@ -79,10 +119,14 @@ EOF
   (define (prepare)
     (copy-file mab-script (build-path work "mab"))
     (file-or-directory-permissions (build-path work "mab") #o755)
-    (when (memq kind '(workspace mcp))
+    (when (memq kind '(workspace mcp tools))
       (display-to-file (format "fhirVersion: 4.0.1\ndata: ~a\n" (env-path "MAB_STORE")) (build-path work "workspace.yaml"))))
+  (define tools? (eq? kind 'tools))
   (define rec (run-item (hash-ref t 'id) (agent-prompt kind base t) work model (tools kind) #:prepare prepare
-                        #:builtin builtin-tools #:mcp (and (eq? kind 'mcp) (workspace-mcp work))))
+                        #:builtin (if tools? '() builtin-tools)
+                        #:mcp (cond [tools? (tools-mcp work)] [(eq? kind 'mcp) (workspace-mcp work)] [else #f])
+                        #:settings (and tools? stop-settings)
+                        #:system (and tools? tools-system)))
   ;; the workspace's warm process ends with the task
   (void (system* (find-executable-path "pkill") "-f" (format "mcp-daemon.*~a" work)))
   (define bad (audit rec (list "refsol" "test_data" "funcs_v1" "medagentbench" (path->string out))))
@@ -164,7 +208,8 @@ EOF
       [("rest-hapi" "rest-ours") (lambda (t) (run-agent-task 'rest base model dir t))]
       [("workspace") (lambda (t) (run-agent-task 'workspace base model dir t))]
       [("mcp") (lambda (t) (run-agent-task 'mcp base model dir t))]
+      [("workspace-tools") (lambda (t) (run-agent-task 'tools base model dir t))]
       [("official-hapi" "official-ours") (lambda (t) (run-official-task base model dir t))]
-      [else (raise-user-error 'run (format "unknown arm ~a: rest-hapi rest-ours workspace mcp official-hapi official-ours" arm))]))
+      [else (raise-user-error 'run (format "unknown arm ~a: rest-hapi rest-ours workspace mcp workspace-tools official-hapi official-ours" arm))]))
   (define costs (in-parallel parallel tasks run-one))
   (printf "total $~a\n" (/ (round (* 100 (apply + (filter real? costs)))) 100.0)))

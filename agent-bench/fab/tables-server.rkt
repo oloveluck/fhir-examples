@@ -33,19 +33,14 @@
 ;;; call. The first call picks a kind and gives the question's names, which needs neither: `kind`
 ;;; looks the names up (the agent asked the tables itself, which is what it needed the schema for).
 ;;;
-;;; The protocol is the little of MCP a tool server needs (initialize, ping, tools/list,
-;;; tools/call): no resources, no prompts, nothing announced that a client would turn into more
-;;; definitions.
+;;; The protocol is the little of MCP a tool server needs (../tool-server.rkt).
 
 (require racket/file racket/list racket/port racket/promise racket/string json
+         "../tool-server.rkt"
          (only-in "answer.rkt" answer! cells)
          (only-in "query-checks.rkt" said-times))
 
 (provide handle tool tables-tools kind-text phrases-text names-text tool-wording)
-
-;; A Tool is (tool name description schema run): run : (hash symbol -> jsexpr) -> string, the text
-;; answered; it raises exn:fail for what the caller got wrong, which is answered as the tool's error.
-(struct tool (name description schema run))
 
 ;; A Workspace is (workspace run query): what the tools ask of the opened workspace —
 ;;   run   : string -> run-result          a statement's rows (answer.rkt reads them)
@@ -96,7 +91,12 @@
 ;; ---- names -----------------------------------------------------------------------------------------
 ;; A question gives a name in lower case inside its sentence; the tables have it as the hospital
 ;; writes it. The columns that hold names are those the train split's queries compare with one
-;; (checks.json's `names`, query-checks.rkt `name-columns`).
+;; (checks.json's `names`, query-checks.rkt `name-columns`), and beside some of them every such
+;; query states another column of the row (`beside`, `name-companions`: an item's `linksto`, the
+;; table its records are in), which is said with the name: two things may share one.
+;;
+;; A Row is (list column value beside), of `near-statement` (list column value beside how):
+;; `beside` the conditions that go with the value, as SQL (" AND d_items.linksto = 'outputevents'").
 
 ;; quoted : string -> string   an SQL string literal
 (define (quoted s) (string-append "'" (string-replace s "'" "''") "'"))
@@ -104,67 +104,88 @@
 ;; folded : string -> string   a name with case and surrounding spaces aside
 (define (folded s) (string-downcase (string-trim s)))
 
-;; exact-statement : (listof column) (listof name) -> string   each column's values that are one
-;; of the names, case and surrounding spaces aside: rows (column, value)
-(define (exact-statement columns names)
+;; beside-sql : column (listof column) -> string   an SQL expression: the text of the conditions
+;; on the row's companion columns, "" when there are none
+(define (beside-sql column companions)
+  (define table (car (string-split column ".")))
+  (define mine (filter (lambda (o) (equal? (car (string-split o ".")) table)) companions))
+  (if (null? mine)
+      "''"
+      (string-join
+       (for/list ([o (in-list mine)])
+         (format "' AND ~a = ''' || replace(coalesce(~a, ''), '''', '''''') || ''''" o (cadr (string-split o "."))))
+       " || ")))
+
+;; companions-of : (hash symbol -> (listof column)) column -> (listof column)
+(define (companions-of beside column)
+  (let ([v (hash-ref beside (string->symbol column) '())]) (if (list? v) (filter string? v) '())))
+
+;; exact-statement : (listof column) (listof name) [beside] -> string   each column's values that
+;; are one of the names, case and surrounding spaces aside
+(define (exact-statement columns names [beside (hasheq)])
   (string-join
    (for/list ([c (in-list columns)])
      (define parts (string-split c "."))
-     (format "SELECT DISTINCT '~a' AS col, ~a AS name FROM ~a WHERE lower(trim(~a)) IN (~a)"
-             c (cadr parts) (car parts) (cadr parts) (string-join (map quoted names) ", ")))
+     (format "SELECT DISTINCT '~a' AS col, ~a AS name, ~a AS beside FROM ~a WHERE lower(trim(~a)) IN (~a)"
+             c (cadr parts) (beside-sql c (companions-of beside c)) (car parts) (cadr parts) (string-join (map quoted names) ", ")))
    " UNION ALL "))
 
-;; near-statement : (listof column) name -> string   for a name no column holds exactly: each
-;; column's values that hold it (`how` 1), and those it holds as whole words (`how` 2: "nu route"
-;; holds the route `NU`), six of each a column
-(define (near-statement columns name)
+;; near-statement : (listof column) name [beside] -> string   for a name no column holds exactly:
+;; each column's values that hold it (`how` 1), and those it holds as whole words (`how` 2: "nu
+;; route" holds the route `NU`), six of each a column
+(define (near-statement columns name [beside (hasheq)])
   (define pattern (quoted (string-append "%" (regexp-replace* #px"[%_\\\\]" name "\\\\&") "%")))
   (define padded (quoted (string-append " " name " ")))
   (string-join
    (for/list ([c (in-list columns)])
      (define parts (string-split c "."))
      (define-values (table col) (values (car parts) (cadr parts)))
+     (define with (beside-sql c (companions-of beside c)))
      (string-append
-      (format "SELECT * FROM (SELECT DISTINCT '~a' AS col, ~a AS name, 1 AS how FROM ~a WHERE lower(~a) LIKE ~a ESCAPE '\\' LIMIT 6)"
-              c col table col pattern)
+      (format "SELECT * FROM (SELECT DISTINCT '~a' AS col, ~a AS name, ~a AS beside, 1 AS how FROM ~a WHERE lower(~a) LIKE ~a ESCAPE '\\' LIMIT 6)"
+              c col with table col pattern)
       " UNION ALL "
-      (format "SELECT * FROM (SELECT DISTINCT '~a' AS col, ~a AS name, 2 AS how FROM ~a WHERE length(trim(~a)) > 1 AND instr(~a, ' ' || lower(trim(~a)) || ' ') > 0 LIMIT 6)"
-              c col table col padded col)))
+      (format "SELECT * FROM (SELECT DISTINCT '~a' AS col, ~a AS name, ~a AS beside, 2 AS how FROM ~a WHERE length(trim(~a)) > 1 AND instr(~a, ' ' || lower(trim(~a)) || ' ') > 0 LIMIT 6)"
+              c col with table col padded col)))
    " UNION ALL "))
 
-;; by-column : (listof column) (listof (list column value)) -> (listof (cons column (listof value)))
-(define (by-column columns rows)
+;; grouped : (listof column) (listof Row) -> (listof (list column beside (listof value)))   the
+;; rows by column (in the columns' order) and by what goes with the value
+(define (grouped columns rows)
   (for*/list ([c (in-list columns)]
-              [vs (in-value (remove-duplicates (for/list ([r (in-list rows)] #:when (equal? (car r) c)) (cadr r))))]
-              #:when (pair? vs))
-    (cons c vs)))
+              [mine (in-value (filter (lambda (r) (equal? (car r) c)) rows))]
+              [b (in-list (remove-duplicates (map caddr mine)))])
+    (list c b (remove-duplicates (for/list ([r (in-list mine)] #:when (equal? (caddr r) b)) (cadr r))))))
 
-;; names-text : (string -> (listof Row)) (listof column) (listof string) -> string
-;; how the tables write each name given: the columns that hold it exactly (every spelling), else
-;; the values that hold it or that it holds, else that nothing does. `rows-of` answers a
-;; statement's rows, a Row being (list column value) or, of `near-statement`, (list column value how).
-(define (names-text rows-of columns given)
+;; names-text : (string -> (listof Row)) (listof column) (listof string) [beside] -> string
+;; how the tables write each name given: the columns that hold it exactly (every spelling, and
+;; what every query says beside it), else the values that hold it or that it holds, else that
+;; nothing does. `rows-of` answers a statement's rows.
+(define (names-text rows-of columns given [beside (hasheq)])
   (define names (remove-duplicates (filter non-empty-string? (map folded given))))
   (cond
     [(or (null? names) (null? columns)) ""]
     [else
-     (define exact (rows-of (exact-statement columns names)))
+     (define exact (rows-of (exact-statement columns names beside)))
      (define (line name)
-       (define mine (by-column columns (filter (lambda (r) (equal? (folded (cadr r)) name)) exact)))
+       (define mine (grouped columns (filter (lambda (r) (equal? (folded (cadr r)) name)) exact)))
        (cond
          [(pair? mine)
           (format "  \"~a\": ~a" name
                   (string-join (for/list ([m (in-list mine)])
-                                 (if (= (length (cdr m)) 1)
-                                     (format "`~a = ~a`" (car m) (quoted (cadr m)))
-                                     (format "`~a IN (~a)`" (car m) (string-join (map quoted (cdr m)) ", "))))
+                                 (define values (caddr m))
+                                 (if (= (length values) 1)
+                                     (format "`~a = ~a~a`" (car m) (quoted (car values)) (cadr m))
+                                     (format "`~a IN (~a)~a`" (car m) (string-join (map quoted values) ", ") (cadr m))))
                                ", or "))]
          [else
-          (define near (rows-of (near-statement columns name)))
+          (define near (rows-of (near-statement columns name beside)))
+          (define (shown m)
+            (define with (regexp-replace #rx"^ AND " (cadr m) ""))
+            (format "`~a` ~a~a" (car m) (string-join (map quoted (caddr m)) ", ") (if (equal? with "") "" (format " (~a)" with))))
           (define (listed how)
-            (define found (by-column columns (for/list ([r (in-list near)] #:when (equal? (caddr r) how)) (list (car r) (cadr r)))))
-            (and (pair? found)
-                 (string-join (for/list ([m (in-list found)]) (format "`~a` ~a" (car m) (string-join (map quoted (cdr m)) ", "))) "; ")))
+            (define found (grouped columns (for/list ([r (in-list near)] #:when (equal? (cadddr r) how)) r)))
+            (and (pair? found) (string-join (map shown found) "; ")))
           (define-values (holding held) (values (listed 1) (listed 2)))
           (if (or holding held)
               (format "  \"~a\": no column holds it exactly.~a~a If one is what the question means, name it exactly; else look further with `sql`."
@@ -173,7 +194,7 @@
                       (if held (format " Names it holds: ~a." held) ""))
               (format "  \"~a\": no name in the tables is it, holds it or is held by it (~a). Give the name as the question words it, or look further with `sql`."
                       name (string-join columns ", ")))]))
-     (string-append "The names you gave, as the tables write them (name each exactly so, with every spelling shown):\n"
+     (string-append "The names you gave, as the tables write them (name each exactly so, with every spelling and condition shown; a kind whose example reads another table is not the name's kind):\n"
                     (string-join (map line names) "\n") "\n")]))
 
 ;; tool-wording : string -> string   answer.rkt's text, which names its shell commands, in the
@@ -214,15 +235,17 @@
          (lambda (args)
            (define numbers (integers (hash-ref args 'numbers '())))
            (define given (let ([v (hash-ref args 'names '())]) (filter string? (if (list? v) v (list v)))))
-           (define columns (let ([c (json-file (build-path dir "examples" "checks.json"))])
-                             (if (hash? c) (filter string? (hash-ref c 'names '())) '())))
+           (define checks (let ([c (json-file (build-path dir "examples" "checks.json"))]) (if (hash? c) c (hasheq))))
+           (define columns (filter string? (hash-ref checks 'names '())))
+           (define beside (let ([b (hash-ref checks 'beside (hasheq))]) (if (hash? b) b (hasheq))))
            (define names
              (cond [(null? given) ""]
                    [(null? columns) "The names are not looked up here: look each up with `sql`.\n"]
                    [else (names-text (lambda (statement)
                                        (define-values (_cols rows) (cells ((workspace-run (force opened)) statement)))
-                                       (for/list ([r (in-list rows)] #:when (and (string? (car r)) (string? (cadr r)))) r))
-                                     columns given)]))
+                                       (for/list ([r (in-list rows)] #:when (and (string? (car r)) (string? (cadr r))))
+                                         (list* (car r) (cadr r) (if (string? (caddr r)) (caddr r) "") (cdddr r))))
+                                     columns given beside)]))
            (define first? (not (unbox asked-before?)))
            (set-box! asked-before? #t)
            (kind-text dir numbers (eq? (hash-ref args 'every_phrase #f) #t) first? names)))
@@ -259,49 +282,12 @@
              (lambda (sql) (parameterize ([current-directory dir])
                              (with-hub h (lambda () (call-tool query (hasheq 'language "sql" 'text sql))))))))
 
-;; ---- the protocol -----------------------------------------------------------------------------------
-(define protocol-versions '("2025-06-18" "2025-03-26" "2024-11-05"))
-
-;; handle : Message (listof Tool) -> jsexpr | #f   the response to a request; #f for a notification
-(define (handle m tools)
-  (define id (hash-ref m 'id #f))
-  (define params (let ([p (hash-ref m 'params #f)]) (if (hash? p) p (hasheq))))
-  (define (result r) (hasheq 'jsonrpc "2.0" 'id id 'result r))
-  (define (failure code message) (hasheq 'jsonrpc "2.0" 'id id 'error (hasheq 'code code 'message message)))
-  (define (said text error?) (result (hasheq 'content (list (hasheq 'type "text" 'text text)) 'isError error?)))
-  (and id
-       (case (hash-ref m 'method #f)
-         [("initialize")
-          (result (hasheq 'protocolVersion (let ([asked (hash-ref params 'protocolVersion #f)])
-                                             (if (member asked protocol-versions) asked (car protocol-versions)))
-                          'capabilities (hasheq 'tools (hasheq))
-                          'serverInfo (hasheq 'name "tables" 'version "1")))]
-         [("ping") (result (hasheq))]
-         [("tools/list")
-          (result (hasheq 'tools (for/list ([t (in-list tools)])
-                                   (hasheq 'name (tool-name t) 'description (tool-description t) 'inputSchema (tool-schema t)))))]
-         [("tools/call")
-          (define t (findf (lambda (t) (equal? (tool-name t) (hash-ref params 'name #f))) tools))
-          (define args (let ([a (hash-ref params 'arguments #f)]) (if (hash? a) a (hasheq))))
-          (cond [(not t) (failure -32602 (format "unknown tool ~a" (hash-ref params 'name #f)))]
-                [else (with-handlers ([exn:fail? (lambda (e) (said (exn-message e) #t))])
-                        (said ((tool-run t) args) #f))])]
-         [else (failure -32601 (format "unknown method ~a" (hash-ref m 'method #f)))])))
-
 (module+ main
   (define dir (path->complete-path (let ([args (current-command-line-arguments)])
                                      (if (zero? (vector-length args)) (current-directory) (vector-ref args 0)))))
   ;; opened while the client is still starting and the model reading: the first call waits for it
   (define opened (delay/thread (open-workspace dir)))
-  (define tools (tables-tools dir opened))
-  (define out (current-output-port))
-  (let loop ()
-    (define line (read-line (current-input-port) 'any))
-    (unless (eof-object? line)
-      (define m (with-handlers ([exn:fail? (lambda (_) #f)]) (string->jsexpr line)))
-      (define response (and (hash? m) (handle m tools)))
-      (when response (write-json response out) (newline out) (flush-output out))
-      (loop))))
+  (serve-tools (tables-tools dir opened)))
 
 (module+ test
   (require rackunit)
@@ -343,36 +329,39 @@
   (write-json-file (hasheq 'question "What is the gender of patient 1?") "question.json")
   (check-equal? (phrases-text dir #f)
                 "Your question's words hold none of the 3 kinds of time phrase these queries know: `kind` with `every_phrase: true` lists how each is written.\n")
-  ;; the names: each as the tables write it, every spelling, by the column that holds it
+  ;; the names: each as the tables write it, every spelling, by the column that holds it and with
+  ;; what goes beside it
   (let* ([asked '()]
-         [table '(("p.drug" "Amlodipine") ("p.drug" "amLODIPine") ("d.label" "OR Urine") ("d.label" "Cerebral Ventricular #1") ("m.spec" "URINE") ("d.label" "Urine"))]
+         [table '(("p.drug" "Amlodipine" "") ("p.drug" "amLODIPine" "") ("d.label" "OR Urine" " AND d.linksto = 'outputevents'")
+                  ("d.label" "Cerebral Ventricular #1" " AND d.linksto = 'outputevents'") ("m.spec" "URINE" "")
+                  ("d.label" "Urine" " AND d.linksto = 'chartevents'") ("d.label" "Urine" " AND d.linksto = 'outputevents'"))]
          [rows-of (lambda (statement)
                     (set! asked (cons statement asked))
                     (cond [(regexp-match? #rx"LIKE" statement)
                            (define name (cadr (regexp-match #rx"LIKE '%([^%]*)%'" statement)))
-                           (append (for/list ([r (in-list table)] #:when (string-contains? (string-downcase (cadr r)) name)) (list (car r) (cadr r) 1))
+                           (append (for/list ([r (in-list table)] #:when (string-contains? (string-downcase (cadr r)) name)) (append r '(1)))
                                    (for/list ([r (in-list table)] #:when (string-contains? (string-append " " name " ") (string-append " " (string-downcase (cadr r)) " ")))
-                                     (list (car r) (cadr r) 2)))]
+                                     (append r '(2))))]
                           [else (filter (lambda (r) (member (string-append "'" (folded (cadr r)) "'") (regexp-match* #rx"'[^']*'" statement))) table)]))]
          [columns '("p.drug" "d.label" "m.spec")])
     (check-equal? (names-text rows-of columns '("amlodipine" " OR urine " "urine" "cerebral ventric" "or urine output" "no such thing" ""))
                   (string-append
-                   "The names you gave, as the tables write them (name each exactly so, with every spelling shown):\n"
+                   "The names you gave, as the tables write them (name each exactly so, with every spelling and condition shown; a kind whose example reads another table is not the name's kind):\n"
                    "  \"amlodipine\": `p.drug IN ('Amlodipine', 'amLODIPine')`\n"
-                   "  \"or urine\": `d.label = 'OR Urine'`\n"
-                   "  \"urine\": `d.label = 'Urine'`, or `m.spec = 'URINE'`\n"
-                   "  \"cerebral ventric\": no column holds it exactly. Names that hold it: `d.label` 'Cerebral Ventricular #1'. If one is what the question means, name it exactly; else look further with `sql`.\n"
-                   "  \"or urine output\": no column holds it exactly. Names it holds: `d.label` 'OR Urine', 'Urine'; `m.spec` 'URINE'. If one is what the question means, name it exactly; else look further with `sql`.\n"
+                   "  \"or urine\": `d.label = 'OR Urine' AND d.linksto = 'outputevents'`\n"
+                   "  \"urine\": `d.label = 'Urine' AND d.linksto = 'chartevents'`, or `d.label = 'Urine' AND d.linksto = 'outputevents'`, or `m.spec = 'URINE'`\n"
+                   "  \"cerebral ventric\": no column holds it exactly. Names that hold it: `d.label` 'Cerebral Ventricular #1' (d.linksto = 'outputevents'). If one is what the question means, name it exactly; else look further with `sql`.\n"
+                   "  \"or urine output\": no column holds it exactly. Names it holds: `d.label` 'OR Urine', 'Urine' (d.linksto = 'outputevents'); `d.label` 'Urine' (d.linksto = 'chartevents'); `m.spec` 'URINE'. If one is what the question means, name it exactly; else look further with `sql`.\n"
                    "  \"no such thing\": no name in the tables is it, holds it or is held by it (p.drug, d.label, m.spec). Give the name as the question words it, or look further with `sql`.\n"))
     (check-equal? (length asked) 4 "one statement for the names, one more for each not found")
     (check-equal? (names-text rows-of columns '()) "")
     (check-equal? (names-text rows-of '() '("x")) ""))
-  (check-equal? (exact-statement '("p.drug" "d.label") '("it's" "b"))
-                (string-append "SELECT DISTINCT 'p.drug' AS col, drug AS name FROM p WHERE lower(trim(drug)) IN ('it''s', 'b')"
-                               " UNION ALL SELECT DISTINCT 'd.label' AS col, label AS name FROM d WHERE lower(trim(label)) IN ('it''s', 'b')"))
+  (check-equal? (exact-statement '("p.drug" "d.label") '("it's" "b") (hasheq 'd.label '("d.linksto")))
+                (string-append "SELECT DISTINCT 'p.drug' AS col, drug AS name, '' AS beside FROM p WHERE lower(trim(drug)) IN ('it''s', 'b')"
+                               " UNION ALL SELECT DISTINCT 'd.label' AS col, label AS name, ' AND d.linksto = ''' || replace(coalesce(linksto, ''), '''', '''''') || '''' AS beside FROM d WHERE lower(trim(label)) IN ('it''s', 'b')"))
   (check-equal? (near-statement '("p.drug") "5% dex_")
-                (string-append "SELECT * FROM (SELECT DISTINCT 'p.drug' AS col, drug AS name, 1 AS how FROM p WHERE lower(drug) LIKE '%5\\% dex\\_%' ESCAPE '\\' LIMIT 6)"
-                               " UNION ALL SELECT * FROM (SELECT DISTINCT 'p.drug' AS col, drug AS name, 2 AS how FROM p WHERE length(trim(drug)) > 1 AND instr(' 5% dex_ ', ' ' || lower(trim(drug)) || ' ') > 0 LIMIT 6)"))
+                (string-append "SELECT * FROM (SELECT DISTINCT 'p.drug' AS col, drug AS name, '' AS beside, 1 AS how FROM p WHERE lower(drug) LIKE '%5\\% dex\\_%' ESCAPE '\\' LIMIT 6)"
+                               " UNION ALL SELECT * FROM (SELECT DISTINCT 'p.drug' AS col, drug AS name, '' AS beside, 2 AS how FROM p WHERE length(trim(drug)) > 1 AND instr(' 5% dex_ ', ' ' || lower(trim(drug)) || ' ') > 0 LIMIT 6)"))
   (check-regexp-match #rx"^Kind: K three.*\nNAMES\nYour question's words hold none" (kind-text dir '(3) #f #f "NAMES"))
   ;; what to do next comes with the first example, once
   (display-to-file "Next: write it." (build-path dir "examples" "next.md"))
