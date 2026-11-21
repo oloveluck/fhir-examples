@@ -527,6 +527,41 @@ first tools arm the first call took 2.1 s, 0.7 of it waiting for the server.
 call now carries 4.2k tokens, 1.9k of them the three POST definitions (JSON schemas, as the
 benchmark writes them), which nearly three quarters of the sessions never use.
 
+## Iteration 7: what a POST takes, said when one is about to be made (2026-11-21)
+
+Of the 4.2k tokens a MedAgentBench task's first call carried after iteration 6, 1.9k were the
+benchmark's definitions of its three functions that write, as JSON schemas, and nearly three
+quarters of the sessions post nothing. So the prompt names those functions (their urls and
+what the benchmark calls them) and the `post` tool says what one takes:
+
+- **`post` with the url alone** answers that POST's definition (`mab/tools-server.rkt`
+  `post-definitions`, from the task's `functions.json`, which the runner writes:
+  `mab/run.rkt` `post-definitions`). The prompt says to ask before writing one, in the same
+  call as the first search when the question may call for one.
+- **The definition as lines, not as a schema** (`mab/tasks.rkt` `function-outline`): the
+  function's name and description, what it requires, then each value by its path
+  (`category[].coding[].system: string — Use "http://hl7.org/fhir/observation-category"`).
+  Every word of the benchmark's definition and none of the schema's own: 1.2k tokens for the
+  three where the JSON is 1.9k, and a task is given the one it asks for.
+- **What the grader reads that the definition does not say** (a medication order's route as
+  plain text; a ServiceRequest's `note` as one object) goes with that function's definition,
+  where it was two sentences of every prompt.
+- **A POST written before its definition was read is held once**, with the definition: the
+  grader compares the payload with what the definition says to use. It did not happen in 600
+  sessions.
+
+| MedAgentBench, 300 tasks, one machine | correct | input tokens | … 90th percentile | output tokens | seconds | calls of the model |
+|---|---|---|---|---|---|---|
+| iteration 6 (two passes) | 300 and 300 | 9,685 and 9,702 | 13,140 | 240 | 3.7 | 2.2 |
+| iteration 7 (two passes) | 300 and 300 | 6,166 and 6,185 | 8,666 | 271 | 3.7 | 2.3 |
+
+A first call is 2.3k tokens. Half the sessions asked for a definition (360 definitions in
+300 of the 600 sessions; 162 POSTs made), four in five of them in the same call as a search.
+The tasks that only record a vital sign take one call more than they did (the definition,
+then the POST), which the shorter calls of every task pay for: the time is the same. Against
+the shell arm on the same machine (40.6k tokens, 6.4 s): 15% of the tokens, 58% of the time,
+the same 300 of 300.
+
 ## Next in the loop
 
 Read from iteration 5's sessions: the first call of the model carries 3.9k tokens, the second
@@ -549,7 +584,7 @@ timestamps: the first call 1.2 s, the second 1.6 s, the two tools 0.4 s, and 1.2
   wording, five judgements of each of three wordings ("no: none on record", "none: nothing on
   record", "no: nothing on record"): read as no answer 0, 22 and 4 times of 130, and marked
   right 130 of 130 under each. Nothing to choose between them at that size; the wording stays.
-- **MedAgentBench's POST definitions** are 1.9k of a first call's 4.2k tokens, and most tasks
-  post nothing: the `post` tool could say what a POST takes when one is about to be made.
+- **MedAgentBench** is two calls of 2.3k and 3.0k tokens for three sessions in four; what is
+  left in them is the runtime's own 0.6k, the three tool definitions and the question.
 - **FHIR-AgentBench's other arms** (the workspace verbs with no tables, MCP, plain REST) have
   not been run since rounds 4 to 6.

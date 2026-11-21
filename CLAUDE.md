@@ -205,6 +205,18 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   (`analysis/mab-prompt.rkt` against a working copy at the commit before). After adding an
   export to `tasks.rkt`, `raco make mab/*.rkt`: `racket -l-` loads the other modules' stale
   compiled files and fails on the contract.
+  **Iteration 7: what a POST takes, said by `post`** (2026-11-21, the same write-up). The three
+  POST definitions were 1.9k of a first call's 4.2k tokens and three sessions in four post
+  nothing: the prompt names the functions that write (`function-url`, `function-title`), and
+  `post` with the url alone answers that one's definition (`tools-server.rkt`
+  `post-definitions`, read from the task's `functions.json`, which `run.rkt`
+  `post-definitions` writes) as lines — `tasks.rkt` `function-outline`: each value of the JSON
+  schema by its path, with the benchmark's words (1.2k tokens for the three where the JSON is
+  1.9k) — with the grader's note for that resource (`grader-notes`: the route as plain text,
+  `note` as one object; they were in every prompt). A POST written before its definition was
+  said is held once (0 of 600 sessions). Two passes: 300 and 300 at 6.2k input tokens and
+  3.7 s a task (iteration 6: 9.7k, 3.7 s); a first call is 2.3k tokens; agents ask for the
+  definition in the same call as their first search four times in five.
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.

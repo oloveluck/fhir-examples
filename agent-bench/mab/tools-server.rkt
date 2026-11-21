@@ -10,7 +10,10 @@
 ;;;   query     the workspace's `query` verb, for the three languages a task reads with (FHIR
 ;;;             search, find, SQL over earlier results)
 ;;;   post      {url, payload | fsh}   a POST, recorded and not sent (mab.rkt's `post!`): the
-;;;             resource as a JSON object, or as one FSH Instance, compiled
+;;;             resource as a JSON object, or as one FSH Instance, compiled. With the url alone:
+;;;             what that POST takes, as the benchmark defines it (the task's functions.json,
+;;;             written by the runner) — said when a POST is about to be made, not in the
+;;;             prompt of every call; a POST written before it was said is held once
 ;;;   finish    {answers}              FINISH([…]): the answers written (mab.rkt's `finish!`)
 ;;;
 ;;; The `workspace` arm does the same from a shell: `raco fhir-mcp call …` and `./mab post|finish`.
@@ -23,18 +26,37 @@
          "../tool-server.rkt"
          (only-in "mab.rkt" post! finish!))
 
-(provide mab-tools action-tools reading-tools)
+(provide mab-tools action-tools reading-tools definitions-file)
 
 ;; refuse : format-string any ... -> none   what the caller got wrong, answered as the tool's error
 (define (refuse fmt . vs) (raise-user-error (apply format fmt vs)))
+
+;; definitions-file : the file in a task's directory that holds what each POST takes — a JSON
+;; object from the last step of a url ("Observation") to text — written by the runner
+(define definitions-file "functions.json")
+
+;; post-definitions : dir -> (hash string -> string)   none when the file is not there
+(define (post-definitions dir)
+  (define file (build-path dir definitions-file))
+  (define read (and (file-exists? file) (with-handlers ([exn:fail? (lambda (_) #f)]) (call-with-input-file file read-json))))
+  (if (hash? read)
+      (for/hash ([(k v) (in-hash read)] #:when (string? v)) (values (symbol->string k) v))
+      (hash)))
+
+;; url-step : string -> string   the last step of a url's path: the resource type a POST creates
+(define (url-step url)
+  (define steps (string-split (car (string-split (string-trim url) "?" #:trim? #f)) "/"))
+  (if (null? steps) "" (last steps)))
 
 ;; action-tools : dir -> (listof Tool)   post and finish, over the task's directory
 (define (action-tools dir)
   (define text (hasheq 'type "string"))
   (define held (box #f))   ; the answers last held back, as text
+  (define definitions (delay (post-definitions dir)))
+  (define said (make-hash))   ; the url steps whose definition this session has been given
   (list
    (tool "post"
-         "A POST, recorded and not sent: `url` and the resource — as a JSON object (`payload`), or as one FSH Instance (`fsh`, FHIR R4), which is compiled and its problems said at their lines."
+         "A POST, recorded and not sent. With `url` alone: what that POST takes, as the benchmark defines it — ask before you write one. With `url` and the resource — a JSON object (`payload`), or one FSH Instance (`fsh`, FHIR R4), which is compiled and its problems said at their lines — it is recorded."
          (hasheq 'type "object" 'required '("url")
                  'properties (hasheq 'url text 'payload (hasheq 'type "object") 'fsh text))
          (lambda (args)
@@ -44,8 +66,20 @@
            (define payload (let ([p (hash-ref args 'payload #f)])
                              ;; a client may send the object as its JSON text
                              (if (string? p) (with-handlers ([exn:fail? (lambda (_) p)]) (string->jsexpr p)) p)))
-           (unless (or fsh payload) (refuse "Invalid POST request: give the resource as `payload` (a JSON object) or as `fsh`"))
-           (post! dir url payload fsh refuse)))
+           (define step (url-step url))
+           (define definition (hash-ref (force definitions) step #f))
+           (define first-time? (and definition (not (hash-ref said step #f))))
+           (when definition (hash-set! said step #t))
+           (cond
+             [(not (or fsh payload))
+              (if definition
+                  (format "What a POST to ~a takes, as the benchmark defines it:\n~a" url definition)
+                  (refuse "Invalid POST request: give the resource as `payload` (a JSON object) or as `fsh`"))]
+             ;; a POST written before its definition was read is held once: the benchmark's
+             ;; grader compares the payload with what the definition says to use
+             [first-time?
+              (refuse "Not recorded yet. This is what a POST to ~a takes, as the benchmark defines it; give `post` the resource again as it should be recorded.\n~a" url definition)]
+             [else (post! dir url payload fsh refuse)])))
    (tool "finish"
          "FINISH([answer1, answer2, …]): ends the task."
          (hasheq 'type "object" 'required '("answers")
@@ -150,6 +184,30 @@
   (check-equal? (hash-ref (call-with-input-file (build-path dir "answer.json") read-json) 'finish) "[\"1234567\"]")
   (check-equal? (quoted-numbers (list "S1" "-4" " 2.50 " 7 "1e3" "")) '("-4" " 2.50 "))
   (check-regexp-match #rx"`answers` is required" (refusal (lambda () (call "finish" (hasheq)))))
+  ;; a POST whose definition the task holds: said for the url alone; a resource given before it
+  ;; was said is held once
+  (let ([d (make-temporary-file "mab-defs-~a" 'directory)])
+    (call-with-output-file (build-path d definitions-file)
+      (lambda (o) (write-json (hasheq 'Observation "POST http://x/Observation — Observation.Create\n  status: string") o)))
+    (define ts (action-tools d))
+    (define (post args) ((tool-run (car ts)) args))
+    (define obs (hasheq 'resourceType "Observation" 'status "final"))
+    (check-equal? (post (hasheq 'url "http://x/Observation"))
+                  "What a POST to http://x/Observation takes, as the benchmark defines it:\nPOST http://x/Observation — Observation.Create\n  status: string")
+    (check-equal? (post (hasheq 'url "http://x/Observation" 'payload obs)) "POST request accepted and executed successfully.")
+    ;; another session of the same task: the resource first
+    (define post2 (tool-run (car (action-tools d))))
+    (check-regexp-match #rx"^Not recorded yet[.] This is what a POST to http://x/Observation/ takes.*\n  status: string$"
+                        (refusal (lambda () (post2 (hasheq 'url "http://x/Observation/" 'payload obs)))))
+    (check-equal? (length (file->lines (build-path d "posts.jsonl"))) 1 "a held POST is not recorded")
+    (check-equal? (post2 (hasheq 'url "http://x/Observation/" 'payload obs)) "POST request accepted and executed successfully.")
+    ;; a url the task holds no definition for is recorded as given
+    (check-equal? (post2 (hasheq 'url "http://x/Condition" 'payload (hasheq 'resourceType "Condition"))) "POST request accepted and executed successfully.")
+    (check-regexp-match #rx"give the resource as `payload`" (refusal (lambda () (post2 (hasheq 'url "http://x/Condition")))))
+    (delete-directory/files d))
+  (check-equal? (url-step "http://localhost:8766/Observation") "Observation")
+  (check-equal? (url-step "http://localhost:8766/ServiceRequest/?x=1") "ServiceRequest")
+  (check-equal? (post-definitions dir) (hash) "no file, no definitions")
   ;; `query`: defined before the toolkit is loaded, asked of the reader only when called
   (let* ([asked '()]
          [reader (delay (lambda (args) (set! asked (cons args asked)) "rows"))]

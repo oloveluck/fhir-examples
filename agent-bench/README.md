@@ -30,8 +30,9 @@ What changes between arms is only how the agent reaches the data.
 - **workspace-tools** (MedAgentBench) — the benchmark's actions as the three tools of one process
   (`mab/tools-server.rkt`: `query`, the workspace's verb; `post`; `finish`), and no shell. Its
   prompt holds what the first call of the model uses: the question, how to read and act, and the
-  benchmark's definitions of the functions that write. 300 of 300 at 9.7k input tokens and 3.7 s
-  a task, where `workspace` is 300 of 300 at 40.6k and 6.4 s on the same machine.
+  names of the functions that write; `post` given a url alone says what that POST takes, as the
+  benchmark defines it. 300 of 300 at 6.2k input tokens and 3.7 s a task, where `workspace` is
+  300 of 300 at 40.6k and 6.4 s on the same machine.
 - **tables** (FHIR-AgentBench) — the benchmark's own relational schema, defined over the FHIR
   store by an agent beforehand, and questions answered in SQL over it (below).
 - **official-hapi**, **official-ours** (MedAgentBench) — the benchmark's own protocol: the model

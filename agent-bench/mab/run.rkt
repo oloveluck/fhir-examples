@@ -11,8 +11,9 @@
 ;;;   mcp             the same verbs as MCP tools (`raco fhir-mcp` as the agent's MCP server)
 ;;;   workspace-tools the workspace's `query` verb, POST and FINISH as the three tools of one
 ;;;                   process (tools-server.rkt), and no others: no shell, a one-sentence system
-;;;                   prompt, a prompt of what the first call uses (the functions that write, not
-;;;                   the whole list), and the session ends when `finish` has the answers
+;;;                   prompt, a prompt of what the first call uses (what a POST takes is said by
+;;;                   `post` when one is about to be made), and the session ends when `finish`
+;;;                   has the answers
 ;;; The agent arms share the built-in tools (Bash, Read, Write) and the closing instruction; the
 ;;; workspace arms get the reading card (`raco fhir guide data`) and may write a POST as FSH.
 ;;;   official-hapi   the benchmark's own protocol (below) against HAPI
@@ -27,7 +28,7 @@
 
 (require racket/cmdline racket/file racket/list racket/string racket/port racket/runtime-path racket/system json
          net/http-client
-         "../run-agent.rkt" "tasks.rkt")
+         "../run-agent.rkt" "tasks.rkt" (only-in "tools-server.rkt" definitions-file))
 
 (define hapi (or (getenv "MAB_HAPI") "http://localhost:8080/fhir/"))
 (define ours (or (getenv "MAB_OURS") "http://localhost:8766/"))
@@ -47,11 +48,11 @@ EOF
   )
 
 ;; the same for an agent whose only tools are tools-server.rkt's (`query`, `post`, `finish`). A
-;; call of the model re-reads the whole prompt, so this one holds what such an agent uses: the
-;; question, how to read, how to act, and the benchmark's definitions of the functions that
-;; write. The reading functions of its list are the `query` tool's searches (FHIR's own), and the
-;; reading card is the tool's definition and two sentences here: 2.0k tokens where the list and
-;; the card were 5.3k.
+;; call of the model re-reads the whole prompt, so this one holds what the first call uses: the
+;; question, how to read, how to act, and the names of the functions that write. The reading
+;; functions of the benchmark's list are the `query` tool's searches (FHIR's own); the reading
+;; card is the tool's definition and two sentences here; and what a POST takes is said by the
+;; `post` tool when one is about to be made (`post-definitions`), which most tasks never are.
 (define tools-template #<<EOF
 You are an expert in using FHIR functions to assist medical professionals. You are given a question and a set of possible functions. Based on the question, you will need to make one or more function/tool calls to achieve the purpose.
 
@@ -60,13 +61,9 @@ Question: {question}
 
 How to act here:
 - Read the EHR with `query`; there is no other access to it. Its language "search" takes a standard FHIR search, for example `Patient?identifier=S1234567`, `Patient?family=Smith&given=Ann&birthdate=1990-01-31`, `Observation?patient=Patient/S1234567&code=MG&_sort=-date&_count=50` (`date=ge<time>` and `date=le<time>` bound it). It answers a page of rows, one per resource, and `total`, every match; a Quantity's number is `value`, its unit `unit`; cells every row shares are said once, under `every`.
-- A POST is recorded, not sent: give `post` the url (for example {api_base}Observation) and the resource as a JSON object (`payload`), as the function below defines it. Make only the POSTs the question calls for, before you finish.
-- The benchmark's grader reads a medication order's route as plain text, not as the object the function list and FHIR describe: write `"dosageInstruction": [{"route": "IV", "doseAndRate": [...]}]` (or `"oral"`). A ServiceRequest's `note` is one object, `{"text": "..."}`.
+- A POST is recorded, not sent. The functions that write: {posts}. Before you write one, give `post` its url alone: it answers what that POST takes, as the benchmark's function list defines it — in the same call as your first `query` when the question may call for one. Then give `post` the url and the resource as a JSON object (`payload`). Make only the POSTs the question calls for, before you finish.
 - When you have the answers and have done what was asked, give them to `finish` as a list, the equivalent of FINISH([answer1, answer2, ...]): the list holds the answers themselves (values: `[123]`, `["S1234567"]`), not sentences, and a measurement is its number, without its unit. That ends the task.
 Use only these tools.
-
-Here is a list of the functions that write, in JSON format. Note that you should use {api_base} as the api_base.
-{functions}
 EOF
   )
 
@@ -74,13 +71,44 @@ EOF
 (define (writing-functions funcs)
   (filter (lambda (f) (regexp-match? #rx"^POST " (hash-ref f 'name ""))) funcs))
 
+;; function-url : function base -> string   "POST {api_base}/Observation" -> "<base>Observation"
+(define (function-url f base)
+  (string-append base (last (string-split (hash-ref f 'name "") "/"))))
+
+;; function-title : function -> string | #f   what the benchmark calls it: the opening of its
+;; description ("Observation.Create (Vitals)")
+(define (function-title f)
+  (define m (regexp-match #px"^\\s*([A-Za-z]+[.][A-Za-z]+(?: [(][^)]*[)])?)" (hash-ref f 'description "")))
+  (and m (cadr m)))
+
 ;; tools-prompt : base task [functions] -> string
 (define (tools-prompt base t [funcs (mab-funcs)])
+  (define posts
+    (string-join (for/list ([f (in-list (writing-functions funcs))])
+                   (define title (function-title f))
+                   (string-append (function-url f base) (if title (format " (~a)" title) "")))
+                 ", "))
   (for/fold ([s tools-template])
-            ;; the base first: a function's own name keeps its `{api_base}`, as in the benchmark's prompt
-            ([k '("{api_base}" "{functions}" "{context}" "{question}")]
-             [v (list base (functions-text (writing-functions funcs)) (hash-ref t 'context "") (string-trim (hash-ref t 'instruction)))])
+            ([k '("{posts}" "{context}" "{question}")]
+             [v (list posts (hash-ref t 'context "") (string-trim (hash-ref t 'instruction)))])
     (string-replace s k v)))
+
+;; what the benchmark's grader reads that its function list and FHIR do not write, by the
+;; resource a POST creates: said with that POST's definition
+(define grader-notes
+  (hash "MedicationRequest" "As the benchmark's grader reads it: the route is plain text, not the object this definition and FHIR describe — `\"dosageInstruction\": [{\"route\": \"IV\", \"doseAndRate\": [...]}]` (or `\"oral\"`)."
+        "ServiceRequest" "As the benchmark's grader reads it: `note` is one object, `{\"text\": \"...\"}`."))
+
+;; post-definitions : base [functions] -> (hash symbol -> string)   what each POST takes, by the
+;; resource it creates: the benchmark's definition as lines (tasks.rkt's `function-outline`),
+;; its url written out, and the grader's note. The `post` tool says one when asked.
+(define (post-definitions base [funcs (mab-funcs)])
+  (for/hasheq ([f (in-list (writing-functions funcs))])
+    (define type (last (string-split (hash-ref f 'name "") "/")))
+    (define note (hash-ref grader-notes type #f))
+    (values (string->symbol type)
+            (string-append (string-replace (function-outline f) "{api_base}/" base)
+                           (if note (string-append "\n" note) "")))))
 
 (define (access kind base)
   (case kind
@@ -142,7 +170,9 @@ EOF
     (copy-file mab-script (build-path work "mab"))
     (file-or-directory-permissions (build-path work "mab") #o755)
     (when (memq kind '(workspace mcp tools))
-      (display-to-file (format "fhirVersion: 4.0.1\ndata: ~a\n" (env-path "MAB_STORE")) (build-path work "workspace.yaml"))))
+      (display-to-file (format "fhirVersion: 4.0.1\ndata: ~a\n" (env-path "MAB_STORE")) (build-path work "workspace.yaml")))
+    (when (eq? kind 'tools)
+      (write-json-file (build-path work definitions-file) (post-definitions base))))
   (define tools? (eq? kind 'tools))
   (define rec (run-item (hash-ref t 'id) (agent-prompt kind base t) work model (tools kind) #:prepare prepare
                         #:builtin (if tools? '() builtin-tools)
@@ -238,14 +268,22 @@ EOF
 
 (module+ test
   (require rackunit)
-  ;; the tools arm's prompt: the question, and of the benchmark's functions those that write
+  ;; the tools arm's prompt: the question, and of the benchmark's functions the names of those that write
   (define funcs (list (hasheq 'name "GET {api_base}/Patient" 'description "Patient.Search" 'parameters (hasheq))
-                      (hasheq 'name "POST {api_base}/Observation" 'description "Observation.Create" 'parameters (hasheq))))
+                      (hasheq 'name "POST {api_base}/Observation" 'description "Observation.Create (Vitals) The FHIR Observation.Create"
+                              'parameters (hasheq 'type "object" 'required '("status")
+                                                  'properties (hasheq 'status (hasheq 'type "string" 'description "Use \"final\""))))
+                      (hasheq 'name "POST {api_base}/MedicationRequest" 'description "MedicationRequest.Create" 'parameters (hasheq))))
   (define p (tools-prompt "http://h/" (hasheq 'id "task3_1" 'context "It's now." 'instruction "Record it.\n") funcs))
   (check-regexp-match #rx"Context: It's now[.]\nQuestion: Record it[.]\n\nHow to act here:" p)
-  (check-regexp-match #rx"for example http://h/Observation[)]" p)
-  (check-regexp-match #rx"use http://h/ as the api_base[.]\n\\[[{]" p)
-  (check-true (regexp-match? #rx"\"POST [{]api_base[}]/Observation\"" p) "a function's own name is the benchmark's")
+  (check-regexp-match #rx"The functions that write: http://h/Observation [(]Observation.Create [(]Vitals[)][)], http://h/MedicationRequest [(]MedicationRequest.Create[)][.] Before" p)
   (check-false (regexp-match? #rx"Patient.Search" p) "the reading functions are the query tool's")
-  (check-false (regexp-match? #rx"[{](context|question|functions)[}]" p))
-  (check-equal? (map (lambda (f) (hash-ref f 'name)) (writing-functions funcs)) '("POST {api_base}/Observation")))
+  (check-false (regexp-match? #rx"Use \"final\"" p) "what a POST takes is the post tool's to say")
+  (check-false (regexp-match? #rx"[{](context|question|posts|api_base)[}]" p))
+  (check-equal? (map (lambda (f) (hash-ref f 'name)) (writing-functions funcs)) '("POST {api_base}/Observation" "POST {api_base}/MedicationRequest"))
+  (check-equal? (function-title (hasheq 'description "no title here")) #f)
+  ;; what the post tool says of each
+  (define defs (post-definitions "http://h/" funcs))
+  (check-equal? (hash-ref defs 'Observation)
+                "POST http://h/Observation — Observation.Create (Vitals) The FHIR Observation.Create\n  required: status\n  status: string — Use \"final\"")
+  (check-regexp-match #rx"^POST http://h/MedicationRequest — MedicationRequest.Create\nAs the benchmark's grader reads it: the route is plain text" (hash-ref defs 'MedicationRequest)))
