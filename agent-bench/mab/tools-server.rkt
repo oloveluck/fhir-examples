@@ -31,6 +31,7 @@
 ;; action-tools : dir -> (listof Tool)   post and finish, over the task's directory
 (define (action-tools dir)
   (define text (hasheq 'type "string"))
+  (define held (box #f))   ; the answers last held back, as text
   (list
    (tool "post"
          "A POST, recorded and not sent: `url` and the resource — as a JSON object (`payload`), or as one FSH Instance (`fsh`, FHIR R4), which is compiled and its problems said at their lines."
@@ -52,7 +53,22 @@
                                                       'description "The list FINISH takes, as JSON: each answer a bare value — a measurement its number alone (`[123]`, not \"123 mg/dL\"), an identifier a string (`[\"S1234567\"]`) — with no unit, date or sentence. `[]` when the task asks for no answer.")))
          (lambda (args)
            (define answers (hash-ref args 'answers (lambda () (refuse "`answers` is required: a list, e.g. [\"S1234567\"]"))))
-           (finish! dir (if (string? answers) (string-trim answers) (jsexpr->string answers)) refuse)))))
+           (define text (if (string? answers) (string-trim answers) (jsexpr->string answers)))
+           ;; a number written as a string is held once: the benchmark compares values, and "3.8"
+           ;; is not 3.8; an identifier made of digits is given again and recorded
+           (define quoted (quoted-numbers (if (string? answers) (with-handlers ([exn:fail? (lambda (_) '())]) (string->jsexpr text)) answers)))
+           (when (and (pair? quoted) (not (equal? (unbox held) text)))
+             (set-box! held text)
+             (refuse "Not finished: ~a a number written as a string. Give a number as a number (~a, not \"~a\"). If it is an identifier, give the same answers once more and they are recorded."
+                     (if (= (length quoted) 1) (format "\"~a\" is" (car quoted)) (format "~a are each" (string-join (map (lambda (q) (format "\"~a\"" q)) quoted) ", ")))
+                     (string-trim (car quoted)) (car quoted)))
+           (finish! dir text refuse)))))
+
+;; quoted-numbers : jsexpr -> (listof string)   the strings of a list of answers that read as numbers
+(define (quoted-numbers answers)
+  (if (list? answers)
+      (for/list ([a (in-list answers)] #:when (and (string? a) (regexp-match? #px"^\\s*-?[0-9]+([.][0-9]+)?\\s*$" a))) a)
+      '()))
 
 ;; reading-tools : dir (listof string) -> (listof Tool)   the workspace's verbs of those names,
 ;; as fhir-mcp defines them, over the workspace in dir (opened here: most of a second)
@@ -103,5 +119,14 @@
   (check-equal? (call "finish" (hasheq 'answers "[\"S1\"]")) "Finished.")
   (check-equal? (hash-ref (call-with-input-file (build-path dir "answer.json") read-json) 'finish) "[\"S1\"]")
   (check-regexp-match #rx"needs a JSON list" (refusal (lambda () (call "finish" (hasheq 'answers "S1")))))
+  ;; a number as a string is held once, and recorded when given again
+  (check-regexp-match #rx"\"3.8\" is a number written as a string. Give a number as a number [(]3.8, not \"3.8\"[)]"
+                      (refusal (lambda () (call "finish" (hasheq 'answers (list "3.8"))))))
+  (check-equal? (hash-ref (call-with-input-file (build-path dir "answer.json") read-json) 'finish) "[\"S1\"]" "nothing recorded while held")
+  (check-equal? (call "finish" (hasheq 'answers (list 3.8))) "Finished.")
+  (check-regexp-match #rx"written as a string" (refusal (lambda () (call "finish" (hasheq 'answers (list "1234567"))))))
+  (check-equal? (call "finish" (hasheq 'answers (list "1234567"))) "Finished.")
+  (check-equal? (hash-ref (call-with-input-file (build-path dir "answer.json") read-json) 'finish) "[\"1234567\"]")
+  (check-equal? (quoted-numbers (list "S1" "-4" " 2.50 " 7 "1e3" "")) '("-4" " 2.50 "))
   (check-regexp-match #rx"`answers` is required" (refusal (lambda () (call "finish" (hasheq)))))
   (delete-directory/files dir))
