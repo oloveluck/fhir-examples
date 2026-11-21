@@ -47,7 +47,7 @@
          query-shape make-checks query-notes comparison? asks-whether whether-kinds hold?
          time-select says-when opens-when? when-regular? same-time? same-time-kinds first-pick
          time-forms said-times selected one-selected? name-comparisons own-word-readings by-pattern exact-names?
-         name-columns name-companions literal-comparisons)
+         name-columns name-companions literal-comparisons plain-selection said-columns)
 
 ;; ---- text ----------------------------------------------------------------------------------------
 (define (norm s) (string-downcase (string-trim (regexp-replace* #px"\\s+" s " "))))
@@ -365,6 +365,36 @@
 (define (one-selected? train)
   (and (pair? train) (for/and ([q (in-list train)]) (= 1 (length (selected (hash-ref q 'sql_query)))))))
 
+;; plain-selection : string -> (or column #f)   the one plain column a query selects (DISTINCT
+;; aside): `SELECT m.spec_type_desc FROM …`; #f for an aggregate, a comparison, several things
+(define (plain-selection sql)
+  (define things (selected sql))
+  (and (= (length things) 1)
+       (regexp-match? #px"^[a-z_]+[.][a-z_]+$" (car things))
+       (car things)))
+
+;; question-words : string -> (listof string)   the words of a question, in lower case, once each
+(define (question-words question)
+  (remove-duplicates (regexp-match* #px"[a-z]+" (string-downcase question))))
+
+;; said-columns : (listof Question) -> (listof (hasheq 'word 'column 'count))   the words that fix
+;; what is selected: every train question that says the word (ten or more) has a query selecting
+;; the one plain column ("specimen": `microbiologyevents.spec_type_desc`, 48 of 48; "sex":
+;; `patients.gender`). A question that says such a word is answered from that column, however near
+;; another one's name is to its wording ("the specimen test" is the specimen, not `test_name`).
+(define (said-columns train)
+  (define by-word (make-hash))
+  (for* ([q (in-list train)]
+         [c (in-value (plain-selection (hash-ref q 'sql_query)))]
+         [w (in-list (question-words (hash-ref q 'question)))])
+    (hash-update! by-word w (lambda (cs) (cons c cs)) '()))
+  (sort (for/list ([(w cs) (in-hash by-word)]
+                   #:when (>= (length cs) 10)
+                   #:when (car cs)
+                   #:when (andmap (lambda (c) (equal? c (car cs))) cs))
+          (hasheq 'word w 'column (car cs) 'count (length cs)))
+        string<? #:key (lambda (s) (hash-ref s 'word))))
+
 ;; by-pattern : string -> (or string #f)   the pattern a query matches text by (`LIKE '%…%'`), when it
 ;; does
 (define (by-pattern sql)
@@ -408,7 +438,7 @@
 (define (make-checks train)
   (hasheq 'phrases (phrase-book train) 'whether (whether-kinds train) 'when (when-regular? train)
           'ties (same-time-kinds train) 'times (time-forms train) 'one (one-selected? train)
-          'exact (exact-names? train) 'names (name-columns train) 'beside (name-companions train)))
+          'exact (exact-names? train) 'names (name-columns train) 'beside (name-companions train) 'says (said-columns train)))
 
 ;; query-notes : string (or string #f) Checks string string (listof string) [(column -> (listof string))]
 ;;               -> (listof string)
@@ -458,6 +488,14 @@
         (list (format "hold: the query selects ~a things (~a), and every query of this schema selects one: what the question asks for. The day, month or year a value belongs to, a visit's number or a name beside it is not part of the answer. Keep the conditions, the grouping and the order, and select that one thing."
                       (length things) (string-join (map (lambda (t) (format "`~a`" t)) things) ", ")))]
        [else '()]))
+   ;; a word of the question that fixes what is selected
+   (let ([words (question-words question)] [mine (plain-selection sql)])
+     (for/list ([s (in-list (let ([v (hash-ref checks 'says '())]) (if (list? v) v '())))]
+                #:when (member (hash-ref s 'word #f) words)
+                #:unless (equal? mine (hash-ref s 'column #f)))
+       (format "hold: the question says \"~a\", and every query of this schema whose question says that word (~a of ~a) selects `~a`~a. Keep the conditions and the order, and select that column."
+               (hash-ref s 'word) (hash-ref s 'count) (hash-ref s 'count) (hash-ref s 'column)
+               (if mine (format "; yours selects `~a`" mine) "; yours selects something else"))))
    ;; a name matched by pattern
    (let ([pattern (and (eq? (hash-ref checks 'exact #f) #t) (by-pattern sql))])
      (if pattern
@@ -551,6 +589,26 @@
     (check-equal? (length (star "SELECT * FROM admissions")) 1)
     (check-equal? (star "SELECT COUNT(*) FROM admissions") '())
     (check-equal? (star "SELECT COUNT(*)>0 FROM admissions") '()))
+  ;; a word that fixes what is selected
+  (let* ([q (lambda (question sql) (hasheq 'question question 'sql_query sql))]
+         [train (append (for/list ([i (in-range 10)]) (q (format "What specimen was patient ~a tested for?" i) "SELECT DISTINCT m.spec FROM m WHERE m.p = 1"))
+                        (for/list ([i (in-range 10)]) (q (format "What was the test of patient ~a?" i) (if (even? i) "SELECT m.test FROM m" "SELECT COUNT(*) FROM m")))
+                        (list (q "Which specimen is rare?" "SELECT DISTINCT m.spec FROM m")))]
+         [says (said-columns train)])
+    (check-equal? (findf (lambda (s) (equal? (hash-ref s 'word) "specimen")) says) (hasheq 'word "specimen" 'column "m.spec" 'count 11)
+                  "a word of ten questions or more that all select one plain column")
+    (check-false (findf (lambda (s) (member (hash-ref s 'word) '("test" "patient" "rare"))) says)
+                 "not a word whose questions select several things, nor one of fewer than ten")
+    (check-equal? (plain-selection "SELECT DISTINCT m.spec FROM m WHERE m.p = 1") "m.spec")
+    (check-false (plain-selection "SELECT COUNT(*) FROM m"))
+    (check-false (plain-selection "SELECT m.a, m.b FROM m"))
+    (define (notes question sql) (filter (lambda (n) (regexp-match? #rx"the question says" n)) (query-notes sql #f (hasheq 'says says) question "" '())))
+    (let ([n (notes "What was the name of the specimen test patient 1 was given last?" "SELECT DISTINCT m.test FROM m WHERE m.p = 1")])
+      (check-equal? (length n) 1)
+      (check-true (hold? (car n)))
+      (check-regexp-match #rx"says \"specimen\".*[(]11 of 11[)] selects `m.spec`; yours selects `m.test`" (car n)))
+    (check-equal? (notes "What was the name of the specimen test patient 1 was given last?" "SELECT DISTINCT m.spec FROM m WHERE m.p = 1") '())
+    (check-equal? (notes "What was the last test of patient 1?" "SELECT m.test FROM m") '() "a question that does not say the word"))
   ;; a name matched by pattern
   (check-equal? (by-pattern "SELECT COUNT(*) FROM p WHERE p.code IN ( SELECT d.code FROM d WHERE lower(d.title) like '%cerebral ventricle%' )") "'%cerebral ventricle%'")
   (check-false (by-pattern "SELECT COUNT(*) FROM p WHERE p.drug = 'I like it'"))

@@ -149,6 +149,22 @@
               c col with table col padded col)))
    " UNION ALL "))
 
+;; spoken : string -> string   a question as its words, in lower case with spaces around: the
+;; punctuation that ends a clause is no part of a name, what is inside one is ("(output)", "#1")
+(define (spoken question)
+  (string-append " " (string-normalize-spaces (regexp-replace* #px"[?!;:,]|[.](?= |$)" (string-downcase question) " ")) " "))
+
+;; held-statement : (listof column) string [beside] -> string   each column's values that the
+;; question's words spell whole ("ostomy (output)" in "… had ostomy (output) since …")
+(define (held-statement columns question [beside (hasheq)])
+  (define padded (quoted (spoken question)))
+  (string-join
+   (for/list ([c (in-list columns)])
+     (define parts (string-split c "."))
+     (format "SELECT DISTINCT '~a' AS col, ~a AS name, ~a AS beside FROM ~a WHERE length(trim(~a)) > 1 AND instr(~a, ' ' || lower(trim(~a)) || ' ') > 0"
+             c (cadr parts) (beside-sql c (companions-of beside c)) (car parts) (cadr parts) padded (cadr parts)))
+   " UNION ALL "))
+
 ;; grouped : (listof column) (listof Row) -> (listof (list column beside (listof value)))   the
 ;; rows by column (in the columns' order) and by what goes with the value
 (define (grouped columns rows)
@@ -157,27 +173,36 @@
               [b (in-list (remove-duplicates (map caddr mine)))])
     (list c b (remove-duplicates (for/list ([r (in-list mine)] #:when (equal? (caddr r) b)) (cadr r))))))
 
-;; names-text : (string -> (listof Row)) (listof column) (listof string) [beside] -> string
+;; names-text : (string -> (listof Row)) (listof column) (listof string) [beside question] -> string
 ;; how the tables write each name given: the columns that hold it exactly (every spelling, and
-;; what every query says beside it), else the values that hold it or that it holds, else that
-;; nothing does. `rows-of` answers a statement's rows.
-(define (names-text rows-of columns given [beside (hasheq)])
+;; what every query says beside it) — with any longer name the question's own words spell, which
+;; an exact match for a part of it would hide ("ostomy" given where the question says "ostomy
+;; (output)") —, else the values that hold it or that it holds, else that nothing does. `rows-of`
+;; answers a statement's rows.
+(define (names-text rows-of columns given [beside (hasheq)] [question #f])
   (define names (remove-duplicates (filter non-empty-string? (map folded given))))
   (cond
     [(or (null? names) (null? columns)) ""]
     [else
      (define exact (rows-of (exact-statement columns names beside)))
+     (define held (delay (if question (rows-of (held-statement columns question beside)) '())))
+     (define (conditions groups)
+       (string-join (for/list ([m (in-list groups)])
+                      (define values (caddr m))
+                      (if (= (length values) 1)
+                          (format "`~a = ~a~a`" (car m) (quoted (car values)) (cadr m))
+                          (format "`~a IN (~a)~a`" (car m) (string-join (map quoted values) ", ") (cadr m))))
+                    ", or "))
      (define (line name)
        (define mine (grouped columns (filter (lambda (r) (equal? (folded (cadr r)) name)) exact)))
        (cond
          [(pair? mine)
-          (format "  \"~a\": ~a" name
-                  (string-join (for/list ([m (in-list mine)])
-                                 (define values (caddr m))
-                                 (if (= (length values) 1)
-                                     (format "`~a = ~a~a`" (car m) (quoted (car values)) (cadr m))
-                                     (format "`~a IN (~a)~a`" (car m) (string-join (map quoted values) ", ") (cadr m))))
-                               ", or "))]
+          (define longer (grouped columns (filter (lambda (r) (let ([v (folded (cadr r))]) (and (not (equal? v name)) (string-contains? v name))))
+                                                  (force held))))
+          (format "  \"~a\": ~a~a" name (conditions mine)
+                  (if (pair? longer)
+                      (format ". The question's words also spell a longer name: ~a" (conditions longer))
+                      ""))]
          [else
           (define near (rows-of (near-statement columns name beside)))
           (define (shown m)
@@ -245,7 +270,8 @@
                                        (define-values (_cols rows) (cells ((workspace-run (force opened)) statement)))
                                        (for/list ([r (in-list rows)] #:when (and (string? (car r)) (string? (cadr r))))
                                          (list* (car r) (cadr r) (if (string? (caddr r)) (caddr r) "") (cdddr r))))
-                                     columns given beside)]))
+                                     columns given beside
+                                     (let ([q (json-file (build-path dir "question.json"))]) (and (hash? q) (let ([t (hash-ref q 'question #f)]) (and (string? t) t)))))]))
            (define first? (not (unbox asked-before?)))
            (set-box! asked-before? #t)
            (kind-text dir numbers (eq? (hash-ref args 'every_phrase #f) #t) first? names)))
@@ -354,6 +380,16 @@
                    "  \"or urine output\": no column holds it exactly. Names it holds: `d.label` 'OR Urine', 'Urine' (d.linksto = 'outputevents'); `d.label` 'Urine' (d.linksto = 'chartevents'); `m.spec` 'URINE'. If one is what the question means, name it exactly; else look further with `sql`.\n"
                    "  \"no such thing\": no name in the tables is it, holds it or is held by it (p.drug, d.label, m.spec). Give the name as the question words it, or look further with `sql`.\n"))
     (check-equal? (length asked) 4 "one statement for the names, one more for each not found")
+    ;; a part of a name given, where the question's words spell the whole
+    (check-equal? (names-text (lambda (statement)
+                                (cond [(regexp-match? #rx"instr[(]' how often was there or urine for patient 1 '" statement)
+                                       (list (list "d.label" "OR Urine" " AND d.linksto = 'outputevents'") (list "d.label" "Urine" " AND d.linksto = 'chartevents'"))]
+                                      [else (rows-of statement)]))
+                              columns '("urine") (hasheq) "How often was there OR urine, for patient 1?")
+                  (string-append
+                   "The names you gave, as the tables write them (name each exactly so, with every spelling and condition shown; a kind whose example reads another table is not the name's kind):\n"
+                   "  \"urine\": `d.label = 'Urine' AND d.linksto = 'chartevents'`, or `d.label = 'Urine' AND d.linksto = 'outputevents'`, or `m.spec = 'URINE'`. The question's words also spell a longer name: `d.label = 'OR Urine' AND d.linksto = 'outputevents'`\n"))
+    (check-equal? (spoken "Was it Ostomy (output), or Chest Tube #1? Since 12/03/2133.") " was it ostomy (output) or chest tube #1 since 12/03/2133 ")
     (check-equal? (names-text rows-of columns '()) "")
     (check-equal? (names-text rows-of '() '("x")) ""))
   (check-equal? (exact-statement '("p.drug" "d.label") '("it's" "b") (hasheq 'd.label '("d.linksto")))
