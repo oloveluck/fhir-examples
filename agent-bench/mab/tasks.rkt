@@ -19,6 +19,8 @@
   [select-tasks (-> (listof hash?) (or/c #f string?) (or/c #f exact-positive-integer?) (listof hash?))]
   ;; official-prompt : api-base task -> string   the benchmark's MedAgentBench_prompt, filled
   [official-prompt (-> string? hash? string?)]
+  ;; functions-text : functions -> string   a function list as the benchmark's prompt writes it
+  [functions-text (-> list? string?)]
   [env-path (-> string? string?)]))
 
 (define (env-path name)
@@ -73,6 +75,8 @@ EOF
                                                   ", ") "}")]
         [(list? v) (string-append "[" (string-join (map python-json v) ", ") "]")]
         [else (jsexpr->string v)]))
+
+(define (functions-text fs) (python-json fs))
 
 (define (official-prompt api-base t)
   (for/fold ([s official-template])

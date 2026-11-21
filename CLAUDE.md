@@ -186,6 +186,25 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   (`tool`, `handle`, `serve-tools`). Scratch analysis (`timeline.py` over the sessions'
   timestamps): of a question's 4.5 s the model's two calls are 2.8, the tools 0.4, the
   runtime's start and end 1.2.
+  **Iteration 6: MedAgentBench by the same two moves** (2026-11-21, the same write-up). Arm
+  `workspace-tools` (`mab/run.rkt`, `mab/tools-server.rkt`, `mab/stop-when-finished.sh`): the
+  agent's only tools are `query` (the workspace's verb, defined by the arm in fhir-mcp's words
+  for search, find and SQL, so the server says its tools 0.17 s after it starts and opens the
+  workspace behind them — `open-reader`, `delay/thread`; loading the toolkit first took 0.70 s,
+  which the first call of the model waited for), `post` (the payload as its argument;
+  `mab.rkt` `post!`) and `finish` (`finish!`; its definition says an answer is a bare value,
+  and a number written as a string is held once: `quoted-numbers`). Its prompt
+  (`tools-template`, `tools-prompt`) is the question, three sentences on reading, how to act
+  and the benchmark's definitions of the three functions that write (`writing-functions`,
+  `tasks.rkt` `functions-text`): the six reading functions and the reading card are not in it
+  (agents made 347 searches, five finds and one describe in 300 tasks). One machine, each
+  graded by `refsol.py` against our server (`results/2026-11-21-mab/`): `workspace` (shell)
+  300 of 300 at 40.6k input tokens and 6.4 s a task; the actions as tools 300 at 21.4k and
+  4.9 s; with the prompt of what the first call uses 300 and 300 at 9.7k and 3.7 s (83% of
+  sessions two calls of the model). The other arms' prompts are unchanged to the byte
+  (`analysis/mab-prompt.rkt` against a working copy at the commit before). After adding an
+  export to `tasks.rkt`, `raco make mab/*.rkt`: `racket -l-` loads the other modules' stale
+  compiled files and fails on the contract.
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.

@@ -27,6 +27,11 @@ What changes between arms is only how the agent reaches the data.
   prompt carries the product's one-page reading card (`raco fhir guide data`) where the rest arms'
   carry their curl lines.
 - **mcp** — the same verbs as MCP tools: `raco fhir-mcp` is the agent's MCP server.
+- **workspace-tools** (MedAgentBench) — the benchmark's actions as the three tools of one process
+  (`mab/tools-server.rkt`: `query`, the workspace's verb; `post`; `finish`), and no shell. Its
+  prompt holds what the first call of the model uses: the question, how to read and act, and the
+  benchmark's definitions of the functions that write. 300 of 300 at 9.7k input tokens and 3.7 s
+  a task, where `workspace` is 300 of 300 at 40.6k and 6.4 s on the same machine.
 - **tables** (FHIR-AgentBench) — the benchmark's own relational schema, defined over the FHIR
   store by an agent beforehand, and questions answered in SQL over it (below).
 - **official-hapi**, **official-ours** (MedAgentBench) — the benchmark's own protocol: the model
@@ -55,7 +60,7 @@ raco fhir-server load mab/fhir.db mab/ndjson --fhir-version 4.0.1
 racket serve-store.rkt mab/fhir.db 8766 Patient Observation Condition MedicationRequest Procedure ServiceRequest
 
 # MedAgentBench (MAB_TASKS, MAB_FUNCS: the benchmark's data files; MAB_REFSOL_DIR: refsol.py + utils.py)
-$B/mab/run --model sonnet workspace runs/r1/mab-workspace          # also mcp rest-hapi rest-ours official-hapi official-ours
+$B/mab/run --model sonnet workspace runs/r1/mab-workspace          # also workspace-tools mcp rest-hapi rest-ours official-hapi official-ours
 $B/mab/grade runs/r1/mab-workspace                                 # graded against HAPI
 
 # FHIR-AgentBench: the fixed sample (fab/valid-150.json: 150 valid questions over 62 templates)

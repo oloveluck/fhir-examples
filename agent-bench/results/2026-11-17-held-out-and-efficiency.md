@@ -472,6 +472,61 @@ gate's output is in `2026-11-17-tables/gate-iteration5.txt`.
 Against the baseline the loop began from (45,474 tokens and 10.0 s a question, on the other
 machine): 26% of the tokens, the same answers.
 
+## Iteration 6: the other benchmark, by the same two moves (2026-11-21)
+
+MedAgentBench's workspace arm had not been touched by the loop: an agent with a shell, the
+workspace verbs as commands, a POST as a file written and then recorded, the answers given to a
+command, and the benchmark's prompt with the reading card after it. It was 300 of 300 at 39k
+tokens a task. Run again on this machine it is 300 of 300 at 40.6k input tokens and 6.4 s a
+task. The two moves that took the tables arm from 29k to 12k were applied to it, one at a time.
+
+**Its actions as the tools of one process** (arm `workspace-tools`: `mab/tools-server.rkt`,
+over `tool-server.rkt`, the protocol the tables arm's server now shares). The workspace's
+reading verbs, `post` and `finish` are the agent's only tools; there is no shell, the system
+prompt is one sentence, and the session ends when `finish` has the answers
+(`mab/stop-when-finished.sh`). A POST's payload is the tool's argument, where it was a file
+written by one call and recorded by the next. Two things the first trials showed, both about
+the answers, which the grader compares as values: an agent wrote "123 mg/dL" or a sentence
+where the shell arm had been shown the command's own example, so the `finish` tool's definition
+says what an answer is (a measurement its number alone); and a number given as a string
+(`["3.8"]`) is held once, with that said — an identifier made of digits is given again and
+recorded (2 of 300 sessions).
+
+**The prompt holds what the first call uses.** Read call by call, a task's first call carried
+8.7k tokens: the benchmark's function list (nine functions, their Epic documentation and JSON
+schemas), the reading card, four tool definitions. What the agents asked of their tools over
+300 tasks: 347 searches (a patient by identifier or name and birth date; observations by
+patient, code and date), five `find`s, one `describe`, 81 POSTs, none of them as FSH.
+So the arm's prompt keeps the question, three sentences on reading, how to act, and the
+benchmark's definitions of the three functions that write, word for word; the six that read are
+the `query` tool's searches, which are FHIR's own. The tools are three: `query` is the
+workspace's verb, defined by the arm in fhir-mcp's words for the three languages a task reads
+with (search, find, SQL over earlier results). The prompt is 7.4k characters where it was
+17.4k, the tool definitions 1.5k bytes where they were 4.3k.
+
+**The tool server says its tools before it loads the toolkit.** The agent runtime waits for
+its tool server before the first call of the model, and the server loaded the toolkit (0.70 s)
+to read two definitions from it. With `query` defined by the arm it answers after 0.17 s and
+opens the workspace meanwhile (`delay/thread`, as the tables server does): by the time the
+model has read the prompt and asked its first search, it is open.
+
+| MedAgentBench, 300 tasks, one machine | correct | input tokens | … 90th percentile | output tokens | seconds | calls of the model |
+|---|---|---|---|---|---|---|
+| `workspace`: the verbs from a shell | 300 | 40,633 | 49,849 | 347 | 6.4 | 3.3 |
+| `workspace-tools`: the actions as tools | 300 | 21,394 | 27,245 | 274 | 4.9 | 2.4 |
+| … with the prompt of what the first call uses | 300 and 300 | 9,685 and 9,702 | 13,140 | 240 | 3.7 | 2.2 |
+
+Each row was graded by the benchmark's `refsol.py` against our server over the same data
+(`mab/grade`; the grade files are in `2026-11-21-mab/`). The last row is two passes. By the
+sessions' timestamps, of a task's 3.7 s the first call of the model is 1.4, the first tool 0.3,
+the second call 0.75, and the runtime's own start and end 1.2; in the shell arm the first
+command alone took 1.6 s (a process that loads the toolkit and opens the workspace), and in the
+first tools arm the first call took 2.1 s, 0.7 of it waiting for the server.
+
+83% of the sessions are two calls of the model: a search, then the answers. A task's first
+call now carries 4.2k tokens, 1.9k of them the three POST definitions (JSON schemas, as the
+benchmark writes them), which nearly three quarters of the sessions never use.
+
 ## Next in the loop
 
 Read from iteration 5's sessions: the first call of the model carries 3.9k tokens, the second
@@ -483,12 +538,18 @@ timestamps: the first call 1.2 s, the second 1.6 s, the two tools 0.4 s, and 1.2
   write the query. What the second call carries beyond the first is the `kind` tool's answer
   (3.5k tokens: the schema, the example, how to write the query, the time phrases the question
   says, the names).
-- **The time** is the model's (2.8 s, some 430 tokens written) and the runtime's (1.2 s): a tool
-  server that outlives a question would save its start, which is what a person's session has.
+- **The time** is the model's (2.8 s, some 430 tokens written) and the runtime's own start and
+  end (1.2 s; the tool server says its tools 0.2 s after it starts and opens the workspace
+  while the model reads).
 - **"no: none on record"** is the one wording the benchmark's judge has marked both ways: three
   times in 882 judgements over every run so far (this iteration's one among them), each time on
   an answer marked right in the other passes. Its judge first asks whether an answer says the
-  question cannot be answered; "none: nothing on record", which that step reads as no answer
-  nine times in ten, has been marked wrong 0 times in 2,828.
-- **The other arms** (the workspace verbs with no tables, MCP, plain REST) have not been run
-  since rounds 4 to 6; MedAgentBench's workspace arm pays the two costs iteration 3 removed.
+  question cannot be answered, and an answer it reads so is right without a second judgement
+  where the benchmark records none. Tried on the 26 validation questions answered with that
+  wording, five judgements of each of three wordings ("no: none on record", "none: nothing on
+  record", "no: nothing on record"): read as no answer 0, 22 and 4 times of 130, and marked
+  right 130 of 130 under each. Nothing to choose between them at that size; the wording stays.
+- **MedAgentBench's POST definitions** are 1.9k of a first call's 4.2k tokens, and most tasks
+  post nothing: the `post` tool could say what a POST takes when one is about to be made.
+- **FHIR-AgentBench's other arms** (the workspace verbs with no tables, MCP, plain REST) have
+  not been run since rounds 4 to 6.

@@ -9,9 +9,10 @@
 ;;;   rest-ours       curl against this family's fhir-server over the same data
 ;;;   workspace       the fhir-mcp workspace verbs (`raco fhir-mcp call …`) over the same data
 ;;;   mcp             the same verbs as MCP tools (`raco fhir-mcp` as the agent's MCP server)
-;;;   workspace-tools the two reading verbs, POST and FINISH as the four tools of one process
-;;;                   (tools-server.rkt), and no others: no shell, a one-sentence system prompt, and
-;;;                   the session ends when `finish` has the answers
+;;;   workspace-tools the workspace's `query` verb, POST and FINISH as the three tools of one
+;;;                   process (tools-server.rkt), and no others: no shell, a one-sentence system
+;;;                   prompt, a prompt of what the first call uses (the functions that write, not
+;;;                   the whole list), and the session ends when `finish` has the answers
 ;;; The agent arms share the built-in tools (Bash, Read, Write) and the closing instruction; the
 ;;; workspace arms get the reading card (`raco fhir guide data`) and may write a POST as FSH.
 ;;;   official-hapi   the benchmark's own protocol (below) against HAPI
@@ -45,27 +46,47 @@ Use only the access described here; do not look for the benchmark's files or ans
 EOF
   )
 
-;; the same for an agent whose only tools are tools-server.rkt's: a POST and the answers are tool
-;; calls, with no file between
+;; the same for an agent whose only tools are tools-server.rkt's (`query`, `post`, `finish`). A
+;; call of the model re-reads the whole prompt, so this one holds what such an agent uses: the
+;; question, how to read, how to act, and the benchmark's definitions of the functions that
+;; write. The reading functions of its list are the `query` tool's searches (FHIR's own), and the
+;; reading card is the tool's definition and two sentences here: 2.0k tokens where the list and
+;; the card were 5.3k.
 (define tools-template #<<EOF
+You are an expert in using FHIR functions to assist medical professionals. You are given a question and a set of possible functions. Based on the question, you will need to make one or more function/tool calls to achieve the purpose.
+
+Context: {context}
+Question: {question}
 
 How to act here:
-- {access}
-- A POST is recorded, not sent: give `post` the url (for example {api_base}Observation) and the resource, as a JSON object (`payload`) or as one FSH Instance (`fsh`; FHIR R4: `Instance: p` / `InstanceOf: Observation` / `* status = #final` / …), which it compiles, saying where it is wrong. Make only the POSTs the question calls for, before you finish.
-- The benchmark's grader reads a medication order's route as plain text, not as the object the function list and FHIR describe: write `"dosageInstruction": [{"route": "IV", "doseAndRate": [...]}]` (or `"oral"`), as a JSON payload (FSH cannot say it). A ServiceRequest's `note` is one object, `{"text": "..."}`.
+- Read the EHR with `query`; there is no other access to it. Its language "search" takes a standard FHIR search, for example `Patient?identifier=S1234567`, `Patient?family=Smith&given=Ann&birthdate=1990-01-31`, `Observation?patient=Patient/S1234567&code=MG&_sort=-date&_count=50` (`date=ge<time>` and `date=le<time>` bound it). It answers a page of rows, one per resource, and `total`, every match; a Quantity's number is `value`, its unit `unit`; cells every row shares are said once, under `every`.
+- A POST is recorded, not sent: give `post` the url (for example {api_base}Observation) and the resource as a JSON object (`payload`), as the function below defines it. Make only the POSTs the question calls for, before you finish.
+- The benchmark's grader reads a medication order's route as plain text, not as the object the function list and FHIR describe: write `"dosageInstruction": [{"route": "IV", "doseAndRate": [...]}]` (or `"oral"`). A ServiceRequest's `note` is one object, `{"text": "..."}`.
 - When you have the answers and have done what was asked, give them to `finish` as a list, the equivalent of FINISH([answer1, answer2, ...]): the list holds the answers themselves (values: `[123]`, `["S1234567"]`), not sentences, and a measurement is its number, without its unit. That ends the task.
 Use only these tools.
+
+Here is a list of the functions that write, in JSON format. Note that you should use {api_base} as the api_base.
+{functions}
 EOF
   )
+
+;; writing-functions : functions -> functions   those that are POSTs
+(define (writing-functions funcs)
+  (filter (lambda (f) (regexp-match? #rx"^POST " (hash-ref f 'name ""))) funcs))
+
+;; tools-prompt : base task [functions] -> string
+(define (tools-prompt base t [funcs (mab-funcs)])
+  (for/fold ([s tools-template])
+            ;; the base first: a function's own name keeps its `{api_base}`, as in the benchmark's prompt
+            ([k '("{api_base}" "{functions}" "{context}" "{question}")]
+             [v (list base (functions-text (writing-functions funcs)) (hash-ref t 'context "") (string-trim (hash-ref t 'instruction)))])
+    (string-replace s k v)))
 
 (define (access kind base)
   (case kind
     [(workspace)
      (string-append "Read the EHR through the FHIR workspace in this directory, from the shell; there is no other access to the EHR. "
                     "For example: raco fhir-mcp call query language=search text='Observation?patient=Patient/S1234567&code=MG'\n\n" (reading-card) "\n")]
-    [(tools)
-     (string-append "Read the EHR through the tools `query` and `describe`; there is no other access to the EHR. "
-                    "The card below writes a call as the shell does: `describe ref=X as=fsh` is the describe tool with ref and as.\n\n" (reading-card) "\n")]
     [(mcp)
      (string-append "Read the EHR through the FHIR workspace's tools (mcp__fhir__…); there is no other access to the EHR. "
                     "The card below writes a call as the shell does: `describe ref=X as=fsh` is the describe tool with ref and as.\n\n" (reading-card) "\n")]
@@ -80,13 +101,14 @@ EOF
 ;; the official prompt's opening (up to its three response formats) is not the agent's: an agent acts
 ;; through tools, so it gets the question, the functions and the context, then how to act here
 (define (agent-prompt kind base t)
-  (define official (official-prompt base t))
-  (define tail (car (regexp-match #rx"(?s:Here is a list of functions.*)$" official)))
-  (string-append "You are an expert in using FHIR functions to assist medical professionals. You are given a question and a set of possible functions. Based on the question, you will need to make one or more function/tool calls to achieve the purpose.\n\n"
-                 tail
-                 (if (eq? kind 'tools)
-                     (string-replace (string-replace tools-template "{access}" (access kind base)) "{api_base}" base)
-                     (string-replace (string-replace (string-replace agent-template "{access}" (access kind base)) "{fsh}" (fsh-note kind)) "{api_base}" base))))
+  (cond
+    [(eq? kind 'tools) (tools-prompt base t)]
+    [else
+     (define official (official-prompt base t))
+     (define tail (car (regexp-match #rx"(?s:Here is a list of functions.*)$" official)))
+     (string-append "You are an expert in using FHIR functions to assist medical professionals. You are given a question and a set of possible functions. Based on the question, you will need to make one or more function/tool calls to achieve the purpose.\n\n"
+                    tail
+                    (string-replace (string-replace (string-replace agent-template "{access}" (access kind base)) "{fsh}" (fsh-note kind)) "{api_base}" base))]))
 
 ;; the tools arm: tools-server.rkt (the file beside this one) over the task's workspace, a hook
 ;; that ends the session when `finish` has the answers, and a system prompt of one sentence in
@@ -213,3 +235,17 @@ EOF
       [else (raise-user-error 'run (format "unknown arm ~a: rest-hapi rest-ours workspace mcp workspace-tools official-hapi official-ours" arm))]))
   (define costs (in-parallel parallel tasks run-one))
   (printf "total $~a\n" (/ (round (* 100 (apply + (filter real? costs)))) 100.0)))
+
+(module+ test
+  (require rackunit)
+  ;; the tools arm's prompt: the question, and of the benchmark's functions those that write
+  (define funcs (list (hasheq 'name "GET {api_base}/Patient" 'description "Patient.Search" 'parameters (hasheq))
+                      (hasheq 'name "POST {api_base}/Observation" 'description "Observation.Create" 'parameters (hasheq))))
+  (define p (tools-prompt "http://h/" (hasheq 'id "task3_1" 'context "It's now." 'instruction "Record it.\n") funcs))
+  (check-regexp-match #rx"Context: It's now[.]\nQuestion: Record it[.]\n\nHow to act here:" p)
+  (check-regexp-match #rx"for example http://h/Observation[)]" p)
+  (check-regexp-match #rx"use http://h/ as the api_base[.]\n\\[[{]" p)
+  (check-true (regexp-match? #rx"\"POST [{]api_base[}]/Observation\"" p) "a function's own name is the benchmark's")
+  (check-false (regexp-match? #rx"Patient.Search" p) "the reading functions are the query tool's")
+  (check-false (regexp-match? #rx"[{](context|question|functions)[}]" p))
+  (check-equal? (map (lambda (f) (hash-ref f 'name)) (writing-functions funcs)) '("POST {api_base}/Observation")))

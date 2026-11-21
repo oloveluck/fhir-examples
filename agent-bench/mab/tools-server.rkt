@@ -1,14 +1,14 @@
 #lang racket/base
 
-;;; tools-server.rkt — a MedAgentBench task's four actions as the tools of one process.
+;;; tools-server.rkt — a MedAgentBench task's actions as the tools of one process.
 ;;;
 ;;;   racket -l- fhir-examples/agent-bench/mab/tools-server [DIR]
 ;;;
 ;;; A Model Context Protocol server (../tool-server.rkt) over the task's workspace DIR (the current
-;;; directory when none is given), whose data is the benchmark's records:
+;;; directory when none is given), whose data is the benchmark's records. Three tools:
 ;;;
-;;;   query     the workspace's `query` verb (FHIR search, find, SQL), as fhir-mcp defines it
-;;;   describe  the workspace's `describe` verb (a resource, a result, the data's census)
+;;;   query     the workspace's `query` verb, for the three languages a task reads with (FHIR
+;;;             search, find, SQL over earlier results)
 ;;;   post      {url, payload | fsh}   a POST, recorded and not sent (mab.rkt's `post!`): the
 ;;;             resource as a JSON object, or as one FSH Instance, compiled
 ;;;   finish    {answers}              FINISH([…]): the answers written (mab.rkt's `finish!`)
@@ -23,7 +23,7 @@
          "../tool-server.rkt"
          (only-in "mab.rkt" post! finish!))
 
-(provide mab-tools action-tools)
+(provide mab-tools action-tools reading-tools)
 
 ;; refuse : format-string any ... -> none   what the caller got wrong, answered as the tool's error
 (define (refuse fmt . vs) (raise-user-error (apply format fmt vs)))
@@ -70,31 +70,52 @@
       (for/list ([a (in-list answers)] #:when (and (string? a) (regexp-match? #px"^\\s*-?[0-9]+([.][0-9]+)?\\s*$" a))) a)
       '()))
 
-;; reading-tools : dir (listof string) -> (listof Tool)   the workspace's verbs of those names,
-;; as fhir-mcp defines them, over the workspace in dir (opened here: most of a second)
-(define (reading-tools dir names)
+;; A Reader is ((hash symbol -> jsexpr) -> string): the workspace's `query` verb over the opened
+;; workspace; it raises exn:fail:user with what the verb said was wrong.
+
+;; open-reader : dir -> Reader   the toolkit loaded and the workspace opened (most of a second)
+(define (open-reader dir)
   (define open-hub (dynamic-require 'fhir/mcp/workspace 'open-hub))
   (define with-hub (dynamic-require 'fhir/mcp/workspace 'with-hub))
   (define workspace-tools (dynamic-require 'fhir/mcp/verbs 'workspace-tools))
   (define tool->jsexpr (dynamic-require 'fhir/mcp/tools 'tool->jsexpr))
   (define call-tool (dynamic-require 'fhir/mcp/tools 'call-tool))
   (define h (parameterize ([current-directory dir]) (open-hub dir)))
-  (for*/list ([t (in-list (workspace-tools h))]
-              [j (in-value (tool->jsexpr t))]
-              #:when (member (hash-ref j 'name) names))
-    (tool (hash-ref j 'name) (hash-ref j 'description) (hash-ref j 'inputSchema)
-          (lambda (args)
-            (define-values (answered error?)
-              (parameterize ([current-directory dir]) (with-hub h (lambda () (call-tool t args)))))
-            (if error? (raise-user-error answered) answered)))))
+  (define query (findf (lambda (t) (equal? (hash-ref (tool->jsexpr t) 'name) "query")) (workspace-tools h)))
+  (lambda (args)
+    (define-values (answered error?)
+      (parameterize ([current-directory dir]) (with-hub h (lambda () (call-tool query args)))))
+    (if error? (raise-user-error answered) answered)))
 
-;; mab-tools : dir -> (listof Tool)
-(define (mab-tools dir) (append (reading-tools dir '("query" "describe")) (action-tools dir)))
+;; reading-languages : the languages of the workspace's `query` verb this arm offers. The verb
+;; has seven; a task here reads the records, and every word of a definition is in every call.
+(define reading-languages '("search" "find" "sql"))
+
+;; reading-tools : (promise-of Reader) -> (listof Tool)   `query`, the workspace's verb of that
+;; name, defined here in the words fhir-mcp defines it with — so the server can say its tools
+;; before the toolkit is loaded (0.2 s where loading it first took 0.7, which the agent's first
+;; call of the model waited for)
+(define (reading-tools reader)
+  (list
+   (tool "query"
+         "Read the records. language: search (a FHIR search, `Type?name=value…`: a page of rows saying what each resource holds, `total` every match; `_sort=-date`, `_count`, `_offset`, `_summary=count`; `code:text=words`), find (words: where they occur — codes by name, identifiers, names — and the search for each), sql (one SELECT over earlier results by name: r1, r2 …)."
+         (hasheq 'type "object" 'required '("language" "text")
+                 'properties (hasheq 'language (hasheq 'type "string" 'enum reading-languages)
+                                     'text (hasheq 'type "string" 'description "the search, the words or the SQL statement")))
+         (lambda (args)
+           (unless (member (hash-ref args 'language #f) reading-languages)
+             (refuse "`language` is one of: ~a" (string-join reading-languages ", ")))
+           ((force reader) args)))))
+
+;; mab-tools : dir (promise-of Reader) -> (listof Tool)
+(define (mab-tools dir reader) (append (reading-tools reader) (action-tools dir)))
 
 (module+ main
   (define dir (path->complete-path (let ([args (current-command-line-arguments)])
                                      (if (zero? (vector-length args)) (current-directory) (vector-ref args 0)))))
-  (serve-tools (mab-tools dir) "mab"))
+  ;; opened while the client is still starting and the model reading: the first `query` waits for it
+  (define reader (delay/thread (open-reader dir)))
+  (serve-tools (mab-tools dir reader) "mab"))
 
 (module+ test
   (require rackunit racket/file)
@@ -129,4 +150,16 @@
   (check-equal? (hash-ref (call-with-input-file (build-path dir "answer.json") read-json) 'finish) "[\"1234567\"]")
   (check-equal? (quoted-numbers (list "S1" "-4" " 2.50 " 7 "1e3" "")) '("-4" " 2.50 "))
   (check-regexp-match #rx"`answers` is required" (refusal (lambda () (call "finish" (hasheq)))))
+  ;; `query`: defined before the toolkit is loaded, asked of the reader only when called
+  (let* ([asked '()]
+         [reader (delay (lambda (args) (set! asked (cons args asked)) "rows"))]
+         [query (car (reading-tools reader))])
+    (check-equal? (tool-name query) "query")
+    (check-equal? (hash-ref (hash-ref (hash-ref (tool-schema query) 'properties) 'language) 'enum) '("search" "find" "sql"))
+    (check-false (promise-forced? reader) "defining the tool opens nothing")
+    (check-equal? ((tool-run query) (hasheq 'language "search" 'text "Patient?identifier=S1")) "rows")
+    (check-equal? asked (list (hasheq 'language "search" 'text "Patient?identifier=S1")))
+    (check-regexp-match #rx"`language` is one of: search, find, sql"
+                        (refusal (lambda () ((tool-run query) (hasheq 'language "cql" 'text "1")))))
+    (check-equal? (map tool-name (mab-tools dir reader)) '("query" "post" "finish")))
   (delete-directory/files dir))
