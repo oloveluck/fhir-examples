@@ -155,6 +155,37 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   1203 in scope, PASS, at 17.0k input tokens (22.4k) and 6.3 s (6.5) a question; validation
   414 of 414 at 16.7k. The confirming run was started three times (a validation miss, then a
   test-pass miss, each fixed by one of the checks above from the train split).
+  **Iteration 5: what the first call can leave to the tools** (2026-11-21, the same write-up).
+  Read from iteration 4's sessions call by call. (1) The shape note (`answer.rkt` `shape-note`)
+  is printed only beside another note: alone it fired on 479 of 2,090 first answers, changed
+  none, and cost a third call in 23% of sessions. (2) The `kind` tool takes the names the
+  question gives (`names`) and answers how the tables write each (`tables-server.rkt`
+  `names-text`: exact spellings by column, in the columns train queries compare with a name —
+  `query-checks.rkt` `name-columns`, checks.json `names`; else the names that hold it and the
+  names it holds as whole words), so the first call asks `sql` nothing and the schema comes
+  with the first example, not in the prompt (`run.rkt` `next-steps`; the prompt 10.0k -> 6.8k
+  characters; the other arms' prompts unchanged to the byte). (3) The agents do not inherit the
+  hosted session they are started from (`run-agent.rkt` `withheld`: CLAUDE_CODE_REMOTE,
+  CLAUDE_CODE_REMOTE_SESSION_ID, CLAUDE_CODE_ENTRYPOINT — 1,380 tokens a call of reminders
+  about this session; `AGENT_BENCH_KEEP_SESSION=1` keeps them). The look-up replaced what the
+  agents' own queries had shown them, and the confirmation found three misses, each fixed
+  from the train split: a name is given with what every train query states beside it
+  (`name-companions`, checks.json `beside`: `d_items.label` with `d_items.linksto`, 449 of
+  449); beside an exact match, a longer name of the same columns that the question's own
+  words spell (`held-statement`: "ostomy (output)"); a word that, in ten train questions or
+  more, always goes with one selected column holds a query that selects another
+  (`said-columns`, checks.json `says`: specimen, sex, discharged, terms; said of none of the
+  2,522 train and validation queries). The container was replaced mid-run (a faster machine:
+  iteration 4's code takes 5.4 s a question here, 6.0 before), so the comparison is on one
+  machine, the same 150 validation questions back to back: iteration 4's code 16.7k tokens and
+  5.4 s; the toolkit's changes 13.4k and 4.6 s; with the session withheld 11.5k and 4.5 s.
+  Whole test split, three passes: 1205 of 1227 as scored, 1202 of 1203 in scope (the one the
+  judge's: an answer word for word that of the passes marked right), PASS, at 11.8k input
+  tokens (17.0k; the 90th percentile 12.5k, was 24.2k) and 4.6 s a question; validation 414
+  of 414 at 11.5k. `tool-server.rkt` is the tool protocol the two tool servers share
+  (`tool`, `handle`, `serve-tools`). Scratch analysis (`timeline.py` over the sessions'
+  timestamps): of a question's 4.5 s the model's two calls are 2.8, the tools 0.4, the
+  runtime's start and end 1.2.
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.

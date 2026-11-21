@@ -347,26 +347,148 @@ none of which the prompt's length changes. The gate's output is in
 Against the baseline the loop began from (45,474 tokens and 10.0 s a question): 37% of the
 tokens, 63% of the time, the same answers.
 
+## Iteration 5: what the first call can leave to the tools (2026-11-21)
+
+Iteration 4's sessions, read call by call (1,516 of them): the first call of the model carried
+6.2k tokens and the second 8.4k, and 23% of the sessions made a third (8.9k). Three things
+followed from that.
+
+- **The shape note is said beside another note, not alone** (`answer.rkt`). 312 of the 329
+  third calls were sessions whose answer was written with one note beside it, the query's shape
+  set against its kind's example. The note is advisory, so the session went on and the agent
+  said it stood by its answer. It fired on 479 first answers of 2,090 and changed none (in
+  iteration 3: five of 387, four of them the two-column selects that are held now). Most are
+  questions of kinds the train split lacks, rightly answered with another select: 62 of the 424
+  validation queries the benchmark itself wrote have the shape of no train query.
+- **The `kind` tool looks the names up** (`tables-server.rkt` `names-text`). The first call
+  picked a kind and, with `sql`, asked the tables how they write each name the question gives,
+  which is what it needed the schema for. `kind` now takes those names and answers each as the
+  tables write it: every spelling, by the column that holds it, in the columns the train split's
+  queries compare with a name (`query-checks.rkt` `name-columns`: eight); a name no column holds
+  exactly is offered the names that hold it and the names it holds as whole words ("nu route"
+  holds the route `NU`). The schema (1.9k tokens) left the prompt and comes with the first
+  example, read once. The prompt is 6.8k characters where it was 10.0k, and `sql` is called in 1
+  session of 100 where it was called in 64.
+- **The agents do not inherit the session they are started from** (`run-agent.rkt` `withheld`).
+  A session that says one word carried 1,380 tokens before any prompt of ours. They are
+  reminders an agent inherits from the hosted session the benchmark is run from (how to attribute
+  its commits, where its scratch files go), through three environment variables by which that
+  session names itself; with them an agent also reports its events there. Withheld, the same
+  session carries 564 tokens and takes 2.0 s where it took 3.3. An agent started from a terminal
+  has none of the three, so this is the harness measuring what a user would get.
+  `AGENT_BENCH_KEEP_SESSION=1` leaves them in, to measure it.
+
+### What the confirmation found
+
+The look-up took over what the agents' own queries had been showing them, and three questions
+that iteration 4 answered were missed on the way. Each was fixed from the train split, and the
+confirmation started again.
+
+- **What goes beside a name** (`name-companions`, checks.json `beside`). "Can you tell me if the
+  chest tube #1 event has occurred": the look-up said `d_items.label = 'Chest Tube #1'`, the
+  agent read the chart events under that label and answered none; the item is an output. Every
+  train query that names an item also states `d_items.linksto`, the table its records are in
+  (449 of 449), so a name is given with it: `d_items.label = 'Chest Tube #1' AND d_items.linksto
+  = 'outputevents'`.
+- **A longer name the question spells** (`held-statement`). "… had ostomy (output) since …": the
+  agent gave "ostomy", the look-up answered the charted item `Ostomy`, and the count was of the
+  wrong table's rows. Beside an exact match the look-up now shows any longer name of the same
+  columns that the question's own words spell: `Ostomy (output)`, an output.
+- **A word that fixes what is selected** (`said-columns`, checks.json `says`). "What was the name
+  of the specimen test that patient … was given for the last time": answered with `test_name`
+  where the specimen is asked. This is the one case of the shape note doing its work: it would
+  have set `test_name` beside the example's `spec_type_desc`. What the train split says about it
+  is narrower and decisive: every train question that says "specimen" (48 of 48) selects
+  `microbiologyevents.spec_type_desc`, as "sex" goes with `patients.gender`, "discharged" with
+  `admissions.dischtime` and "terms" with `admissions.admission_type` — four words that, in ten
+  questions or more, always go with one selected column. A query of such a question that selects
+  otherwise is held. The check says nothing of any of the 2,522 train and validation queries.
+
+The container was replaced during the first confirmation; the runs below are on the new machine,
+which is faster (iteration 4's code: 5.4 s a question on the 150-question validation sample,
+6.0 s on the old one). So iteration 4's code was run again here, and the three are set side by
+side on the same 150 questions, one after the other:
+
+| 150 validation questions, one machine | in scope | input tokens | … 90th percentile | output tokens | seconds |
+|---|---|---|---|---|---|
+| iteration 4's code | 144 of 144 | 16,691 | 23,895 | 485 | 5.4 |
+| iteration 5, the session kept | 144 of 144 | 13,399 | 14,147 | 437 | 4.6 |
+| iteration 5 | 144 of 144 | 11,547 | 12,344 | 426 | 4.5 |
+
+The toolkit's changes are the first step (a fifth of the tokens, a seventh of the time: no third
+call, the schema read once, no `sql` call); the harness's is the second (1.9k tokens a question,
+and little time on this machine). The 90th percentile is now close to the median: nearly every
+session is the same two calls.
+
+The whole validation split once, then the whole test split three times, all under the final
+code:
+
+```
+runs 2, questions 424, answers 424
+as scored       415 of 424 (97.9%)
+set aside       10 questions (set-aside.json): 1 of 10 marked right
+in scope        414 of 414 (100.0%) over 414 questions: 414 right every time, 0 missed sometimes, 0 missed every time
+
+a question costs  input tokens: mean 11498, median 11268   turns: mean 3.02   seconds: mean 4.5
+citations         precision 0.958   recall 0.969
+
+PASS
+```
+
+```
+runs 9, questions 409, answers 1227
+as scored       1205 of 1227 (98.2%)
+set aside       8 questions (set-aside.json): 3 of 24 marked right
+in scope        1202 of 1203 (99.9%) over 401 questions: 400 right every time, 0 missed sometimes, 0 missed every time, 1 judged both ways
+
+judged both ways (the same answer marked right in one run and wrong in another: the judge's, no slip):
+  40bd0f4265c38c258e1d9e19  right 2 of 3  Has there been any organism found in patient 10021118's last urine microbiological examination in 12/this year…
+      answered: no: none on record
+
+a question costs  input tokens: mean 11769, median 11307   turns: mean 3.04   seconds: mean 4.6
+citations         precision 0.991   recall 0.993
+
+PASS
+```
+
+The one is the benchmark's judge: the query and the answer are, word for word, those of
+iteration 4's passes and of this iteration's other two, all marked right.
+
+| the test split, three passes | iteration 4 | iteration 5 |
+|---|---|---|
+| as scored | 1206 of 1227 | 1205 of 1227 |
+| in scope | 1203 of 1203 | 1202 of 1203 (the one the judge's) |
+| input tokens a question, mean | 17,038 | **11,769** (−31%) |
+| … median | 14,622 | 11,307 |
+| … 90th percentile | 24,171 | 12,487 |
+| output tokens a question, mean | 486 | 434 |
+| seconds a question, mean | 6.3 (another machine; 5.4 on this one, above) | **4.6** |
+| … 90th percentile | 8.8 | 6.7 |
+| citations: precision, recall | 0.991, 0.990 | 0.991, 0.993 |
+
+The answer given once ends 1,196 of the 1,227 sessions, and `sql` was called in 6 of them. The
+gate's output is in `2026-11-17-tables/gate-iteration5.txt`.
+
+Against the baseline the loop began from (45,474 tokens and 10.0 s a question, on the other
+machine): 26% of the tokens, the same answers.
+
 ## Next in the loop
 
-Read from the confirming run's sessions (1,516 of them, call by call): the first call of the
-model carries 6.2k tokens and the second 8.4k, and 23% of the sessions make a third (8.9k).
+Read from iteration 5's sessions: the first call of the model carries 3.9k tokens, the second
+7.5k, and 3% of the sessions make a third. A question's 4.5 s are, by the sessions' own
+timestamps: the first call 1.2 s, the second 1.6 s, the two tools 0.4 s, and 1.2 s around them
+(the agent runtime starting, connecting its tool server, and ending).
 
-- **The third call.** 312 of 329 are sessions whose answer was written with one note beside it,
-  the query's shape set against the example's. The note is advisory, so the session goes on
-  and the agent says it stands by its answer. It fired on 479 first answers of 2,090 and changed
-  none (in iteration 3: five of 387, four of them the two-column selects that are held now).
-  Most are questions of kinds the train split lacks, rightly answered with another select: 62
-  of the 424 validation queries the benchmark itself wrote have the shape of no train query.
-- **The schema in the first call.** The first call picks a kind and looks names up; the schema
-  (1.9k tokens) is in the prompt, so both calls carry it, for the sake of that look-up.
-- **What the runtime adds.** A session that says one word carries 1,380 tokens before any prompt
-  of ours. They are reminders the agents inherit from the hosted session the benchmark is run
-  from (how to attribute its commits, where its scratch files go), through three environment
-  variables; with those withheld the same session carries 564 and takes 2.0 s where it took 3.3.
-- **The time** is now the model's (two calls, some 480 tokens written), the tools' second, and
-  the runtime's start and end.
-- **"no: none on record"** is the one wording the benchmark's judge has marked both ways (two
-  questions, once each, in iteration 2; not in iteration 3's or 4's passes).
+- **Two calls** is what the arm's design takes: one to pick the kind and give the names, one to
+  write the query. What the second call carries beyond the first is the `kind` tool's answer
+  (3.5k tokens: the schema, the example, how to write the query, the time phrases the question
+  says, the names).
+- **The time** is the model's (2.8 s, some 430 tokens written) and the runtime's (1.2 s): a tool
+  server that outlives a question would save its start, which is what a person's session has.
+- **"no: none on record"** is the one wording the benchmark's judge has marked both ways: three
+  times in 882 judgements over every run so far (this iteration's one among them), each time on
+  an answer marked right in the other passes. Its judge first asks whether an answer says the
+  question cannot be answered; "none: nothing on record", which that step reads as no answer
+  nine times in ten, has been marked wrong 0 times in 2,828.
 - **The other arms** (the workspace verbs with no tables, MCP, plain REST) have not been run
   since rounds 4 to 6; MedAgentBench's workspace arm pays the two costs iteration 3 removed.

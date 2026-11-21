@@ -95,8 +95,12 @@ SQL:
    tool's definition and the runtime's own system prompt (3.3k tokens), and every command started
    a process that loaded the toolkit. Its prompt holds what the first call of the model uses, and
    the `kind` tool says the rest with the first example (how to write the query and give it to
-   `answer`, the conditions of the time phrases the question says). 17k input tokens and 6.3 s a
-   question where `tables` takes 29k and 7.7 s, the same answers.
+   `answer`, the conditions of the time phrases the question says), and `kind` also answers how
+   the tables write each name the question gives, so the schema comes with the example and the
+   first call looks nothing up. 12k input tokens and 4.6 s a question where `tables` takes 29k
+   and 7.7 s, the same answers. (An agent is started without the variables by which a hosted
+   session names itself, `run-agent.rkt` `withheld`: with them every call carried 1.4k tokens
+   of that session's reminders.)
 4. **`fab/query-checks`** — from the train split alone: what a question's query should hold (the
    condition each time phrase and averaging unit is written as, the names a question gives, a
    comparison where a question asks whether, a time exactly where it asks when). `./answer`
