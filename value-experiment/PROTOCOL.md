@@ -138,3 +138,77 @@ with this advantage, that is the answer.
 
 Not covered by M: writing data (safety), computing over a population, MedAgentBench, and the
 command line (the same tools from a shell, which adds the shell's own cost to both sides).
+
+### 2026-11-22, after M and before any run of it: the specification experiment (S)
+
+The owner's hypothesis: "English specification language lacks the specificity and a programming
+language provides this. Systems are described with the spec as the source of truth. Spec first
+not narrative first. The language makes it possible to build systems with complex concepts
+without ambiguity."
+
+**What is tested.** One system described two ways by the same third party, and independent
+implementers building it from each description. If English lacks specificity, implementers
+working from the narrative will build systems that disagree with each other and with the
+intended behaviour, and implementers working from the formal specification will not.
+
+**Material** (`cql/tests/vendor/qicore-2024`, cqframework/ecqm-content-qicore-2024, CC0): four US
+clinical quality measures published by their steward — breast cancer screening, cervical cancer
+screening, controlling high blood pressure, diabetes glycemic status above 9% — each with
+
+- its **narrative**: the measure's published English (description, the criteria of each
+  population, guidance, rationale and recommendation statements), as in its Measure resource;
+- its **specification**: the measure's CQL library and every library it includes;
+- its **test cases**: 190 patients with the expected result of each (58, 29, 60 and 43), written
+  by the measure's authors.
+
+**Arms.** An implementer is an agent that writes one Python function, `evaluate(resources,
+valuesets, period_start, period_end)`, answering for one patient whether they are in the
+initial population, the denominator, the denominator exclusions and the numerator.
+
+- **N, narrative first**: given the narrative.
+- **S, spec first**: given the CQL, and which of its definitions is which population. It cannot
+  run CQL; it reads it and implements what it says.
+- **X** (no model): the CQL run by this toolkit's engine, as a reference for what a
+  specification that is executed gives: 188 of the 190.
+
+Everything else is the same for N and S: the model; the tools (Python, reading and writing
+files in its own directory); the prompt but for the sentence naming the description; the
+terminology (the value sets and codes the measure declares, by name, with their members: the
+published measure lists them beside the narrative too); a sample of the test patients, a fifth
+of each measure's (their records only, no expected results, names removed: one measure's test
+patients are named after their expected result); the contract of the function, with the rules
+of a proportion measure that hold for any measure (denominator only within the initial
+population, exclusions only within the denominator, numerator only within the denominator and
+not excluded); a script that runs the function over the sample. No network, nothing outside
+its directory (each session's commands are audited for it).
+
+Five independent implementers for each measure and arm: 40 sessions.
+
+**Outcomes**, over the test cases that were NOT in the sample (four fifths):
+
+- **Right** (primary): a case is right for an implementation when all four populations are the
+  expected ones. An implementation that does not load or raises on a case is wrong on it.
+- **Agreement** (primary for "without ambiguity"): the share of cases on which the five
+  implementers of an arm give the same four answers.
+- **Cost**: input and output tokens, model calls, seconds for an implementation.
+
+**Analysis.** The difference S − N in the share right, pooled over implementations and cases,
+with a 95% interval from a two-level bootstrap (implementations resampled within measure and
+arm, cases within measure), and a permutation test of the arm labels within measure. The same
+difference for agreement, bootstrapped over cases. "Significant value" as defined above: at
+least 5 points with the interval above zero.
+
+**What can be wrong with it.**
+
+- Four measures. The intervals describe these four; whether it holds for other systems is an
+  argument, not a result of this run.
+- The measures are public and the model may have read them, the CQL included. That helps N
+  (it may recall what the narrative does not say), so it works against the hypothesis.
+- The narrative was written to be read beside the CQL, not to stand alone. It is still the
+  English the steward publishes as the measure's description, and what narrative-first has.
+- S's implementers translate a formal language by hand, which a spec-first system does not do
+  (it runs the specification: X). S isolates the description from the engine: the same target
+  language, the same hands, only the description differs.
+- The expected results are the authors', with the two known oddities of this export (values
+  written as concepts where the case describes a percentage); both arms are held to them alike.
+
