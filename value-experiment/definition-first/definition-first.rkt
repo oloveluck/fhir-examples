@@ -240,7 +240,7 @@
           (if (eq? arm 'L) '("Bash(raco:*)" "Bash(racket:*)") '())))
 
 ;; what a session's commands must not name: the network's tools, and where the material came from
-(define forbidden '("pip " "wget" "git clone" "github" "/home/" "value-experiment" "definition-first" "agent-bench/"))
+(define forbidden '("pip " "wget" "git clone" "github" "/home/" "/usr/" "fhir-examples" "value-experiment" "definition-first"))
 
 ;; non-local-requests : (listof string) -> (listof string)   the commands that name a host other
 ;; than the implementer's own server in a curl call
@@ -491,7 +491,7 @@
   (define-values (d ci) (report-right "right, every version   " impls))
   (define after (restricted impls (lambda (c) (not (equal? (case-version c) "v1")))))
   (define-values (d2 ci2) (report-right "right, after a change  " after))
-  (void (report-right "right, as first built  " (restricted impls (lambda (c) (equal? (case-version c) "v1")))))
+  (call-with-values (lambda () (report-right "right, as first built  " (restricted impls (lambda (c) (equal? (case-version c) "v1"))))) void)
   (for ([label (in-list '("  requests that conform  " "  requests that do not   " "  about the change       "))]
         [keep? (in-list (list (lambda (o) (car (outcome-answer o))) (lambda (o) (not (car (outcome-answer o))))
                               (lambda (o) (cadr (outcome-answer o)))))])
@@ -503,7 +503,7 @@
   (newline)
   (define-values (r rci) (report-cost "input tokens, a lineage     " impls 'input))
   (define-values (r2 rci2) (report-cost "input tokens, the changes   " impls 'change-input))
-  (void (report-cost "input tokens, the build     " impls 'build-input))
+  (call-with-values (lambda () (report-cost "input tokens, the build     " impls 'build-input)) void)
   (define (m arm key) (mean (map (lambda (i) (hash-ref (impl-cost i) key)) (of-arm impls arm))))
   (printf "a lineage, L and G: output tokens ~a and ~a; seconds ~a and ~a (the changes ~a and ~a); model turns ~a and ~a\n"
           (thousands (m 'L 'output)) (thousands (m 'G 'output)) (exact-round (m 'L 'seconds)) (exact-round (m 'G 'seconds))

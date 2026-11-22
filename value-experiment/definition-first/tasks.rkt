@@ -199,7 +199,8 @@ TEXT
    "It will be sent many other requests than the examples, some that conform to the definition and some that do not, "
    "and judged by whether it answers each as the contract says"
    (if (= v 1) "." " under the new definition.")
-   "\n\nUse only this directory: no network beyond your own server on 127.0.0.1, no other files, no packages to install. "
+   "\n\nUse only this directory. Read nothing outside it, not the source of any installed software either: what you are given "
+   "is the documentation there is. No network beyond your own server on 127.0.0.1, no packages to install. "
    "When the server answers the examples as it should, end with one short line."))
 
 (module+ test

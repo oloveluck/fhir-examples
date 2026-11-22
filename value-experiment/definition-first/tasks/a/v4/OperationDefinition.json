@@ -1,0 +1,80 @@
+{
+  "resourceType": "OperationDefinition",
+  "url": "http://example.org/fhir/OperationDefinition/ckd-epi-egfr",
+  "version": "4",
+  "name": "CkdEpi2021Egfr",
+  "title": "Estimated GFR by CKD-EPI 2021 (creatinine)",
+  "status": "active",
+  "kind": "operation",
+  "code": "ckd-epi-egfr",
+  "system": true,
+  "type": false,
+  "instance": false,
+  "description": "Estimates glomerular filtration rate with the race-free CKD-EPI 2021 creatinine equation and assigns the GFR category.",
+  "parameter": [
+    {
+      "name": "creatinine",
+      "use": "in",
+      "min": 1,
+      "max": "1",
+      "type": "decimal",
+      "documentation": "Serum creatinine, in the unit given by creatinineUnit (0.2 to 20 mg/dL after conversion)."
+    },
+    {
+      "name": "age",
+      "use": "in",
+      "min": 1,
+      "max": "1",
+      "type": "decimal",
+      "documentation": "Age in years (18 to 120)."
+    },
+    {
+      "name": "sex",
+      "use": "in",
+      "min": 1,
+      "max": "1",
+      "type": "code",
+      "documentation": "Sex used by the equation: male or female.",
+      "binding": {
+        "strength": "required",
+        "valueSet": "http://example.org/fhir/ValueSet/ckdepi-sex"
+      }
+    },
+    {
+      "name": "creatinineUnit",
+      "use": "in",
+      "min": 1,
+      "max": "1",
+      "type": "code",
+      "documentation": "Unit of creatinine: mg/dL or umol/L.",
+      "binding": {
+        "strength": "required",
+        "valueSet": "http://example.org/fhir/ValueSet/ckdepi-creatinine-unit"
+      }
+    },
+    {
+      "name": "sampleDate",
+      "use": "in",
+      "min": 0,
+      "max": "1",
+      "type": "date",
+      "documentation": "Date the blood sample was taken; not in the future."
+    },
+    {
+      "name": "egfr",
+      "use": "out",
+      "min": 1,
+      "max": "1",
+      "type": "Quantity",
+      "documentation": "Estimated GFR, mL/min/1.73 m2, rounded to 1 decimal."
+    },
+    {
+      "name": "stage",
+      "use": "out",
+      "min": 1,
+      "max": "1",
+      "type": "code",
+      "documentation": "GFR category G1, G2, G3a, G3b, G4 or G5."
+    }
+  ]
+}

@@ -1,0 +1,3820 @@
+[
+ {
+  "id": "c01",
+  "about": "qt-ms 199.9 below range",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 199.9
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c02",
+  "about": "qrs-ms equals qt-ms",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 250.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 250
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c03",
+  "about": "missing qt-ms",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c04",
+  "about": "HR 250 fast",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 220.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 250
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 449.1,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.24,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c05",
+  "about": "qt-ms as string",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueString": "400"
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c06",
+  "about": "fridericia, sex female, wide QRS, date 2023-03-09",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 350.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 60
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 140
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2023-03-09"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 310.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 1.0,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c07",
+  "about": "fridericia, sex male, narrow QRS",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 340.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 64
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 82
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 347.4,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.938,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c08",
+  "about": "fridericia, sex male, wide QRS, date 2023-03-09",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 420.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 92
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 170
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2023-03-09"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 403.6,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.652,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c09",
+  "about": "fridericia, sex female, narrow QRS, date 2026-11-22",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 470.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 116
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 98
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2026-11-22"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 585.5,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": true
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.517,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c10",
+  "about": "fridericia, sex omitted, narrow QRS, date 2026-11-22",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 345.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 108
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 102
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2026-11-22"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 419.7,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.556,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c11",
+  "about": "qrs-ms given twice",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 95
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c12",
+  "about": "formula as string",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueString": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c13",
+  "about": "fridericia, sex female, wide QRS, date 2026-11-22",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 460.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 112
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 145
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2026-11-22"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 511.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": true
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.536,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c14",
+  "about": "QRS 120 fridericia",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 420.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 60
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 120
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 400.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 1.0,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c15",
+  "about": "fridericia, sex female, wide QRS, date 2026-11-22",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 495.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 60
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 150
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2026-11-22"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 445.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 1.0,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c16",
+  "about": "QT 800 maximum slow HR",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 800.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 30
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 100
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 635.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": true
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 2.0,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c17",
+  "about": "fridericia, sex omitted, narrow QRS",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 515.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 100
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 610.6,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": true
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.6,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c18",
+  "about": "qt-ms above RR",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 420.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 150
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c19",
+  "about": "bazett, sex male, wide QRS",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 380.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 76
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 140
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 382.7,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.789,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c20",
+  "about": "fridericia, sex omitted, wide QRS",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 450.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 116
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 145
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 504.5,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": true
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.517,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c21",
+  "about": "fridericia, sex male, narrow QRS",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 510.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 68
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 82
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 531.7,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": true
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.882,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c22",
+  "about": "qrs-ms as string",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueString": "90"
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c23",
+  "about": "bazett, sex omitted, wide QRS",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 365.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 52
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 140
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 302.6,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 1.154,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c24",
+  "about": "qrs-ms 39 below range",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 39
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c25",
+  "about": "fridericia, sex omitted, wide QRS, date 2023-03-09",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 495.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 48
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 135
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2023-03-09"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 427.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 1.25,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c26",
+  "about": "sex as string",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueString": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c27",
+  "about": "bazett, sex male, narrow QRS, date 2026-11-22",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 365.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 96
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 82
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2026-11-22"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 461.7,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": true
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.625,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c28",
+  "about": "framingham no longer bound",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "framingham"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c29",
+  "about": "bazett, sex male, wide QRS",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 360.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 52
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 165
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 274.6,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 1.154,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c30",
+  "about": "bazett, sex omitted, wide QRS",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 390.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 104
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 130
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 474.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": true
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.577,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c31",
+  "about": "bazett, sex omitted, wide QRS, date 2026-11-22",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 465.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 88
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 140
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2026-11-22"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 514.7,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": true
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.682,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c32",
+  "about": "bazett, sex female, wide QRS, date 2026-11-22",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 360.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 88
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 155
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2026-11-22"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 369.4,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.682,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c33",
+  "about": "qt-ms equals RR",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 150
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c34",
+  "about": "bazett, sex male, narrow QRS, date 2023-03-09",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 345.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 72
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 82
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2023-03-09"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 377.9,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.833,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c35",
+  "about": "heart-rate given twice",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 80
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c36",
+  "about": "bazett, sex omitted, narrow QRS",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 380.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 112
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 519.2,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": true
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.536,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c37",
+  "about": "sex unknown code",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "other"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c38",
+  "about": "QRS exactly 120 (adjusted)",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 430.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 120
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 442.9,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.857,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c39",
+  "about": "missing qrs-ms",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c40",
+  "about": "QT 200 minimum",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 200.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 75
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 223.6,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.8,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c41",
+  "about": "qt-ms as integer key",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueInteger": 400
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c42",
+  "about": "bazett, sex female, wide QRS, date 2026-11-22",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 480.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 80
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 135
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2026-11-22"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 513.8,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": true
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.75,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c43",
+  "about": "sex wrong case",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "Male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c44",
+  "about": "bazett, sex male, wide QRS, date 2026-11-22",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 375.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 56
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 145
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2026-11-22"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 318.8,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 1.071,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c45",
+  "about": "sex given twice",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c46",
+  "about": "qt-ms given twice",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "qt-ms",
+     "valueDecimal": 410.0
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c47",
+  "about": "ecg-date tomorrow",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2026-11-23"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c48",
+  "about": "bazett, sex female, wide QRS, date 2026-11-22",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 435.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 60
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 140
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2026-11-22"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 395.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 1.0,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c49",
+  "about": "framingham no longer bound",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 450.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 55
+    },
+    {
+     "name": "formula",
+     "valueCode": "framingham"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c50",
+  "about": "bazett, sex female, narrow QRS, date 2026-11-22",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 505.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 68
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 70
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2026-11-22"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 537.6,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": true
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.882,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c51",
+  "about": "bazett, sex male, narrow QRS, date 2023-03-09",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 345.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 72
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 98
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2023-03-09"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 377.9,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.833,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c52",
+  "about": "fridericia, sex female, narrow QRS",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 365.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 72
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 110
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 387.9,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.833,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c53",
+  "about": "fridericia, sex omitted, wide QRS",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 480.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 88
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 135
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 505.6,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": true
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.682,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c54",
+  "about": "heart-rate 251",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 251
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c55",
+  "about": "fridericia, sex omitted, narrow QRS",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 355.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 84
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 70
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 397.1,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.714,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c56",
+  "about": "bazett, sex female, narrow QRS, date 2026-11-22",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 465.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 72
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 94
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2026-11-22"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 509.4,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": true
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.833,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c57",
+  "about": "bazett, sex male, narrow QRS, date 2023-03-09",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 350.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 104
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 102
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2023-03-09"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 460.8,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": true
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.577,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c58",
+  "about": "formula given twice",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c59",
+  "about": "heart-rate under decimal key",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueDecimal": 70.5
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c60",
+  "about": "bazett, sex omitted, narrow QRS, date 2026-11-22",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 360.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 48
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 94
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2026-11-22"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 322.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 1.25,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c61",
+  "about": "formula unknown code",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "rautaharju"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c62",
+  "about": "qrs-ms 301 above range",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 301
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c63",
+  "about": "qt-ms 800.5 above range",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 800.5
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c64",
+  "about": "fridericia, sex female, wide QRS",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 100
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 150
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 415.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.6,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c65",
+  "about": "QRS 119 (not adjusted)",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 430.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 119
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 464.5,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": true
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.857,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c66",
+  "about": "fridericia, sex male, narrow QRS",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 515.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 80
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 94
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 566.8,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": true
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.75,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c67",
+  "about": "missing heart-rate",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c68",
+  "about": "fridericia, sex female, narrow QRS",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 395.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 120
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 70
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 497.7,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": true
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.5,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c69",
+  "about": "date today",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 410.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 65
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2026-11-22"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 426.7,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.923,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c70",
+  "about": "HR 30 slow",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 420.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 30
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 333.4,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 2.0,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c71",
+  "about": "ecg-date in future",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2099-12-31"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c72",
+  "about": "bazett, sex omitted, wide QRS, date 2023-03-09",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 405.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 68
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 160
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2023-03-09"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 367.3,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.882,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c73",
+  "about": "bazett, sex omitted, narrow QRS, date 2023-03-09",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 355.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 72
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 106
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2023-03-09"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 388.9,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.833,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c74",
+  "about": "fridericia, sex male, wide QRS, date 2026-11-22",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 360.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 108
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 170
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2026-11-22"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 352.8,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.556,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c75",
+  "about": "fridericia, sex male, wide QRS, date 2023-03-09",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 480.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 116
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 145
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2023-03-09"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 541.9,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": true
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.517,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c76",
+  "about": "bazett, sex female, narrow QRS, date 2026-11-22",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 415.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 120
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 74
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2026-11-22"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 586.9,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": true
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.5,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c77",
+  "about": "missing formula",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c78",
+  "about": "qrs-ms exceeds qt-ms",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 250.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 280
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c79",
+  "about": "hodges no longer bound",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 420.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 80
+    },
+    {
+     "name": "formula",
+     "valueCode": "hodges"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c80",
+  "about": "QRS minimum 40",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 75
+    },
+    {
+     "name": "formula",
+     "valueCode": "fridericia"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 40
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 430.9,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.8,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c81",
+  "about": "bazett, sex omitted, narrow QRS, date 2023-03-09",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 390.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 72
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 106
+    },
+    {
+     "name": "ecg-date",
+     "valueDate": "2023-03-09"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 427.2,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 0.833,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c82",
+  "about": "heart-rate 29",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 29
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c83",
+  "about": "ecg-date as string",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 400.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 70
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "ecg-date",
+     "valueString": "2023-03-09"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c84",
+  "about": "bazett, sex male, wide QRS",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 445.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 48
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 140
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 362.2,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 1.25,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ },
+ {
+  "id": "c85",
+  "about": "bazett, sex female, narrow QRS",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "qt-ms",
+     "valueDecimal": 390.0
+    },
+    {
+     "name": "heart-rate",
+     "valueInteger": 60
+    },
+    {
+     "name": "formula",
+     "valueCode": "bazett"
+    },
+    {
+     "name": "qrs-ms",
+     "valueInteger": 78
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "qtc",
+     "type": "valueDecimal",
+     "value": 390.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "qtc-prolonged",
+     "type": "valueBoolean",
+     "value": false
+    },
+    {
+     "name": "rr-seconds",
+     "type": "valueDecimal",
+     "value": 1.0,
+     "tolerance": 0.0005
+    }
+   ]
+  }
+ }
+]

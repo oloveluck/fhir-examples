@@ -1,0 +1,99 @@
+{
+  "resourceType": "OperationDefinition",
+  "url": "http://example.org/fhir/OperationDefinition/anion-gap",
+  "name": "AnionGap",
+  "title": "Serum anion gap with albumin correction",
+  "status": "active",
+  "kind": "operation",
+  "code": "anion-gap",
+  "system": true,
+  "type": false,
+  "instance": false,
+  "description": "Calculates the serum anion gap, optionally albumin-corrected, and classifies it. Version 3.",
+  "parameter": [
+    {
+      "name": "sodium",
+      "use": "in",
+      "min": 1,
+      "max": "1",
+      "type": "decimal",
+      "documentation": "Serum sodium in mmol/L. Must be from 100 to 180."
+    },
+    {
+      "name": "chloride",
+      "use": "in",
+      "min": 1,
+      "max": "1",
+      "type": "decimal",
+      "documentation": "Serum chloride in mmol/L. Must be from 60 to 140, and sodium must be greater than chloride."
+    },
+    {
+      "name": "bicarbonate",
+      "use": "in",
+      "min": 1,
+      "max": "1",
+      "type": "decimal",
+      "documentation": "Serum bicarbonate in mmol/L. Must be from 2 to 60."
+    },
+    {
+      "name": "method",
+      "use": "in",
+      "min": 1,
+      "max": "1",
+      "type": "code",
+      "documentation": "Gap method, a code of the value set http://example.org/fhir/ValueSet/anion-gap-method (code system http://example.org/fhir/CodeSystem/anion-gap-method): standard or with-potassium.",
+      "binding": {
+        "strength": "required",
+        "valueSet": "http://example.org/fhir/ValueSet/anion-gap-method"
+      }
+    },
+    {
+      "name": "potassium",
+      "use": "in",
+      "min": 0,
+      "max": "1",
+      "type": "decimal",
+      "documentation": "Serum potassium in mmol/L, from 1.0 to 10.0. Required when method is with-potassium; ignored in the computation when method is standard."
+    },
+    {
+      "name": "albumin",
+      "use": "in",
+      "min": 0,
+      "max": "1",
+      "type": "decimal",
+      "documentation": "Serum albumin in g/dL, from 0.5 to 6.0. When given, the gap is albumin-corrected."
+    },
+    {
+      "name": "lactate",
+      "use": "in",
+      "min": 1,
+      "max": "1",
+      "type": "Quantity",
+      "documentation": "Blood lactate as a Quantity with system http://unitsofmeasure.org and code mmol/L or mg/dL (no other code). Its value in mmol/L (mg/dL divided by 9.008) must be from 0 to 30."
+    },
+    {
+      "name": "anion-gap",
+      "use": "out",
+      "min": 1,
+      "max": "1",
+      "type": "decimal",
+      "documentation": "Anion gap in mmol/L, 1 decimal."
+    },
+    {
+      "name": "corrected-anion-gap",
+      "use": "out",
+      "min": 0,
+      "max": "1",
+      "type": "decimal",
+      "documentation": "Albumin-corrected anion gap in mmol/L, 1 decimal. Present only when albumin is given."
+    },
+    {
+      "name": "category",
+      "use": "out",
+      "min": 1,
+      "max": "1",
+      "type": "code",
+      "documentation": "low, normal or high. Always present."
+    }
+  ]
+}

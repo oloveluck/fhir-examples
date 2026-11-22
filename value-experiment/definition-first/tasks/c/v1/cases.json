@@ -1,0 +1,1604 @@
+[
+ {
+  "id": "c01",
+  "about": "std, normal gap",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 104
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 26
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 10,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "normal"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c02",
+  "about": "std, low albumin raises gap",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 100
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 24
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    },
+    {
+     "name": "albumin",
+     "valueDecimal": 2.0
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 16,
+     "tolerance": 0.05
+    },
+    {
+     "name": "corrected-anion-gap",
+     "type": "valueDecimal",
+     "value": 22.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "high"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c03",
+  "about": "std, albumin lifts low to normal",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 138
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 108
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 26
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    },
+    {
+     "name": "albumin",
+     "valueDecimal": 2.0
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 4,
+     "tolerance": 0.05
+    },
+    {
+     "name": "corrected-anion-gap",
+     "type": "valueDecimal",
+     "value": 10.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "normal"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c04",
+  "about": "albumin given twice",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 100
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 24
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    },
+    {
+     "name": "albumin",
+     "valueDecimal": 3.0
+    },
+    {
+     "name": "albumin",
+     "valueDecimal": 3.5
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c05",
+  "about": "with-K, albumin 2.6",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 102
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 24
+    },
+    {
+     "name": "method",
+     "valueCode": "with-potassium"
+    },
+    {
+     "name": "potassium",
+     "valueDecimal": 4.5
+    },
+    {
+     "name": "albumin",
+     "valueDecimal": 2.6
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 18.5,
+     "tolerance": 0.05
+    },
+    {
+     "name": "corrected-anion-gap",
+     "type": "valueDecimal",
+     "value": 23.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "high"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c06",
+  "about": "method outside binding",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 100
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 24
+    },
+    {
+     "name": "method",
+     "valueCode": "calculated"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c07",
+  "about": "max potassium bound",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 100
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 30
+    },
+    {
+     "name": "method",
+     "valueCode": "with-potassium"
+    },
+    {
+     "name": "potassium",
+     "valueDecimal": 10.0
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 20.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "high"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c08",
+  "about": "with-K, low",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 138
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 106
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 26
+    },
+    {
+     "name": "method",
+     "valueCode": "with-potassium"
+    },
+    {
+     "name": "potassium",
+     "valueDecimal": 3.5
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 9.5,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "low"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c09",
+  "about": "std, lactate zero",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 102
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 24
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 14,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "high"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c10",
+  "about": "albumin as boolean",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 100
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 24
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    },
+    {
+     "name": "albumin",
+     "valueBoolean": true
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c11",
+  "about": "std, lactate shifts high to normal",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 135
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 100
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 20
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 15,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "high"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c12",
+  "about": "std, albumin 4.4 no change",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 104
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 22
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    },
+    {
+     "name": "albumin",
+     "valueDecimal": 4.4
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 14,
+     "tolerance": 0.05
+    },
+    {
+     "name": "corrected-anion-gap",
+     "type": "valueDecimal",
+     "value": 14.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "high"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c13",
+  "about": "sodium as string",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueString": "140"
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 100
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 24
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c14",
+  "about": "std, decimal albumin",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 139.2
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 103.6
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 25.1
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    },
+    {
+     "name": "albumin",
+     "valueDecimal": 3.6
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 10.5,
+     "tolerance": 0.05
+    },
+    {
+     "name": "corrected-anion-gap",
+     "type": "valueDecimal",
+     "value": 12.5,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "high"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c15",
+  "about": "std, lactate shifts to normal",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 100
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 24
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 16,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "high"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c16",
+  "about": "bicarbonate missing",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 100
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c17",
+  "about": "sodium too high",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 190
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 100
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 24
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c18",
+  "about": "max sodium bound",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 180
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 130
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 40
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 10,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "normal"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c19",
+  "about": "sodium given twice",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "sodium",
+     "valueDecimal": 141
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 100
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 24
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c20",
+  "about": "std, potassium given but ignored",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 104
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 26
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    },
+    {
+     "name": "potassium",
+     "valueDecimal": 4.0
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 10,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "normal"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c21",
+  "about": "albumin too high",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 100
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 24
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    },
+    {
+     "name": "albumin",
+     "valueDecimal": 7.0
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c22",
+  "about": "method missing",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 100
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 24
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c23",
+  "about": "with-K without potassium",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 100
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 24
+    },
+    {
+     "name": "method",
+     "valueCode": "with-potassium"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c24",
+  "about": "method as string",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 100
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 24
+    },
+    {
+     "name": "method",
+     "valueString": "standard"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c25",
+  "about": "sodium not above chloride",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 100
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 105
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 20
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c26",
+  "about": "std, high, no albumin",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 100
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 24
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 16,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "high"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c27",
+  "about": "min sodium bound",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 100
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 70
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 10
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 20,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "high"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c28",
+  "about": "chloride too low",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 50
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 24
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c29",
+  "about": "with-K, high",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 100
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 24
+    },
+    {
+     "name": "method",
+     "valueCode": "with-potassium"
+    },
+    {
+     "name": "potassium",
+     "valueDecimal": 5.0
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 21.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "high"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c30",
+  "about": "std, decimal inputs",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 141.5
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 101.3
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 23.4
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 16.8,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "high"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c31",
+  "about": "chloride missing",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 24
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c32",
+  "about": "with-K, albumin lactate to normal",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 135
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 105
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 26
+    },
+    {
+     "name": "method",
+     "valueCode": "with-potassium"
+    },
+    {
+     "name": "potassium",
+     "valueDecimal": 4.0
+    },
+    {
+     "name": "albumin",
+     "valueDecimal": 1.0
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 8.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "corrected-anion-gap",
+     "type": "valueDecimal",
+     "value": 16.5,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "high"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c33",
+  "about": "bicarbonate too high",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 100
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 70
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c34",
+  "about": "with-K, normal",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 104
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 25
+    },
+    {
+     "name": "method",
+     "valueCode": "with-potassium"
+    },
+    {
+     "name": "potassium",
+     "valueDecimal": 4.0
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 15.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "normal"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c35",
+  "about": "std, low gap",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 138
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 106
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 28
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 4,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "low"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c36",
+  "about": "std, albumin above 4.4",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 100
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 30
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    },
+    {
+     "name": "albumin",
+     "valueDecimal": 5.0
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 10,
+     "tolerance": 0.05
+    },
+    {
+     "name": "corrected-anion-gap",
+     "type": "valueDecimal",
+     "value": 8.5,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "normal"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c37",
+  "about": "with-K, lactate shifts to normal",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 100
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 24
+    },
+    {
+     "name": "method",
+     "valueCode": "with-potassium"
+    },
+    {
+     "name": "potassium",
+     "valueDecimal": 5.0
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 21.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "high"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c38",
+  "about": "sodium missing",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "chloride",
+     "valueDecimal": 100
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 24
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c39",
+  "about": "albumin 0.6 low",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 140
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 104
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 28
+    },
+    {
+     "name": "method",
+     "valueCode": "standard"
+    },
+    {
+     "name": "albumin",
+     "valueDecimal": 0.6
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 8,
+     "tolerance": 0.05
+    },
+    {
+     "name": "corrected-anion-gap",
+     "type": "valueDecimal",
+     "value": 17.5,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "high"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c40",
+  "about": "with-K, albumin 3.0 normal",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "sodium",
+     "valueDecimal": 136
+    },
+    {
+     "name": "chloride",
+     "valueDecimal": 104
+    },
+    {
+     "name": "bicarbonate",
+     "valueDecimal": 24
+    },
+    {
+     "name": "method",
+     "valueCode": "with-potassium"
+    },
+    {
+     "name": "potassium",
+     "valueDecimal": 4.0
+    },
+    {
+     "name": "albumin",
+     "valueDecimal": 3.0
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "anion-gap",
+     "type": "valueDecimal",
+     "value": 12.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "corrected-anion-gap",
+     "type": "valueDecimal",
+     "value": 15.5,
+     "tolerance": 0.05
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "normal"
+    }
+   ]
+  }
+ }
+]

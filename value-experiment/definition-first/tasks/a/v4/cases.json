@@ -1,0 +1,1860 @@
+[
+ {
+  "id": "c01",
+  "about": "male, age 18, umol/L, G1",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 80.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 18.0
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueQuantity",
+     "value": {
+      "value": 126.1,
+      "unit": "mL/min/1.73 m2",
+      "system": "http://unitsofmeasure.org",
+      "code": "mL/min/{1.73_m2}"
+     },
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G1",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c02",
+  "about": "female, age 52.0, mg/dL, G3b",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.5
+    },
+    {
+     "name": "age",
+     "valueDecimal": 52.0
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueQuantity",
+     "value": {
+      "value": 41.7,
+      "unit": "mL/min/1.73 m2",
+      "system": "http://unitsofmeasure.org",
+      "code": "mL/min/{1.73_m2}"
+     },
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G3b",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c03",
+  "about": "umol/L below range",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 10.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 50.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c04",
+  "about": "creatinine too low",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 0.1
+    },
+    {
+     "name": "age",
+     "valueDecimal": 50.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c05",
+  "about": "male, age 65.75, umol/L, G3b",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 194.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 65.75
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueQuantity",
+     "value": {
+      "value": 32.4,
+      "unit": "mL/min/1.73 m2",
+      "system": "http://unitsofmeasure.org",
+      "code": "mL/min/{1.73_m2}"
+     },
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G3b",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c06",
+  "about": "date as string",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 50.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    },
+    {
+     "name": "sampleDate",
+     "valueString": "2022-02-02"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c07",
+  "about": "unit wrong case",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 50.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/l"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c08",
+  "about": "sampleDate in future",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 50.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    },
+    {
+     "name": "sampleDate",
+     "valueDate": "2999-12-31"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c09",
+  "about": "age twice",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 50.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    },
+    {
+     "name": "age",
+     "valueDecimal": 50.5
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c10",
+  "about": "male, age 41.5, umol/L, G2",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 124.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 41.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    },
+    {
+     "name": "sampleDate",
+     "valueDate": "2026-01-15"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueQuantity",
+     "value": {
+      "value": 64.4,
+      "unit": "mL/min/1.73 m2",
+      "system": "http://unitsofmeasure.org",
+      "code": "mL/min/{1.73_m2}"
+     },
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G2",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c11",
+  "about": "age as string",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueString": "50"
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c12",
+  "about": "female, age 80.25, mg/dL, G5",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 7.8
+    },
+    {
+     "name": "age",
+     "valueDecimal": 80.25
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueQuantity",
+     "value": {
+      "value": 4.8,
+      "unit": "mL/min/1.73 m2",
+      "system": "http://unitsofmeasure.org",
+      "code": "mL/min/{1.73_m2}"
+     },
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G5",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c13",
+  "about": "age over 120",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 120.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c14",
+  "about": "creatinine as string",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueString": "1.0"
+    },
+    {
+     "name": "age",
+     "valueDecimal": 50.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c15",
+  "about": "female, age 120, umol/L, G2",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 62.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 120.0
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueQuantity",
+     "value": {
+      "value": 68.0,
+      "unit": "mL/min/1.73 m2",
+      "system": "http://unitsofmeasure.org",
+      "code": "mL/min/{1.73_m2}"
+     },
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G2",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c16",
+  "about": "male, age 50.25, mg/dL, G1",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 50.25
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueQuantity",
+     "value": {
+      "value": 91.5,
+      "unit": "mL/min/1.73 m2",
+      "system": "http://unitsofmeasure.org",
+      "code": "mL/min/{1.73_m2}"
+     },
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G1",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c17",
+  "about": "male, age 40.75, umol/L, G5",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1061.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 40.75
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    },
+    {
+     "name": "sampleDate",
+     "valueDate": "2020-02-29"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueQuantity",
+     "value": {
+      "value": 4.9,
+      "unit": "mL/min/1.73 m2",
+      "system": "http://unitsofmeasure.org",
+      "code": "mL/min/{1.73_m2}"
+     },
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G5",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c18",
+  "about": "sex wrong case",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 50.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "Female"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c19",
+  "about": "umol-sized value given as mg/dL",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 88.4
+    },
+    {
+     "name": "age",
+     "valueDecimal": 50.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c20",
+  "about": "sampleDate twice",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 50.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    },
+    {
+     "name": "sampleDate",
+     "valueDate": "2022-02-02"
+    },
+    {
+     "name": "sampleDate",
+     "valueDate": "2022-02-03"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c21",
+  "about": "unit outside binding",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 50.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mmol/L"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c22",
+  "about": "missing creatinine",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "age",
+     "valueDecimal": 50.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c23",
+  "about": "sex twice",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 50.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c24",
+  "about": "male, age 29.0, mg/dL, G1",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 0.3
+    },
+    {
+     "name": "age",
+     "valueDecimal": 29.0
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueQuantity",
+     "value": {
+      "value": 165.2,
+      "unit": "mL/min/1.73 m2",
+      "system": "http://unitsofmeasure.org",
+      "code": "mL/min/{1.73_m2}"
+     },
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G1",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c25",
+  "about": "female, age 30.0, mg/dL, G1",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 0.6
+    },
+    {
+     "name": "age",
+     "valueDecimal": 30.0
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    },
+    {
+     "name": "sampleDate",
+     "valueDate": "2023-05-17"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueQuantity",
+     "value": {
+      "value": 123.8,
+      "unit": "mL/min/1.73 m2",
+      "system": "http://unitsofmeasure.org",
+      "code": "mL/min/{1.73_m2}"
+     },
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G1",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c26",
+  "about": "age under 18",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 17.9
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c27",
+  "about": "female, age 72.0, mg/dL, G4",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 2.7
+    },
+    {
+     "name": "age",
+     "valueDecimal": 72.0
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    },
+    {
+     "name": "sampleDate",
+     "valueDate": "2021-07-09"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueQuantity",
+     "value": {
+      "value": 18.2,
+      "unit": "mL/min/1.73 m2",
+      "system": "http://unitsofmeasure.org",
+      "code": "mL/min/{1.73_m2}"
+     },
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G4",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c28",
+  "about": "unit as string",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 50.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueString": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c29",
+  "about": "creatinine twice",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 50.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    },
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.1
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c30",
+  "about": "umol/L above range",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 2000.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 50.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c31",
+  "about": "missing sex",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 50.5
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c32",
+  "about": "male, age 77.5, umol/L, G3b",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 177.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 77.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueQuantity",
+     "value": {
+      "value": 33.6,
+      "unit": "mL/min/1.73 m2",
+      "system": "http://unitsofmeasure.org",
+      "code": "mL/min/{1.73_m2}"
+     },
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G3b",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c33",
+  "about": "missing age",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c34",
+  "about": "sex as string",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 50.5
+    },
+    {
+     "name": "sex",
+     "valueString": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c35",
+  "about": "female, age 66.25, mg/dL, G3a",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.2
+    },
+    {
+     "name": "age",
+     "valueDecimal": 66.25
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueQuantity",
+     "value": {
+      "value": 49.8,
+      "unit": "mL/min/1.73 m2",
+      "system": "http://unitsofmeasure.org",
+      "code": "mL/min/{1.73_m2}"
+     },
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G3a",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c36",
+  "about": "female, age 45.75, umol/L, G2",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 97.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 45.75
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    },
+    {
+     "name": "sampleDate",
+     "valueDate": "2024-11-02"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueQuantity",
+     "value": {
+      "value": 63.0,
+      "unit": "mL/min/1.73 m2",
+      "system": "http://unitsofmeasure.org",
+      "code": "mL/min/{1.73_m2}"
+     },
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G2",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c37",
+  "about": "female, age 90.25, mg/dL, G3a",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 90.25
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    },
+    {
+     "name": "sampleDate",
+     "valueDate": "2019-12-31"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueQuantity",
+     "value": {
+      "value": 53.4,
+      "unit": "mL/min/1.73 m2",
+      "system": "http://unitsofmeasure.org",
+      "code": "mL/min/{1.73_m2}"
+     },
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G3a",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c38",
+  "about": "sex outside binding",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 50.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "other"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c39",
+  "about": "creatinine too high",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 25.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 50.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c40",
+  "about": "male, age 25.5, umol/L, G1",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 71.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 25.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueQuantity",
+     "value": {
+      "value": 125.4,
+      "unit": "mL/min/1.73 m2",
+      "system": "http://unitsofmeasure.org",
+      "code": "mL/min/{1.73_m2}"
+     },
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G1",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c41",
+  "about": "male, age 60.0, umol/L, G2",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 115.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 60.0
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueQuantity",
+     "value": {
+      "value": 62.8,
+      "unit": "mL/min/1.73 m2",
+      "system": "http://unitsofmeasure.org",
+      "code": "mL/min/{1.73_m2}"
+     },
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G2",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c42",
+  "about": "male, age 70.5, umol/L, G3b",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 159.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 70.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    },
+    {
+     "name": "sampleDate",
+     "valueDate": "2022-01-31"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueQuantity",
+     "value": {
+      "value": 39.9,
+      "unit": "mL/min/1.73 m2",
+      "system": "http://unitsofmeasure.org",
+      "code": "mL/min/{1.73_m2}"
+     },
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G3b",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c43",
+  "about": "male, age 58.5, umol/L, G5",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 486.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 58.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueQuantity",
+     "value": {
+      "value": 11.2,
+      "unit": "mL/min/1.73 m2",
+      "system": "http://unitsofmeasure.org",
+      "code": "mL/min/{1.73_m2}"
+     },
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G5",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c44",
+  "about": "unit twice",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 50.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c45",
+  "about": "missing creatinineUnit",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 50.5
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c46",
+  "about": "female, age 55.25, mg/dL, G4",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 2.1
+    },
+    {
+     "name": "age",
+     "valueDecimal": 55.25
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueQuantity",
+     "value": {
+      "value": 27.3,
+      "unit": "mL/min/1.73 m2",
+      "system": "http://unitsofmeasure.org",
+      "code": "mL/min/{1.73_m2}"
+     },
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G4",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c47",
+  "about": "male, age 64.75, umol/L, G5",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1724.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 64.75
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueQuantity",
+     "value": {
+      "value": 2.4,
+      "unit": "mL/min/1.73 m2",
+      "system": "http://unitsofmeasure.org",
+      "code": "mL/min/{1.73_m2}"
+     },
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G5",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c48",
+  "about": "female, age 35.75, umol/L, G1",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 44.0
+    },
+    {
+     "name": "age",
+     "valueDecimal": 35.75
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    },
+    {
+     "name": "sampleDate",
+     "valueDate": "2025-03-03"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueQuantity",
+     "value": {
+      "value": 124.9,
+      "unit": "mL/min/1.73 m2",
+      "system": "http://unitsofmeasure.org",
+      "code": "mL/min/{1.73_m2}"
+     },
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G1",
+     "tolerance": 0
+    }
+   ]
+  }
+ }
+]

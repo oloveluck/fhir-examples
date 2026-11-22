@@ -1,0 +1,80 @@
+{
+  "resourceType": "OperationDefinition",
+  "url": "http://example.org/fhir/OperationDefinition/qtc",
+  "version": "1.0.0",
+  "name": "CorrectedQtInterval",
+  "title": "Rate-corrected QT interval (QTc)",
+  "status": "active",
+  "kind": "operation",
+  "code": "qtc",
+  "system": true,
+  "type": false,
+  "instance": false,
+  "description": "Computes the heart-rate-corrected QT interval from an ECG and whether it is prolonged.",
+  "parameter": [
+    {
+      "name": "qt-ms",
+      "use": "in",
+      "min": 1,
+      "max": "1",
+      "documentation": "Measured QT interval, in milliseconds (ms).",
+      "type": "decimal"
+    },
+    {
+      "name": "heart-rate",
+      "use": "in",
+      "min": 1,
+      "max": "1",
+      "documentation": "Heart rate at the time of the recording, in beats per minute.",
+      "type": "integer"
+    },
+    {
+      "name": "formula",
+      "use": "in",
+      "min": 1,
+      "max": "1",
+      "documentation": "Rate-correction formula to apply.",
+      "type": "code",
+      "binding": {
+        "strength": "required",
+        "valueSet": "http://example.org/fhir/ValueSet/qtc-formula"
+      }
+    },
+    {
+      "name": "sex",
+      "use": "in",
+      "min": 0,
+      "max": "1",
+      "documentation": "Sex of the patient; selects the prolongation threshold. If left out, the higher (female) threshold is used.",
+      "type": "code",
+      "binding": {
+        "strength": "required",
+        "valueSet": "http://example.org/fhir/ValueSet/qtc-sex"
+      }
+    },
+    {
+      "name": "ecg-date",
+      "use": "in",
+      "min": 0,
+      "max": "1",
+      "documentation": "Date the ECG was recorded; checked only, it does not enter the computation.",
+      "type": "date"
+    },
+    {
+      "name": "qtc",
+      "use": "out",
+      "min": 1,
+      "max": "1",
+      "documentation": "Rate-corrected QT interval in ms, 1 decimal.",
+      "type": "decimal"
+    },
+    {
+      "name": "prolonged",
+      "use": "out",
+      "min": 1,
+      "max": "1",
+      "documentation": "True when QTc exceeds the sex-specific threshold.",
+      "type": "boolean"
+    }
+  ]
+}

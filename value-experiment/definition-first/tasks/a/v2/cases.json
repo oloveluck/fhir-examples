@@ -1,0 +1,1750 @@
+[
+ {
+  "id": "c01",
+  "about": "missing sex",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c02",
+  "about": "sex as string",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "sex",
+     "valueString": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c03",
+  "about": "sampleDate in future",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    },
+    {
+     "name": "sampleDate",
+     "valueDate": "2999-12-31"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c04",
+  "about": "sex outside binding",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "sex",
+     "valueCode": "other"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c05",
+  "about": "female, age 55, mg/dL, G4",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 2.1
+    },
+    {
+     "name": "age",
+     "valueInteger": 55
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueDecimal",
+     "value": 27.3,
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G4",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c06",
+  "about": "female, age 35, umol/L, G1",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 44.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 35
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    },
+    {
+     "name": "sampleDate",
+     "valueDate": "2025-03-03"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueDecimal",
+     "value": 125.5,
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G1",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c07",
+  "about": "male, age 60, umol/L, G2",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 115.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 60
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueDecimal",
+     "value": 62.8,
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G2",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c08",
+  "about": "missing creatinine",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c09",
+  "about": "male, age 58, umol/L, G5",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 486.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 58
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueDecimal",
+     "value": 11.3,
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G5",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c10",
+  "about": "sampleDate twice",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    },
+    {
+     "name": "sampleDate",
+     "valueDate": "2022-02-02"
+    },
+    {
+     "name": "sampleDate",
+     "valueDate": "2022-02-03"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c11",
+  "about": "date as string",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    },
+    {
+     "name": "sampleDate",
+     "valueString": "2022-02-02"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c12",
+  "about": "male, age 41, umol/L, G2",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 124.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 41
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    },
+    {
+     "name": "sampleDate",
+     "valueDate": "2026-01-15"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueDecimal",
+     "value": 64.6,
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G2",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c13",
+  "about": "female, age 90, mg/dL, G3a",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    },
+    {
+     "name": "sampleDate",
+     "valueDate": "2019-12-31"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueDecimal",
+     "value": 53.5,
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G3a",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c14",
+  "about": "unit as string",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueString": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c15",
+  "about": "creatinine twice",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    },
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.1
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c16",
+  "about": "male, age 29, mg/dL, G1",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 0.3
+    },
+    {
+     "name": "age",
+     "valueInteger": 29
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueDecimal",
+     "value": 165.2,
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G1",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c17",
+  "about": "male, age 65, umol/L, G3b",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 194.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 65
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueDecimal",
+     "value": 32.5,
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G3b",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c18",
+  "about": "umol/L above range",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 2000.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c19",
+  "about": "male, age 77, umol/L, G3b",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 177.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 77
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueDecimal",
+     "value": 33.7,
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G3b",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c20",
+  "about": "age under 18",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 17
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c21",
+  "about": "unit twice",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c22",
+  "about": "unit wrong case",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/l"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c23",
+  "about": "male, age 18, umol/L, G1",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 80.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 18
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueDecimal",
+     "value": 126.1,
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G1",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c24",
+  "about": "sex wrong case",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "sex",
+     "valueCode": "Female"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c25",
+  "about": "female, age 66, mg/dL, G3a",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.2
+    },
+    {
+     "name": "age",
+     "valueInteger": 66
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueDecimal",
+     "value": 49.9,
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G3a",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c26",
+  "about": "male, age 40, umol/L, G5",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1061.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 40
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    },
+    {
+     "name": "sampleDate",
+     "valueDate": "2020-02-29"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueDecimal",
+     "value": 4.9,
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G5",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c27",
+  "about": "female, age 30, mg/dL, G1",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 0.6
+    },
+    {
+     "name": "age",
+     "valueInteger": 30
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    },
+    {
+     "name": "sampleDate",
+     "valueDate": "2023-05-17"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueDecimal",
+     "value": 123.8,
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G1",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c28",
+  "about": "male, age 25, umol/L, G1",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 71.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 25
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueDecimal",
+     "value": 125.8,
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G1",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c29",
+  "about": "creatinine as string",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueString": "1.0"
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c30",
+  "about": "female, age 72, mg/dL, G4",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 2.7
+    },
+    {
+     "name": "age",
+     "valueInteger": 72
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    },
+    {
+     "name": "sampleDate",
+     "valueDate": "2021-07-09"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueDecimal",
+     "value": 18.2,
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G4",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c31",
+  "about": "umol/L below range",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 10.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c32",
+  "about": "sex twice",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c33",
+  "about": "creatinine too high",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 25.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c34",
+  "about": "age as string",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueString": "50"
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c35",
+  "about": "missing creatinineUnit",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c36",
+  "about": "age twice",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c37",
+  "about": "creatinine too low",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 0.1
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c38",
+  "about": "male, age 50, mg/dL, G1",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueDecimal",
+     "value": 91.7,
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G1",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c39",
+  "about": "female, age 120, umol/L, G2",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 62.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 120
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueDecimal",
+     "value": 68.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G2",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c40",
+  "about": "unit outside binding",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mmol/L"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c41",
+  "about": "female, age 52, mg/dL, G3b",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.5
+    },
+    {
+     "name": "age",
+     "valueInteger": 52
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueDecimal",
+     "value": 41.7,
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G3b",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c42",
+  "about": "male, age 64, umol/L, G5",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1724.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 64
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueDecimal",
+     "value": 2.4,
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G5",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c43",
+  "about": "umol-sized value given as mg/dL",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 88.4
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c44",
+  "about": "female, age 80, mg/dL, G5",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 7.8
+    },
+    {
+     "name": "age",
+     "valueInteger": 80
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueDecimal",
+     "value": 4.8,
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G5",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c45",
+  "about": "missing age",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c46",
+  "about": "age over 120",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 1.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 121
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "mg/dL"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c47",
+  "about": "male, age 70, umol/L, G3b",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 159.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 70
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    },
+    {
+     "name": "sampleDate",
+     "valueDate": "2022-01-31"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueDecimal",
+     "value": 40.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G3b",
+     "tolerance": 0
+    }
+   ]
+  }
+ },
+ {
+  "id": "c48",
+  "about": "female, age 45, umol/L, G2",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "creatinine",
+     "valueDecimal": 97.0
+    },
+    {
+     "name": "age",
+     "valueInteger": 45
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "creatinineUnit",
+     "valueCode": "umol/L"
+    },
+    {
+     "name": "sampleDate",
+     "valueDate": "2024-11-02"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "egfr",
+     "type": "valueDecimal",
+     "value": 63.3,
+     "tolerance": 0.05
+    },
+    {
+     "name": "stage",
+     "type": "valueCode",
+     "value": "G2",
+     "tolerance": 0
+    }
+   ]
+  }
+ }
+]
