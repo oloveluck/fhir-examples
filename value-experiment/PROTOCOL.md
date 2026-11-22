@@ -212,3 +212,101 @@ least 5 points with the interval above zero.
 - The expected results are the authors', with the two known oddities of this export (values
   written as concepts where the case describes a percentage); both arms are held to them alike.
 
+### 2026-11-22, after S: a programme of experiments, and D (the definition as the implementation)
+
+The owner: "I want to keep doing experiments to find the real advantages of the fhir language
+ecosystem I've built", and of what those might be: "I can write real code with fsh. Operation
+definition make the implementation."
+
+**The programme.** One claimed advantage to an experiment, each stated here before it is run,
+under the rules above: one factor differs; the truth is not this toolkit's where that can be
+had; the thresholds of "significant value" are the ones already fixed; a null is reported as a
+null. In this order, each with its own amendment before its run:
+
+1. **D** (below): the definition is the implementation, so the two cannot drift apart.
+2. **B** and **C** as first written: writes that are checked are safer; a rule computed over a
+   population.
+3. **E**: an error said at its cause. A defect planted in a specification (a profile, a map, a
+   library); the turns and tokens to find and fix it from the toolkit's message, against a
+   validator's.
+4. **S2**: S on another kind of system (a guide's profiles described in its narrative and in
+   FSH), since S was four measures.
+
+**D. What is tested.** A FHIR operation is published as an OperationDefinition: its inputs and
+outputs, their types, how many of each, the codes an input may take. In this toolkit's
+capability language the operation is declared once and the server follows from the
+declaration: the definition it serves, the checking of every request against it, the checking
+of what the handler answers. The claim: an implementation built that way conforms to its
+definition more often than one built by hand, and follows a change to the definition at less
+cost. The prediction, stated and not a threshold: about level when first built, apart after the
+definition has changed.
+
+**Tasks.** Three clinical calculator operations, written by an agent that has not seen this
+toolkit, its guides or this repository. For each: an OperationDefinition (system level, flat
+input and output parameters) with a statement of the computation and its rules; then three
+changes, one after another, each a new OperationDefinition with the change in words as a
+changelog would say it — (1) a new required input that the computation uses, (2) an existing
+input constrained (its type, its codes, how many), (3) an output changed (renamed, added or
+retyped). For each of the four versions, a suite of requests with the expected answer of each:
+requests that conform, with the outputs the statement gives, and requests that do not, one
+fault each. A second agent, as independent, checks every case against the definition and the
+statement; a case it disputes is dropped before any implementation exists (the count is
+reported). A fourth operation, written first by the same author, is for trying the harness and
+both arms' prompts; its results are not counted.
+
+**The contract**, given word for word to the author, the checker and both arms. The operation is
+called by `POST /$<code>` with a FHIR Parameters resource as JSON. A request that conforms is
+answered 200 with a Parameters resource holding exactly the outputs the definition declares,
+each of its declared type, with the values the statement gives. A request that does not conform
+is answered with a 4xx status and an OperationOutcome; it does not conform when a required input
+is missing, an input is given more times than its maximum, an input's value is of another type
+than declared, a code is outside a binding the definition requires, or a value breaks a rule the
+statement states. Not tested, because FHIR leaves them to the server: an integer where a decimal
+is declared (and the reverse for a whole number), an input the definition does not name, GET.
+
+**Arms.** An implementer is an agent that builds a server for the operation and, in three later
+sessions (each a new session that finds the directory as the one before left it, the new
+definition, the definition before, and the change in words), brings it up to each change.
+
+- **L, declared**: `#lang fhir/capability`, served by `raco fhir-server serve`; given the
+  language's guide as it ships (`raco fhir guide capability`) and the commands `racket` and
+  `raco`.
+- **G, by hand**: Python 3, standard library, written any way the implementer likes (it may
+  read the definition at run time).
+
+Everything else is the same: the model; the prompt but for the sentences naming the route; the
+definition, the statement, the contract; a fifth of each version's requests as examples,
+without their expected answers; a script that starts the server and sends it the examples;
+`curl` to its own server; no network, nothing outside its directory (each session's commands
+are audited). Five implementers for each operation and arm: 30 lineages of four sessions.
+
+**Outcomes**, over the requests that were not examples:
+
+- **Right** (primary): the status class, the resource type, and for a 200 the outputs — the
+  names, each value's type, each value (a number within the case's tolerance). A server that
+  does not start is wrong on every request. Pooled over the four versions; and, stated ahead as
+  the second reading, over the three versions after a change.
+- **Cost** (primary): input tokens of a lineage, and of its three change sessions alone; with
+  output tokens, seconds and the lines of the implementation each change touched.
+
+**Analysis.** L − G in the share right, with a 95% interval from a two-level bootstrap (lineages
+resampled within operation and arm, requests within operation and version) and a permutation
+test of the arm labels within operation; the ratio L/G of input tokens with a bootstrap interval
+over lineages. "Significant value" as defined above: right more often by 5 points with the
+interval above zero; or not worse by 3 points at two thirds of the input tokens or less.
+
+**What can be wrong with it.**
+
+- The suite tests conformance to the definition, which is what the declared route checks by
+  construction. That is the claim, not a flaw, but it means D says nothing about how good the
+  handlers' clinical logic is beyond the statement's computation.
+- The model writes far more Python than Racket; L's handler is Racket. That works against L.
+- L reads a guide G does not need. Its tokens are counted.
+- A capable implementer by hand can build its own layer that reads the definition. If it does,
+  and the arms are level, that is the answer: the layer is cheap to rebuild.
+- Calculators with flat parameters. Operations over stored data, nested parameters and
+  resources as inputs are not covered.
+- The toolkit is used as it is at the commits recorded with the results: nothing in it is
+  changed between this amendment and the end of D's run, whatever the trial operation shows.
+- The expected answers are the author's; both arms are held to them alike.
+
