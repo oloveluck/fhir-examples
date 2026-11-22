@@ -36,8 +36,9 @@
 (define builtin '("Bash" "Read" "Write" "Edit" "Glob" "Grep"))
 (define allowed '("Bash(python3:*)" "Bash(ls:*)" "Bash(cat:*)" "Bash(head:*)" "Bash(tail:*)" "Bash(grep:*)" "Bash(wc:*)"
                   "Read" "Write" "Edit" "Glob" "Grep"))
-;; what its commands must not name: the network, and where the material came from
-(define forbidden '("http://" "https://" "urllib" "requests" "socket" "pip " "curl" "wget" "git " "/home/" "qicore-2024" "ecqm-content"))
+;; what its commands must not name: the network, and where the material came from. (Not
+;; "http://": a measure's code is full of code-system urls.)
+(define forbidden '("urllib" "requests" "socket" "pip " "curl" "wget" "git clone" "github" "/home/" "qicore-2024" "ecqm-content"))
 
 (define (impl-id m arm i) (format "~a-~a-~a" (short-name m) arm i))
 
