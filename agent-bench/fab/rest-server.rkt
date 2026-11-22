@@ -3,6 +3,8 @@
 ;;; rest-server.rkt — the general route's tools: a FHIR REST server and Python, and nothing else.
 ;;;
 ;;;   racket rest-server.rkt WORK_DIR FHIR_BASE [PREPARED_DIR]
+;;;   racket rest-server.rkt WORK_DIR -            `python` and `answer` alone (arm `mcp-tools`: the
+;;;                                                data is reached through the toolkit's own tools)
 ;;;
 ;;; The arm `rest-tools` of run.rkt (value-experiment/PROTOCOL.md, experiment A1). It is the
 ;;; harness of the tables arm with the other route behind it: the agent's actions are the three
@@ -73,7 +75,7 @@
   (define out-file (build-path work "program.out"))
   (define python (or (find-executable-path "python3") (error 'python "python3 is not installed")))
   (define env (environment-variables-copy (current-environment-variables)))
-  (environment-variables-set! env #"FHIR_BASE" (string->bytes/utf-8 base))
+  (when base (environment-variables-set! env #"FHIR_BASE" (string->bytes/utf-8 base)))
   (when prepared
     (environment-variables-set! env #"PREPARED" (string->bytes/utf-8 prepared))
     (environment-variables-set! env #"PYTHONPATH" (string->bytes/utf-8 prepared)))
@@ -106,17 +108,25 @@
   (unless (and (string? v) (not (string=? (string-trim v) ""))) (error (string->symbol (symbol->string key)) "give `~a`" key))
   v)
 
-;; rest-tools : dir string (or/c #f string) -> (listof Tool)
+;; rest-tools : dir (or/c #f string) (or/c #f string) -> (listof Tool)   with no base, the tools
+;; that are the harness's own: `python` (which then reaches no server) and `answer`
 (define (rest-tools work base prepared)
   (define (string-property description) (hasheq 'type "string" 'description description))
+  (define tools (all-tools work base prepared string-property))
+  (if base tools (cdr tools)))
+
+(define (all-tools work base prepared string-property)
   (list
    (tool "get"
          "One GET of the FHIR R4 server: what follows its base url, e.g. `Observation?patient=Patient/<id>&code=<system>|<code>&_sort=-date&_count=5`, `Encounter/<id>`, `metadata`. Answers the body (a resource, or a Bundle with `total`, `entry` and a `next` link when it is a page)."
          (hasheq 'type "object" 'required '("url")
                  'properties (hasheq 'url (string-property "the path and query after the base url, or a `next` link whole")))
-         (lambda (args) (get-text base (need args 'url))))
+         (lambda (args) (get-text (or base (error 'get "there is no server")) (need args 'url))))
    (tool "python"
-         (string-append "Run a Python 3 program (standard library only) and get what it prints. The environment variable FHIR_BASE is the server's base url: fetch with urllib, compute, print only what you need."
+         (string-append "Run a Python 3 program (standard library only) and get what it prints."
+                        (if base
+                            " The environment variable FHIR_BASE is the server's base url: fetch with urllib, compute, print only what you need."
+                            " It reaches no data: use it to compute over what your other tools returned.")
                         (if prepared " PREPARED is a directory of notes and modules prepared for these questions (it is on the module path): read its README first." ""))
          (hasheq 'type "object" 'required '("code")
                  'properties (hasheq 'code (string-property "the program")))
@@ -133,8 +143,9 @@
 
 (module+ main
   (define args (vector->list (current-command-line-arguments)))
-  (unless (<= 2 (length args) 3) (raise-user-error 'rest-server "rest-server.rkt WORK_DIR FHIR_BASE [PREPARED_DIR]"))
-  (serve-tools (rest-tools (first args) (second args) (and (= (length args) 3) (third args))) "rest"))
+  (unless (<= 2 (length args) 3) (raise-user-error 'rest-server "rest-server.rkt WORK_DIR FHIR_BASE|- [PREPARED_DIR]"))
+  (serve-tools (rest-tools (first args) (and (not (equal? (second args) "-")) (second args)) (and (= (length args) 3) (third args)))
+               "rest"))
 
 (module+ test
   (require rackunit)
@@ -150,6 +161,12 @@
   (define tools (rest-tools work "http://localhost:1" #f))
   (define (call name . kvs) ((tool-run (findf (lambda (t) (equal? (tool-name t) name)) tools)) (apply hasheq kvs)))
   (check-equal? (map tool-name tools) '("get" "python" "answer"))
+  ;; without a server: the harness's own two tools, and a program is told it reaches no data
+  (let ([own (rest-tools work #f #f)])
+    (check-equal? (map tool-name own) '("python" "answer"))
+    (check-regexp-match #rx"It reaches no data" (tool-description (car own)))
+    (when (find-executable-path "python3")
+      (check-equal? ((tool-run (car own)) (hasheq 'code "import os\nprint(os.environ.get('FHIR_BASE'))")) "None\n")))
   (when (find-executable-path "python3")
     (check-equal? (call "python" 'code "import os\nprint(os.environ['FHIR_BASE'])") "http://localhost:1\n")
     (check-regexp-match #rx"ZeroDivisionError.*\n[(]exit status 1[)]$" (call "python" 'code "print(1/0)"))

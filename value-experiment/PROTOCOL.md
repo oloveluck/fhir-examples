@@ -102,4 +102,39 @@ questions were written for.
 
 ## Amendments
 
-(none)
+### 2026-11-22, before any sealed run: narrowed to one comparison (M)
+
+The owner: "I want just enough to determine if there is significant value to using the FHIR
+tools with the cli or mcp compared to the harness alone." So one comparison is run first, and
+A1, A2, B and C above are run only if asked for afterwards.
+
+**M. The toolkit's tools against the harness alone.** One agent harness (the tools of one
+process, no shell, the same system prompt, the same `python` and `answer` tools, the session
+ended when the answer is written); the data alone, no training material, no preparation.
+
+- **T** (arm `mcp-tools`): the toolkit's reading tools, `query` and `describe`, served by
+  `raco fhir-mcp` as it ships, and its one-page reading card in the prompt.
+- **H** (arm `rest-tools`): `get` on a plain FHIR REST server over the same store, and Python
+  that can fetch from it; the REST lines in the prompt.
+
+Tasks: FHIR-AgentBench's `fab/test-heldout-150.json`, 150 questions that have been run only on
+the tables arms: never on H, and never on the workspace or MCP arms whose tools and card T is.
+Truth: the benchmark's recorded answers, its own grader, as scored. One pass of each arm.
+
+Analysis and thresholds as above (paired by question; "significant value" = right more often by
+at least 5 points with the interval above zero, or not worse by 3 points at two thirds of the
+input tokens or less).
+
+One extension, stated now: if the verdict is "no difference shown" and it is not a clear null
+either (the difference's interval inside ±5 points and the cost ratio's inside 0.67 to 1.5), the
+109 questions of `fab/test-fresh-109.json` are run on both arms and the 259 analysed together.
+Nothing further is added after that.
+
+What can flatter T: its tools and card were tuned on other questions of this benchmark
+(rounds 1 to 6: `valid-150`, `test-150`); H has had no tuning. So if T shows value, H is then
+given the tuning of point 6 (an agent whose goal is to make H win, 5 iterations on `valid-150`)
+and run again on the same 150; the claim stands only if it survives that. If T shows no value
+with this advantage, that is the answer.
+
+Not covered by M: writing data (safety), computing over a population, MedAgentBench, and the
+command line (the same tools from a shell, which adds the shell's own cost to both sides).
