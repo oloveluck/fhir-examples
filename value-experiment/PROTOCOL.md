@@ -424,3 +424,79 @@ this can show:
   small steps and six HL7 test cases; no published real-world map comes with outputs someone
   else vouches for. V-map is run on what there is and will be read as that.
 
+
+### 2026-11-22, before V-profile's sealed run: V-profile in full
+
+**The artifact.** Six profiles of US Core 9.0.0, by a rule fixed before anything was run: of the
+guide's resource profiles with at least four published examples, the six with the most elements
+in their differential — Patient, MedicationRequest, Organization, Practitioner, Condition
+(problems and health concerns), ServiceRequest (`verify/profile-cases.rkt` `profiles`).
+
+**The cases** (741; `cases`). Each profile's published examples (28 in all), and copies of them
+with ONE change: an element removed, a code or its system replaced, a list entry doubled, a value
+replaced by text, an element the type lacks added — up to six of each kind an example, drawn by a
+seeded choice from every place the change can be made.
+
+**Truth.** HL7's reference validator (validator_cli 7.0.6, FHIR 4.0.1, the guide's package, no
+terminology server — none is reachable from here —, example urls allowed): a case is valid when
+it reports no error. Its verdicts are committed (`verify/truth/`): 393 cases valid, 348 not;
+every published example valid.
+
+**Sample and held out.** A profile's first example (by id) and its changed copies are the sample
+(158 cases), shown to implementers and checkers under names that do not say what was changed.
+The other 583 are held out: no session sees them.
+
+**The implementations.** Five a profile, thirty in all, each written by an independent agent
+(a build session) as one Python function, `valid(resource) -> bool`, from: the profile's
+published StructureDefinition and the definitions it rests on (the resource type and every FHIR
+R4 datatype, the extensions it names or its examples carry, the value sets those definitions
+bind and their code systems, the code systems of the codes in its examples — a rule,
+`verify/profile-materials.rkt` `spec-files`; all as published in the two packages the truth was
+judged in), a statement of what valid means (HL7's validator's errors, as run), the contract,
+the unlabelled sample, and a script that runs the function over files. The function may read
+those definitions when it runs.
+
+**The checkers.** Each implementation is then checked and corrected by three more agents, one an
+arm, each with everything its builder had and the implementation:
+- **R** nothing more;
+- **T** HL7's validator's verdict for each sample resource;
+- **O** a command that holds any resource the checker gives it to the profile's published
+  definition and prints `valid` or `invalid` — this toolkit's validator. The verdict alone: what
+  is wrong is not said (an error said at its cause is E's question, not this one).
+Every session, building or checking: the same model, at most 60 turns, Python's standard library
+and the files of its directory, no network; the oracle's one command for O. 120 sessions.
+
+**Outcome and bar.** The share of held-out cases on which an implementation's verdict is HL7's,
+as built and after each arm's session; V's bar on O − R (5 points, the 95% interval above zero;
+implementations and cases resampled within profile, a case paired across arms and
+implementations), with O − T and T − R, verdicts fixed and broken, implementations right on every
+held-out case, what each checker said it believed, and a session's cost. The analysis is
+V-measure's code (`verify.rkt`), read by `verify/profile-verify.rkt`.
+
+**What the oracle was before this run, and what was done to it.** The oracle is a product under
+test too, so its own agreement with the truth was measured first. As committed (fhir 011ee15) the
+toolkit's validator agreed with HL7's on 659 of the 741 cases (522 of the 583 held out): it
+refused nothing HL7's passes, and passed 82 that HL7's refuses. Its misses were read ON THE
+SAMPLE CASES ONLY and fixed as classes in the validator (nothing inside an extension was checked;
+`{}`; a code its code system lacks; a coding's system in a required binding; a slice told by a
+value set; a slice's maximum; the invariants of datatypes), each gate of the validator holding.
+It now agrees on 736 of 741, and on 578 of the 583 held out (99.1%) — the oracle's ceiling. Of
+the held-out cases only that count was looked at, never which. So: the oracle has been improved
+with the sample's verdicts, which are exactly what arm T is given; it has not seen the held-out
+truth. A reader who thinks that still favours O should read O − R with it in mind; the same
+fixes are in the toolkit for everyone, which is the point of having a third party's verdicts.
+
+**What this can and cannot show.** Whether an executable definition, asked about inputs of the
+checker's own making, leaves a hand-written check of conformance closer to the reference than
+reading the definition or having a fixed set of labelled examples. One guide, one model, single
+changes of five kinds; a function that may load the definitions is a small validator, and thirty
+of them written in an hour each will be far from HL7's. If they are so far that no arm moves
+them, or so near that there is nothing to fix, that is the result.
+
+**Prediction, for the record.** As built, 75% to 90% right; R changes little; T fixes what the
+sample shows (a few points); O is at least 5 points above R, because every "unknown element" and
+"wrong code" case is a question the oracle answers and a reader has to derive.
+
+A trial (one implementation of one profile, built and checked in the three arms) is run first to
+find faults in the harness; its sessions are not counted and its directory is not the sealed
+run's.

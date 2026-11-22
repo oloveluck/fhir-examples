@@ -1,0 +1,13 @@
+us-core-patient: 114 cases, 59 valid by HL7's validator; the toolkit agrees on 114 (says valid where HL7 says not: 0; says not where HL7 says valid: 0)
+us-core-medicationrequest: 119 cases, 61 valid by HL7's validator; the toolkit agrees on 118 (says valid where HL7 says not: 1; says not where HL7 says valid: 0)
+us-core-organization: 128 cases, 71 valid by HL7's validator; the toolkit agrees on 127 (says valid where HL7 says not: 1; says not where HL7 says valid: 0)
+us-core-practitioner: 91 cases, 49 valid by HL7's validator; the toolkit agrees on 91 (says valid where HL7 says not: 0; says not where HL7 says valid: 0)
+us-core-condition-problems-health-concerns: 112 cases, 46 valid by HL7's validator; the toolkit agrees on 109 (says valid where HL7 says not: 3; says not where HL7 says valid: 0)
+us-core-servicerequest: 177 cases, 107 valid by HL7's validator; the toolkit agrees on 177 (says valid where HL7 says not: 0; says not where HL7 says valid: 0)
+  published: 28 cases, 28 valid by HL7's validator; the toolkit agrees on 28
+  remove: 168 cases, 125 valid by HL7's validator; the toolkit agrees on 163
+  code: 158 cases, 94 valid by HL7's validator; the toolkit agrees on 158
+  twice: 157 cases, 146 valid by HL7's validator; the toolkit agrees on 157
+  text: 65 cases, 0 valid by HL7's validator; the toolkit agrees on 65
+  unknown: 165 cases, 0 valid by HL7's validator; the toolkit agrees on 165
+all: the toolkit agrees with HL7's validator on 736 of 741 cases (578 of the 583 held out)

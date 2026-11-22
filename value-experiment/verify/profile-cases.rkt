@@ -25,7 +25,7 @@
          (only-in fhir/r4/schemas))
 
 (provide guide-package profiles profile-definition profile-url profile-examples changes cases
-         sample-case? truth toolkit-valid? case-example)
+         sample-case? truth toolkit-valid? case-example agreement agree? held-out? change-kind)
 
 (define guide-package (spec-package-path "hl7.fhir.us.core.tgz"))
 (define-runtime-path truth-dir "truth")
@@ -221,28 +221,41 @@
     (hash-set resource 'meta (hash-set (let ([m (hash-ref resource 'meta #f)]) (if (hash? m) m (hasheq))) 'profile (list (profile-url p)))))
   (null? (write-errors/rows (list (with-output-to-string (lambda () (write-json claimed))) (packages)))))
 
+;; An Agreement row is (list profile case hl7-valid? toolkit-valid?).
+;; agreement : -> (listof Agreement)   every case, as HL7's validator and as the toolkit's judge it
+(define (agreement)
+  (for*/list ([p (in-list (profiles))] [t (in-value (truth p))] [c (in-list (cases p))])
+    (list p (car c) (hash-ref t (car c)) (toolkit-valid? p (cdr c)))))
+
+;; agree? : Agreement -> boolean      missed? : the toolkit passes what HL7's refuses
+;; over-reported? : the toolkit refuses what HL7's passes      held-out? : not a sample case
+(define (agree? r) (eq? (caddr r) (cadddr r)))
+(define (missed? r) (and (cadddr r) (not (caddr r))))
+(define (over-reported? r) (and (caddr r) (not (cadddr r))))
+(define (held-out? r) (not (sample-case? (car r) (cadr r))))
+
+;; change-kind : case-name -> string   "published", or the kind of the one change made to it
+(define (change-kind name)
+  (let ([m (regexp-match #rx"~([a-z]+)-[0-9]+$" name)]) (if m (cadr m) "published")))
+
+;; print-agreement : (listof Agreement) -> void   by profile, by kind of change, then all
+(define (print-agreement rows)
+  (for ([p (in-list (profiles))])
+    (define mine (filter (lambda (r) (equal? (car r) p)) rows))
+    (printf "~a: ~a cases, ~a valid by HL7's validator; the toolkit agrees on ~a (says valid where HL7 says not: ~a; says not where HL7 says valid: ~a)\n"
+            p (length mine) (count caddr mine) (count agree? mine) (count missed? mine) (count over-reported? mine)))
+  (for ([kind (in-list '("published" "remove" "code" "twice" "text" "unknown"))])
+    (define mine (filter (lambda (r) (equal? kind (change-kind (cadr r)))) rows))
+    (printf "  ~a: ~a cases, ~a valid by HL7's validator; the toolkit agrees on ~a\n" kind (length mine) (count caddr mine) (count agree? mine)))
+  (define held (filter held-out? rows))
+  (printf "all: the toolkit agrees with HL7's validator on ~a of ~a cases (~a of the ~a held out)\n"
+          (count agree? rows) (length rows) (count agree? held) (length held)))
+
 (module+ main
   (define args (vector->list (current-command-line-arguments)))
   (cond [(and (= (length args) 2) (equal? (car args) "write")) (write-cases! (cadr args))]
         [(and (= (length args) 3) (equal? (car args) "label")) (label! (cadr args) (caddr args))]
-        [(equal? args '("ceiling"))
-         (define rows
-           (for*/list ([p (in-list (profiles))] [t (in-value (truth p))] [c (in-list (cases p))])
-             (list p (car c) (hash-ref t (car c)) (toolkit-valid? p (cdr c)))))
-         (for ([p (in-list (profiles))])
-           (define mine (filter (lambda (r) (equal? (car r) p)) rows))
-           (printf "~a: ~a cases, ~a valid by HL7's validator; the toolkit agrees on ~a (says valid where HL7 says not: ~a; says not where HL7 says valid: ~a)\n"
-                   p (length mine) (count caddr mine) (count (lambda (r) (eq? (caddr r) (cadddr r))) mine)
-                   (count (lambda (r) (and (cadddr r) (not (caddr r)))) mine) (count (lambda (r) (and (caddr r) (not (cadddr r)))) mine)))
-         ;; by the kind of change: an example as published, or one of the catalogue's five changes
-         (for ([kind (in-list '("published" "remove" "code" "twice" "text" "unknown"))])
-           (define mine (filter (lambda (r) (equal? kind (let ([m (regexp-match #rx"~([a-z]+)-[0-9]+$" (cadr r))]) (if m (cadr m) "published")))) rows))
-           (printf "  ~a: ~a cases, ~a valid by HL7's validator; the toolkit agrees on ~a\n" kind (length mine) (count caddr mine)
-                   (count (lambda (r) (eq? (caddr r) (cadddr r))) mine)))
-         (define held (filter (lambda (r) (not (sample-case? (car r) (cadr r)))) rows))
-         (printf "all: the toolkit agrees with HL7's validator on ~a of ~a cases (~a of the ~a held out)\n"
-                 (count (lambda (r) (eq? (caddr r) (cadddr r))) rows) (length rows)
-                 (count (lambda (r) (eq? (caddr r) (cadddr r))) held) (length held))]
+        [(equal? args '("ceiling")) (print-agreement (agreement))]
         [else (raise-user-error 'profile-cases "write DIR | label DIR JAR | ceiling")]))
 
 (module+ test
@@ -269,6 +282,16 @@
   (check-false (outcome-errors? (hasheq 'issue (list (hasheq 'severity "information")))))
   (check-equal? (outcome-file (hasheq 'extension (list (hasheq 'url "http://hl7.org/fhir/StructureDefinition/operationoutcome-file" 'valueString "/x/y/ex-1~code-2.json"))))
                 "ex-1~code-2")
+  (check-equal? (map change-kind '("ex-1" "ex-1~code-2" "a-b~unknown-31")) '("published" "code" "unknown"))
+  ;; the toolkit's validator against HL7's, over every case: floors that only rise. It never
+  ;; refuses what HL7's passes; it passed 82 of the 741 that HL7's refuses before the cases were
+  ;; first run (fhir 011ee15: 659 agree, 522 of the 583 held out), and passes 5 now.
+  (define rows (agreement))
+  (check-equal? (length rows) 741)
+  (check-equal? (count over-reported? rows) 0 "the toolkit refuses a resource HL7's validator passes")
+  (check-true (>= (count agree? rows) 736) "agreement with HL7's validator fell")
+  (check-true (>= (count agree? (filter held-out? rows)) 578) "agreement on the held-out cases fell")
+  (check-equal? (count agree? (filter (lambda (r) (not (held-out? r))) rows)) 158 "every sample case")
   ;; the guide's profiles by the rule, each with its examples, its cases and a sample
   (define ps (profiles))
   (check-equal? (length ps) 6)
