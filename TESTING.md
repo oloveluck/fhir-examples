@@ -17,6 +17,22 @@ results. This file covers the tests at the top level and the spec-driven benchma
 raco test .
 ```
 
+## The agent benchmarks (`agent-bench/`)
+
+Two third-party benchmarks of agents over FHIR data, FHIR-AgentBench and MedAgentBench, graded by
+their own graders. The runs need the benchmarks' data and a model, so they are recorded, not
+tests: [`agent-bench/README.md`](agent-bench/README.md) has the arms and the commands,
+`agent-bench/results/` each round's write-up and every miss by cause. The latest:
+
+| | right | input tokens | seconds |
+|---|---|---|---|
+| MedAgentBench, 300 tasks, the benchmark's actions as three tools (two passes) | 300 and 300 | 6.2k a task | 3.7 |
+| FHIR-AgentBench, its whole test split of 409 questions, in SQL over tables an agent defined on the store (three passes) | 402, 402 and 402 as scored; 1203 of 1203 once the 8 questions of `fab/set-aside.json` are apart (`fab/gate`: PASS) | 10.0k a question | 4.8 |
+| FHIR-AgentBench, its whole validation split of 424 questions (one pass) | 415 as scored; 414 of 414 in scope | 9.9k | 4.8 |
+
+What `raco test` does run of it, with no data and no model: the harness's own modules (the tools
+an agent is given, the checks a query is held to, the gate, the prompts).
+
 ## The spec-driven benchmark (`raco spec-bench`)
 
 A task is a published IG's FSH minus one profile and its examples. The prompt gives the IG's text

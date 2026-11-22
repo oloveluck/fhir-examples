@@ -17,8 +17,11 @@ This repository is worked examples of them fitting together, from a short progra
 few FHIR operations to one written in seven languages. Every example is small enough to read in one
 sitting and runs with one command, and @tt{raco test} holds each to its expected results.
 
-It also holds a benchmark. A language model is given the prose that describes a FHIR profile, asked
-to write the profile, and scored against the one HL7 published.
+It also holds the measurements behind the toolkit's claims. In one, a language model is given the
+prose that describes a FHIR profile, asked to write the profile, and scored against the one HL7
+published. In another, an AI agent is given the questions and tasks of two benchmarks other
+people published about health records, and its answers are graded by those benchmarks' own
+graders.
 
 Part of the @hyperlink["https://oloveluck.github.io/fhir/"]{fhir} family of FHIR languages and tools.
 
@@ -37,7 +40,9 @@ start of your own: @secref["intake-pipeline"].}
 @item{@bold{Watch a model turn clinic notes into FHIR} that a specification accepts, with the
 recorded runs replayed without a model: @secref["notes"].}
 @item{@bold{Check servers generated from published guides} against those guides: @secref["ig-servers"].}
-@item{@bold{Measure how well a model writes a profile from prose}: @secref["bench"].}]
+@item{@bold{Measure how well a model writes a profile from prose}: @secref["bench"].}
+@item{@bold{See how an agent does on two published benchmarks of health-record questions}, and
+what it costs in tokens: @secref["agent-bench"].}]
 
 @section[#:tag "start"]{Before you start}
 
@@ -557,12 +562,77 @@ full marks on all three profiles (34/34, 20/20 and 8/8; it was 28/34, 14/20 and 
 checker now reports an example whose id repeats one already in the guide, as step 4 above shows.
 Three tasks from one guide and one model are a demonstration of the method, not a ranking.
 
+@section[#:tag "agent-bench"]{Agents on two published benchmarks}
+
+The folder @tt{agent-bench/} asks a different question from the benchmark above: not whether a
+model can write FHIR, but whether an agent can work with a hospital's records, and how many
+tokens it reads to do so. It uses two benchmarks other people wrote, each with its own data and
+its own grader:
+
+@tabular[#:style 'boxed #:sep @hspace[2]
+(list (list @bold{benchmark} @bold{what it asks} @bold{graded by})
+      (list @hyperlink["https://github.com/glee4810/FHIR-AgentBench"]{FHIR-AgentBench}
+            "questions about one patient each (a value, a date, a count, a name, or \"none\"), over the records of a hospital's demonstration data set: 929 thousand resources"
+            "its own script: a model judges each answer against the recorded one")
+      (list @hyperlink["https://github.com/stanfordmlgroup/MedAgentBench"]{MedAgentBench}
+            "300 clinical tasks: look something up, compute, record a vital sign, order a medication or a test"
+            "its own reference solutions"))]
+
+Each question or task is given to an agent that starts in an empty folder with nothing but the
+benchmark's own words and one way to reach the data. The ways are called @italic{arms}, and the
+arms are what is compared: plain FHIR REST calls; the tools of the
+@hyperlink["https://oloveluck.github.io/fhir/fhir-mcp/index.html"]{fhir-mcp} workspace; and, for
+each benchmark, the few actions its tasks need as the tools of one process. Arms are compared by
+right answers and by the input tokens a question costs, because an agent reads everything again
+at each step.
+
+@tabular[#:style 'boxed #:sep @hspace[2]
+(list (list @bold{} @bold{how the agent reaches the data} @bold{right} @bold{tokens each})
+      (list "MedAgentBench, 300 tasks" "plain REST calls" "294" "38 thousand")
+      (list "" "the workspace's tools, from a shell" "300" "41 thousand")
+      (list "" "three tools: query, post, finish" "300" "6 thousand")
+      (list "FHIR-AgentBench, 150 questions" "plain REST calls" "109" "69 thousand")
+      (list "" "the workspace's tools, from a shell" "122" "57 thousand")
+      (list "" "SQL over tables an agent defined on the store" "147" "10 thousand"))]
+
+The last row is the one to understand. FHIR-AgentBench's recorded answers were computed with SQL
+over a relational schema; its agents are given the same facts as FHIR. So an agent first defines
+that schema over the FHIR store, as SQL on FHIR views and @tt{.sql} files, until the benchmark's
+own training queries give the benchmark's answers. A question is then answered with one SQL
+statement, written beside an example of the same kind of question from the training questions.
+The REST and workspace rows are from earlier rounds, where the agents had the data alone.
+
+Over that benchmark's whole test split (409 questions, asked three times) the answer is held to a
+stricter reading than the score. Eight questions are set aside because their recorded answer
+contradicts the question or needs a value the data does not hold; the evidence for each is in the
+repository. Every other question must be right every time. The verdict, as the tool prints it:
+
+@verbatim|{
+$ racket -l- fhir-examples/agent-bench/fab/gate <the nine scored runs>
+runs 9, questions 409, answers 1227
+as scored       1206 of 1227 (98.3%)
+set aside       8 questions (set-aside.json): 3 of 24 marked right
+in scope        1203 of 1203 (100.0%) over 401 questions: 401 right every time, 0 missed sometimes, 0 missed every time
+
+a question costs  input tokens: mean 10030, median 9563   turns: mean 3.04   seconds: mean 4.8
+citations         precision 0.991   recall 0.993
+
+PASS
+}|
+
+Neither benchmark's data is in this repository: each is downloaded from its publisher, and a run
+needs a model. What is here is the harness, the arms, each run's summary and every miss sorted
+by cause, in @tt{agent-bench/README.md} and @tt{agent-bench/results/}. The harness's own parts
+(the tools an agent is given, the checks on a query, the gate) have tests that need neither the
+data nor a model, and @tt{raco test} runs them.
+
 @section{For an AI agent}
 
-Two of the examples are about a model working with these tools: @secref["notes"] and
-@secref["bench"]. Both drive the model through a shell command and files, so any model with a
-command-line client can be used. Neither is how an agent would normally use the family. For that,
-see @hyperlink["https://oloveluck.github.io/fhir/fhir-mcp/index.html"]{fhir-mcp}, which gives an
+Three parts of this repository are about a model working with these tools: @secref["notes"],
+@secref["bench"] and @secref["agent-bench"]. The first two drive the model through a shell command
+and files, so any model with a command-line client can be used; the third runs an agent with
+tools. To work with the family as an agent yourself, see
+@hyperlink["https://oloveluck.github.io/fhir/fhir-mcp/index.html"]{fhir-mcp}, which gives an
 agent a workspace with the same languages and checks.
 
 @section{Limits}
@@ -579,6 +649,9 @@ nothing else in the guide builds on can be tasks.}
 guide's own "key elements" page does. It gives no constraint.}
 @item{@bold{Fidelity compares the listed points only}, as this toolkit compiles them. Descriptions
 and other text are not compared.}
+@item{@bold{The agent benchmarks were run with one model}, and their REST and workspace rows
+are from earlier rounds than the last rows; the write-ups in @tt{agent-bench/results/} give each
+round's date and what had changed.}
 @item{@bold{The recorded results are small and dated}: three profiles of one guide, one model, one
 day, scored with the toolkit of that day.}
 @item{@bold{@tt{ig-servers} does not download terminology packages.} The large code-system and
@@ -637,8 +710,8 @@ answer scores 0.}
 @item{@tt{ig-servers/verify-test.rkt}: the recorded results hold as minimums, for the guides that
 have been downloaded; the rest are skipped.}]
 
-Runs that need a model are not tests; they are recorded, in @tt{results/} and
-@tt{notes-to-fhir/results/}. The repository's @tt{TESTING.md} has the benchmark's method and
+Runs that need a model are not tests; they are recorded, in @tt{results/},
+@tt{notes-to-fhir/results/} and @tt{agent-bench/results/}. The repository's @tt{TESTING.md} has the benchmark's method and
 recorded results.
 
 @section{Reference}
