@@ -532,6 +532,14 @@
             (thousands (at 'L 'input_tokens)) (thousands (at 'G 'input_tokens))
             (exact->inexact (two (at 'L 'turns))) (exact->inexact (two (at 'G 'turns)))
             (exact-round (at 'L 'seconds)) (exact-round (at 'G 'seconds))))
+  (for ([u (in-list (units impls))])
+    (printf "  input tokens a session, ~a, L and G: ~a\n" u
+            (string-join
+             (for/list ([v (in-list versions)])
+               (define (at arm) (mean (map (lambda (i) (hash-ref (list-ref (hash-ref (impl-cost i) 'by-version) (sub1 v)) 'input_tokens))
+                                           (of-arm impls arm u))))
+               (format "v~a ~a and ~a" v (thousands (at 'L)) (thousands (at 'G))))
+             "; ")))
   (printf "the implementation, L and G: ~a and ~a lines at the end; ~a and ~a lines touched by the three changes\n"
           (exact-round (m 'L 'lines)) (exact-round (m 'G 'lines)) (exact-round (m 'L 'touched)) (exact-round (m 'G 'touched)))
   (printf "servers that did not start: L ~a of ~a stages, G ~a of ~a\n"

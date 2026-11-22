@@ -178,7 +178,8 @@ constrained, an output changed), with 752 test requests; a second agent, given t
 alone, decided every one again and left four undecided, which were dropped. Five implementers
 for each operation and arm built a server and, in three later sessions, brought it up to each
 change: 30 lineages, 120 sessions, one model. Each of the 120 servers was started and sent the
-requests of its version that its implementer had not been shown (549 a lineage in all).
+requests of its version that its implementer had not been shown (549 over the three operations:
+146, 254 and 149 a lineage).
 
 ```
 $ racket value-experiment/definition-first/definition-first.rkt report <run>
@@ -219,6 +220,9 @@ a lineage, L and G: output tokens 8.4k and 5.9k; seconds 100 and 49 (the changes
   the session of v2, L and G: input tokens 103.3k and 43.5k; model turns 7.53 and 3.93; seconds 21 and 8
   the session of v3, L and G: input tokens 233.6k and 52.2k; model turns 14.33 and 4.87; seconds 38 and 9
   the session of v4, L and G: input tokens 68.7k and 45.6k; model turns 5.73 and 4.07; seconds 14 and 8
+  input tokens a session, a, L and G: v1 92.2k and 65.8k; v2 112.3k and 41.1k; v3 98.4k and 46.8k; v4 69.7k and 46.3k
+  input tokens a session, b, L and G: v1 110.1k and 67.3k; v2 66.9k and 42.8k; v3 54.4k and 63.4k; v4 64.2k and 45.0k
+  input tokens a session, c, L and G: v1 118.4k and 68.7k; v2 130.8k and 46.7k; v3 548.1k and 46.5k; v4 72.3k and 45.5k
 the implementation, L and G: 48 and 106 lines at the end; 23 and 18 lines touched by the three changes
 servers that did not start: L 0 of 60 stages, G 0 of 60
 lineages right on every request: L 0 of 15, G 15 of 15
@@ -252,16 +256,19 @@ Parameters the way it reads a GET query, where every value is text, and converts
 has no say in it: the check runs before the handler, and the handler is given the converted
 value. On everything else the declaration is meant to give — a required input missing, an
 input given too often, a code outside its binding, a rule of the statement, the outputs after
-each change — the declared servers were right on every request (506 of 506). So were the
-hand-built ones.
+each change — the declared servers were right on every one of the other 506 requests, in every
+lineage. So were the hand-built ones.
 
 **Why the declared route cost more.** Not the build (107k tokens against 67k: the guide is
-read once) but the changes: 406k against 141k. The session of the third version took 234k
-tokens against 52k. Two of the three operations changed an input to a Quantity there, and the
-guide says how to *answer* a Quantity and nowhere how a handler *reads* one: four of the five
-implementers of that operation printed the value and took it apart with regular expressions.
-One lineage noticed the wrong-type requests in its examples and got them right from the second
-version on, by printing the whole request and parsing that, at 435k tokens for the session.
+read once) but the changes: 406k against 141k, and most of that is one session of one
+operation. The anion gap's third version changed an input from a decimal to a Quantity; that
+session took 548k tokens declared and 46k by hand. The guide says how to *answer* a Quantity
+and nowhere how a handler *reads* one: four of the five implementers of that operation printed
+the value and took it apart with regular expressions. One of them had also noticed the
+wrong-type requests among its examples and got them right from the second version on, by
+printing the whole request and parsing that. The other change sessions cost the declared arm
+one to two and a half times the hand-built one's (54k to 131k against 41k to 63k): the guide is
+read again by each new session.
 No session read outside its directory (the audit found nothing in 120 sessions).
 
 **What the declaration did buy.** Half the code (48 lines against 106), and the server

@@ -35,6 +35,9 @@ a lineage, L and G: output tokens 8.4k and 5.9k; seconds 100 and 49 (the changes
   the session of v2, L and G: input tokens 103.3k and 43.5k; model turns 7.53 and 3.93; seconds 21 and 8
   the session of v3, L and G: input tokens 233.6k and 52.2k; model turns 14.33 and 4.87; seconds 38 and 9
   the session of v4, L and G: input tokens 68.7k and 45.6k; model turns 5.73 and 4.07; seconds 14 and 8
+  input tokens a session, a, L and G: v1 92.2k and 65.8k; v2 112.3k and 41.1k; v3 98.4k and 46.8k; v4 69.7k and 46.3k
+  input tokens a session, b, L and G: v1 110.1k and 67.3k; v2 66.9k and 42.8k; v3 54.4k and 63.4k; v4 64.2k and 45.0k
+  input tokens a session, c, L and G: v1 118.4k and 68.7k; v2 130.8k and 46.7k; v3 548.1k and 46.5k; v4 72.3k and 45.5k
 the implementation, L and G: 48 and 106 lines at the end; 23 and 18 lines touched by the three changes
 servers that did not start: L 0 of 60 stages, G 0 of 60
 lineages right on every request: L 0 of 15, G 15 of 15
