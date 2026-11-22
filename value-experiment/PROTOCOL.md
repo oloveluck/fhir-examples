@@ -382,3 +382,45 @@ intervals are reported, with the share of wrong answers fixed.
 - The harness is tried on two implementations in each arm first; those sessions are not counted
   and the sealed run starts every session afresh.
 
+### 2026-11-22, before V's sealed run: V is every kind of artifact the toolkit runs, not measures alone
+
+The owner, on reading V: "This should go beyond measure implementations. Also FHIR spec
+implementation, mappings, valueset definitions, all the things the toolkit provides."
+
+V as stated above is its first part, **V-measure**, unchanged but for one thing learnt in the
+trial: a session is given at most 60 model turns in every arm (the trial's oracle session on
+one implementation took 78 turns and 3.5 million input tokens writing patients to ask about).
+
+The same design is then run for each kind of artifact for which someone other than us has
+published both the artifact and what it must answer. The common form:
+
+- **The source of truth** is a published artifact in one of FHIR's languages.
+- **The implementation** of it is code outside the toolkit (a Python function), written by an
+  independent agent from the artifact and whatever English its publisher gives.
+- **Checkers** correct it under R (read), T (the third party's expected answers for a sample
+  of inputs) and O (the toolkit runs the artifact on any input).
+- **Truth** is the third party's, on inputs no session sees. The toolkit's own agreement with
+  that truth is reported beside the arms: it is the oracle's ceiling.
+- Outcomes, analysis and the bar are V-measure's.
+
+| part | the artifact | implemented as | truth (not ours) | the oracle |
+|---|---|---|---|---|
+| V-measure | four eCQMs' CQL | the four populations for a patient | the authors' MADiE cases | cql's engine |
+| V-profile ("FHIR spec implementation") | profiles of published guides (StructureDefinitions) | whether a resource conforms | HL7's reference validator (the Java one), over the guides' own examples and resources changed from them | fhir-validation |
+| V-view | the ViewDefinitions of the SQL on FHIR test suite | a view's rows for some resources | the suite's expected rows | sql-on-fhir's engine |
+| V-map | the maps of the FHIR mapping tutorial and of HL7's structure-mapping test cases | the map's output for a source | their expected outputs | fml's engine |
+
+Each part is stated in full (units, sizes, what is held out) in an amendment of its own before
+its sealed run, in the order of the table. Two things are said now because they limit what
+this can show:
+
+- **Value set definitions are not a part of V.** A value set over a code system that is at hand
+  is finite: asked of every code, the oracle states the whole truth, there is nothing to hold
+  out, and an "implementation" is the list. What can be tested for a value set is whether a
+  *definition* written from requirements means what was asked, checked by expanding it — the
+  author's side, which is E's question (an error seen at its cause) and is run there, for value
+  sets, maps and profiles as written in the toolkit's languages.
+- **Mappings have little third-party truth.** Expected outputs exist for the tutorial's thirteen
+  small steps and six HL7 test cases; no published real-world map comes with outputs someone
+  else vouches for. V-map is run on what there is and will be read as that.
+

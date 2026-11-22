@@ -125,6 +125,10 @@
 
 (define (check-id s arm) (format "~a-~a" s arm))
 
+;; session-turns : how many model turns a session is given, in every arm (the trial's oracle session
+;; took 78 and 3.5 million input tokens)
+(define session-turns 60)
+
 ;; run-one! : dir Start Arm model -> void
 (define (run-one! out s arm model)
   (define id (check-id s arm))
@@ -132,7 +136,7 @@
   (define rec
     (run-item id (check-prompt (start-measure s) (start-origin s) arm) work model (allowed arm)
               #:prepare (lambda () (prepare-check! s arm work))
-              #:builtin builtin #:timeout 3000 #:max-turns 150))
+              #:builtin builtin #:timeout 3000 #:max-turns session-turns))
   (define bad (audit rec forbidden))
   (unless (null? bad) (display-lines-to-file bad (build-path work "AUDIT") #:exists 'truncate))
   (printf "~a ~as in ~a out ~a turns ~a~a~a\n" id (hash-ref rec 'seconds) (hash-ref rec 'input_tokens)
