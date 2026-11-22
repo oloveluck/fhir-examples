@@ -1,0 +1,7 @@
+read (R): 2 verdicts right as built and wrong after
+  the definition executed does not give HL7's validator's verdict for the resource: 1, in 1 implementations (organization-3)
+  neither: 1, in 1 implementations (condition-problems-health-concerns-4)
+tested (T): 0 verdicts right as built and wrong after
+oracle (O): 5 verdicts right as built and wrong after
+  the definition executed does not give HL7's validator's verdict for the resource: 4, in 4 implementations (condition-problems-health-concerns-1, condition-problems-health-concerns-2, condition-problems-health-concerns-3, condition-problems-health-concerns-4)
+  neither: 1, in 1 implementations (condition-problems-health-concerns-2)

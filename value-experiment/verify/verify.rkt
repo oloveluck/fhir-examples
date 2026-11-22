@@ -31,7 +31,7 @@
          (only-in "../../agent-bench/run-agent.rkt" run-item in-parallel audit current-resume? read-json-file write-json-file))
 
 (provide (struct-out review) arms start-measure start-origin check-prompt
-         share-after share-before fixed broken difference bootstrap-difference sign-flip-p)
+         share-after share-before fixed broken difference bootstrap-difference sign-flip-p keep! kept)
 
 (struct review (start measure origin before after cost belief) #:transparent)
 
@@ -200,12 +200,13 @@
              'cost (for/hasheq ([(arm k) (in-hash (review-cost c))]) (values arm k))
              'belief (for/hasheq ([(arm b) (in-hash (review-belief c))]) (values arm (if (boolean? b) b "none")))))))
 
-;; kept : path -> (listof Check)   what `keep!` wrote
-(define (kept file)
+;; kept : path [(Start -> group) (Start -> origin)] -> (listof Check)   what `keep!` wrote; a start's
+;; group (its measure) and origin are read from its name
+(define (kept file [group-of start-measure] [origin-of start-origin])
   (define (json->rights j) (for/hash ([(k v) (in-hash j)]) (values (symbol->string k) v)))
   (for/list ([j (in-list (read-json-file file))])
     (define s (hash-ref j 'start))
-    (review s (start-measure s) (start-origin s)
+    (review s (group-of s) (origin-of s)
             (json->rights (hash-ref j 'before))
             (for/hash ([(arm r) (in-hash (hash-ref j 'after))]) (values arm (json->rights r)))
             (for/hash ([(arm k) (in-hash (hash-ref j 'cost))]) (values arm k))

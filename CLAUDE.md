@@ -347,7 +347,7 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   (data exported without the value the case describes; one of them a sample patient), 8 in one
   session cut off at the 60-turn limit. An oracle is what makes checking find anything, and
   whatever it gets wrong is written into every implementation checked against it.
-  *V-profile* (stated, harness built, not yet run): six US Core 9.0.0 profiles by rule
+  *V-profile*: six US Core 9.0.0 profiles by rule
   (`profile-cases.rkt`: `profiles`, `cases` — the 28 published examples and 713 copies with one
   change of five kinds —, `truth`: HL7's Java validator's verdicts, committed under
   `verify/truth/`, `label` to make them again with a validator_cli jar; `agreement`, `ceiling`),
@@ -359,6 +359,24 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   read and fixed as classes in fhir-validation, and it agrees on 736 (578 of the 583 held out)
   — the module's test holds those as floors. Disk: a session directory is ~2.7 MB (spec/);
   HL7's validator keeps 1.2 GB under ~/.fhir.
+  The run (thirty implementations built, each checked in the three arms; 120 sessions; `built`,
+  `broken`, `keep` as for measures): no difference shown on the bar (O − R +0.4 points, −0.3 to
+  +1.2). R, T and O fixed 33, 27 and 48 of 109 wrong verdicts; O broke 5 right ones, four by
+  copying the oracle's own disagreement with HL7's validator. The by-product is the finding:
+  **an agent's validator written from the published definitions in one two-minute session was
+  right on 96.3% of the held-out cases, where this toolkit's validator, as it was before any of
+  HL7's verdicts was seen, was right on 89.5%** (21 of the 30 implementations ahead of it;
+  `results/2026-11-22-profile-toolkit-before.json`, made by `profile-cases.rkt verdicts`); held
+  to those verdicts on the sample cases it is at 99.1%, ahead of 29 of 30. What V shows, both
+  parts: an executable source of truth makes checking find errors (44% and 48% of wrong answers
+  fixed, against 8% to 30%), its checkers trust it completely, so it is worth what its own
+  agreement with a third party's truth is — and setting the toolkit beside a third party's
+  verdicts on inputs changed in one small way is what found its errors (61 of 583 verdicts,
+  now 5). A trial's lesson: a session may write beside its directory (`../t.py`); run-agent's
+  `settle!` keeps such files under `_outside/` instead of failing. And one of process: run
+  `raco test -p fhir-examples` (the fetched guides' gate) BEFORE committing a validator change,
+  and `raco setup --pkgs …` the dependents after one (a stale compiled dependent fails with
+  `instantiate-linklet: mismatch`).
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.

@@ -256,7 +256,16 @@
   (cond [(and (= (length args) 2) (equal? (car args) "write")) (write-cases! (cadr args))]
         [(and (= (length args) 3) (equal? (car args) "label")) (label! (cadr args) (caddr args))]
         [(equal? args '("ceiling")) (print-agreement (agreement))]
-        [else (raise-user-error 'profile-cases "write DIR | label DIR JAR | ceiling")]))
+        ;; the toolkit's verdict for every case, as the validator installed now gives it: a record
+        ;; to set a later validator beside (`verdicts FILE`)
+        [(and (= (length args) 2) (equal? (car args) "verdicts"))
+         (call-with-output-file (cadr args) #:exists 'truncate
+           (lambda (o)
+             (write-json (for/hasheq ([p (in-list (profiles))])
+                           (values (string->symbol p)
+                                   (for/hasheq ([c (in-list (cases p))]) (values (string->symbol (car c)) (toolkit-valid? p (cdr c))))))
+                         o)))]
+        [else (raise-user-error 'profile-cases "write DIR | label DIR JAR | ceiling | verdicts FILE")]))
 
 (module+ test
   (require rackunit)

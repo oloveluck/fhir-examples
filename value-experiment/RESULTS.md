@@ -427,3 +427,131 @@ not a patient the authors wrote, and the held-out cases reward only fixes that g
 Files: `verify/results/2026-11-22-measure-*`; the sessions' directories are not kept in the
 repository (262 MB), the scored run is.
 
+## V-profile. Verifying against the source of truth: conformance to a profile (2026-11-22)
+
+The protocol's amendment "V-profile in full" states it, and the one after it what the trial
+changed. Six US Core 9.0.0 profiles; 741 resources judged by HL7's reference validator (their 28
+published examples, and 713 copies with one change each), 158 of them a sample and 583 held out.
+Thirty implementations of `valid(resource)` in Python, five a profile, each written by an
+independent agent in one session from the profile's published definition and what it rests on;
+then each checked and corrected by three more agents: R reads, T has HL7's verdicts for the
+sample, O can ask this toolkit's validator whether any resource it writes is valid (the verdict,
+nothing else). 120 sessions, one model, at most 60 turns each; the audit found no session whose
+commands named the network, the toolkit or HL7's validator; two wrote scratch files outside
+their directory (one R, one O), which are kept and change nothing they were given.
+
+`racket profile-verify.rkt report verify/results/2026-11-22-profile-run.json`, as printed:
+
+```
+implementations built: 30; checked in every arm: 30, of 6 profiles; held-out cases: 583
+the oracle itself, on those held-out cases: 578 of 583 as HL7's validator (99.1%)
+
+right on the held-out cases            as built   after R    after T    after O
+  all                                  96.3%     97.3%      97.2%      97.7%
+  patient                              100.0%     100.0%      100.0%      100.0%
+  medicationrequest                    93.4%     94.1%      95.7%      94.5%
+  organization                         93.1%     93.5%      94.9%      94.9%
+  practitioner                         93.3%     100.0%      93.3%      100.0%
+  condition-problems-health-concerns   96.0%     96.5%      97.9%      96.7%
+  servicerequest                       99.3%     99.5%      99.3%      99.7%
+
+read (R): of 109 verdicts wrong as built, 33 right after (30.3%); of 2806 right as built, 2 wrong after
+tested (T): of 109 verdicts wrong as built, 27 right after (24.8%); of 2806 right as built, 0 wrong after
+oracle (O): of 109 verdicts wrong as built, 48 right after (44.0%); of 2806 right as built, 5 wrong after
+implementations right on every held-out case: as built 10; after R 13, T 10, O 13 (of 30)
+
+read (R): said the implementation is right 21 times, and it was right on every held-out case 10 times; said errors remain 9 times (they did 6 times); no verdict 0
+tested (T): said the implementation is right 21 times, and it was right on every held-out case 8 times; said errors remain 9 times (they did 7 times); no verdict 0
+oracle (O): said the implementation is right 17 times, and it was right on every held-out case 6 times; said errors remain 13 times (they did 6 times); no verdict 0
+
+O − R = +0.4 points (95% interval -0.3 to +1.2; label swap p = 0.1932)
+O − T = +0.5 points (95% interval -0.5 to +2.3; label swap p = 0.9774)
+T − R = -0.1 points (95% interval -1.9 to +1.2; label swap p = 0.991)
+
+a session, build: 316.3k input and 16.6k output tokens, 17.2 turns, 114 s
+a session, read (R): 451.7k input and 10.7k output tokens, 18.8 turns, 103 s
+a session, tested (T): 497.8k input and 11.1k output tokens, 20.4 turns, 79 s
+a session, oracle (O): 645.3k input and 14.3k output tokens, 24.5 turns, 109 s
+
+verdict (O against R)   no difference shown
+```
+
+**The bar is not met: no difference shown** (O − R = +0.4 points, −0.3 to +1.2). The prediction
+was wrong twice: the implementations as built were right on 96.3% of the held-out cases, not
+75% to 90%, and the oracle's checkers ended 0.4 points above the readers', not 5.
+
+What the arms did is V-measure's pattern, milder. Every arm fixed some of the 109 wrong
+verdicts — reading 33, labelled samples 27, the oracle 48 — and the oracle's checkers broke
+five right ones, four of them the same way as in V-measure:
+
+```
+read (R): 2 verdicts right as built and wrong after
+  the definition executed does not give HL7's validator's verdict for the resource: 1, in 1 implementations (organization-3)
+  neither: 1, in 1 implementations (condition-problems-health-concerns-4)
+tested (T): 0 verdicts right as built and wrong after
+oracle (O): 5 verdicts right as built and wrong after
+  the definition executed does not give HL7's validator's verdict for the resource: 4, in 4 implementations (condition-problems-health-concerns-1, condition-problems-health-concerns-2, condition-problems-health-concerns-3, condition-problems-health-concerns-4)
+  neither: 1, in 1 implementations (condition-problems-health-concerns-2)
+```
+
+Four implementations of the Condition profile were changed to agree with the oracle on a
+resource where the oracle is not HL7's validator. An oracle's own disagreement with the truth
+is again what its checkers write into the code they check.
+
+### Written by hand against running the definition
+
+The build phase alone answers a question nobody had asked directly: how good is a check of
+conformance that an agent writes for itself from the published definitions?
+`racket profile-verify.rkt built verify/results/2026-11-22-profile-run.json`:
+
+```
+right on the held-out cases            written by hand  (least, most)     toolkit, before  toolkit, now  cases
+  all                                  96.3%            (66.7%, 100.0%)   89.5%            99.1%         583
+  patient                              100.0%           (100.0%, 100.0%)  81.6%            100.0%        87
+  medicationrequest                    93.4%            (92.0%, 95.5%)    90.9%            98.9%         88
+  organization                         93.1%            (91.2%, 95.1%)    93.1%            99.0%         102
+  practitioner                         93.3%            (66.7%, 100.0%)   89.9%            100.0%        69
+  condition-problems-health-concerns   96.0%            (92.9%, 100.0%)   74.1%            96.5%         85
+  servicerequest                       99.3%            (99.3%, 99.3%)    99.3%            100.0%        152
+
+written by hand: one session an implementation, 316.3k input and 16.6k output tokens, 17.2 turns, 114 s; right on every held-out case: 10 of 30
+toolkit: this toolkit's validator holding the resource to the profile, no session. Before: as it was before any of HL7's
+  verdicts was seen. Now: after its misses on the SAMPLE cases were fixed. HL7's validator is the truth all are held to.
+implementations more often right than the toolkit was before: 21 of 30; than the toolkit is now: 1 of 30
+```
+
+- **An agent's own validator, written in two minutes, was more often right than this toolkit's
+  validator had been** — 96.3% against 89.5% on resources neither had seen; 21 of the 30
+  implementations were ahead of it, and all five of the Patient profile's were right on every
+  held-out case where the toolkit's validator was right on 81.6%. The toolkit's validator had
+  passed every corpus it was held to (330 published examples with no false alarm, HL7's
+  validator test cases with none); none of those corpora asks about a resource that is wrong in
+  one small way.
+- **Held to a third party's verdicts, the toolkit's validator went from 89.5% to 99.1%** in a
+  few hours: its misses on the 158 sample cases were read and fixed as classes (nothing inside
+  an extension had ever been checked; a code its code system lacks; a slice's maximum; the
+  invariants of datatypes …), and the held-out cases, which were not read, moved with them. It
+  is now ahead of 29 of the 30. That is the largest gain in correctness measured anywhere in
+  this programme, and no agent was compared to get it.
+- The comparison is not like for like, and should not be read as one: the implementers were
+  told what they would be judged on (examples of one profile, and copies changed in stated
+  ways), and wrote for that; the toolkit's validator is one program for every profile and
+  every resource. What it shows is narrower and still uncomfortable: for a stated, narrow
+  conformance question, "write the check yourself from the definitions" was a better bet than
+  "use the toolkit" until the toolkit had been held to the reference.
+
+So the reading of V, over both parts: a source of truth that can be executed does make
+checking find errors (it fixed 44% and 48% of wrong answers where reading and labelled samples
+fixed 8% to 30%), it costs more tokens, and its checkers trust it completely — so its value is
+its own agreement with the truth, which nobody knows until a third party's verdicts are set
+beside it. Neither part shows implementations ending up right more often because of it. What
+both parts did show is where the toolkit itself was wrong: two answers of 190 for the measures
+(arguably the published data's), 61 verdicts of 583 for the profiles (ours, now 5).
+
+Costs: the `a session` lines. Limits: one guide, one model, changes of five kinds made one at a
+time; "valid" is HL7's validator without a terminology server; the implementations may read the
+definitions at run time, so each is a small validator and the comparison with the toolkit's is
+between programs written for different briefs. Files: `verify/results/2026-11-22-profile-*`
+(the scored run as one file; HL7's verdicts are `verify/truth/`; the toolkit's verdicts before
+the fixes are `2026-11-22-profile-toolkit-before.json`).
+

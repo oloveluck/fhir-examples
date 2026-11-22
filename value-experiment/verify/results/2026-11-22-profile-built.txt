@@ -1,0 +1,13 @@
+right on the held-out cases            written by hand  (least, most)     toolkit, before  toolkit, now  cases
+  all                                  96.3%            (66.7%, 100.0%)   89.5%            99.1%         583
+  patient                              100.0%           (100.0%, 100.0%)  81.6%            100.0%        87
+  medicationrequest                    93.4%            (92.0%, 95.5%)    90.9%            98.9%         88
+  organization                         93.1%            (91.2%, 95.1%)    93.1%            99.0%         102
+  practitioner                         93.3%            (66.7%, 100.0%)   89.9%            100.0%        69
+  condition-problems-health-concerns   96.0%            (92.9%, 100.0%)   74.1%            96.5%         85
+  servicerequest                       99.3%            (99.3%, 99.3%)    99.3%            100.0%        152
+
+written by hand: one session an implementation, 316.3k input and 16.6k output tokens, 17.2 turns, 114 s; right on every held-out case: 10 of 30
+toolkit: this toolkit's validator holding the resource to the profile, no session. Before: as it was before any of HL7's
+  verdicts was seen. Now: after its misses on the SAMPLE cases were fixed. HL7's validator is the truth all are held to.
+implementations more often right than the toolkit was before: 21 of 30; than the toolkit is now: 1 of 30

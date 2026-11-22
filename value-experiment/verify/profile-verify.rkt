@@ -12,6 +12,10 @@
 ;;;   racket profile-verify.rkt score OUT     every implementation, as built and as each session left it
 ;;;   racket profile-verify.rkt report OUT    the comparison the protocol states
 ;;;   racket profile-verify.rkt changes OUT   each held-out verdict a session fixed or broke
+;;;   racket profile-verify.rkt broken OUT    the verdicts a session broke, by what broke them
+;;;   racket profile-verify.rkt built OUT     the implementations as built, beside the definition executed
+;;;   racket profile-verify.rkt keep OUT FILE the scored run as one file, which the four above read
+;;;                                           in place of OUT
 ;;;
 ;;; Data definitions.
 ;;; A Start is a string, "<profile's short name>-<i>": the i-th implementation of a profile. Its
@@ -23,7 +27,7 @@
 (require racket/file racket/list racket/string racket/math racket/port racket/runtime-path json
          "profile-cases.rkt" "profile-materials.rkt"
          (only-in "verify.rkt" review review-start review-measure review-before review-after review-cost review-belief
-                  share-after share-before fixed broken difference bootstrap-difference sign-flip-p)
+                  share-after share-before fixed broken difference bootstrap-difference sign-flip-p keep! kept)
          (only-in "../analysis.rkt" verdict-of interval)
          (only-in "../../agent-bench/run-agent.rkt" run-item in-parallel audit current-resume? read-json-file write-json-file))
 
@@ -32,6 +36,9 @@
 (define arms '(R T O))
 (define-runtime-path bridge "call-valid.py")
 (define-runtime-path try-script "profile-try.py")
+;; the toolkit's validator's verdicts as it was before this experiment touched it (fhir 011ee15),
+;; recorded by `profile-cases.rkt verdicts`
+(define-runtime-path toolkit-before "results/2026-11-22-profile-toolkit-before.json")
 
 ;; ---- the implementations ---------------------------------------------------------------------------
 (define implementers 5)
@@ -286,6 +293,9 @@
               (values arm (session-cost (build-path out (if (eq? arm 'B) (build-id s) (check-id s arm))))))
             (for/hash ([arm (in-list run)]) (values arm (belief-of (build-path out (check-id s arm))))))))
 
+;; checks-of : path -> (listof Check)   a scored run's directory, or the file kept of one
+(define (checks-of path) (if (directory-exists? path) (read-checks path) (kept path start-profile (lambda (_) 'P))))
+
 ;; ---- report ----------------------------------------------------------------------------------------
 (define (mean xs) (if (null? xs) 0 (/ (apply + xs) (length xs))))
 (define (perfect? rights) (for/and ([(c r) (in-hash rights)]) r))
@@ -365,9 +375,79 @@
       (printf "~a ~a: ~a as built; ~a\n" (review-start c) k (if before "right" "wrong")
               (string-join (for/list ([a (in-list after)]) (format "~a ~a" (car a) (if (cdr a) "right" "wrong"))) ", ")))))
 
+;; oracle-verdicts : -> (hash (cons Profile case) boolean)   is the oracle's verdict HL7's validator's?
+(define (oracle-verdicts) (for/hash ([r (in-list (agreement))]) (values (cons (car r) (cadr r)) (agree? r))))
+
+;; broken-verdicts : (listof Check) -> void   for each arm, the held-out verdicts right as built and
+;; wrong after its session, told apart by what can be known of the cause: the session wrote no
+;; verdict (cut off at the turn limit, its implementation left as it stood); else the oracle's own
+;; verdict for that resource is not HL7's validator's; else neither.
+(define (broken-verdicts checks)
+  (define right (oracle-verdicts))
+  (for ([arm (in-list arms)])
+    (define rows
+      (for*/list ([c (in-list checks)] #:when (hash-has-key? (review-after c) arm)
+                  [(k r) (in-hash (review-before c))] #:when (and r (not (hash-ref (hash-ref (review-after c) arm) k))))
+        (list (review-start c) k
+              (cond [(eq? (hash-ref (review-belief c) arm) 'none) 'cut-off]
+                    [(not (hash-ref right (cons (review-measure c) k))) 'oracle-differs]
+                    [else 'other]))))
+    (printf "~a: ~a verdicts right as built and wrong after\n" (hash-ref arm-name arm) (length rows))
+    (for ([cause (in-list '(cut-off oracle-differs other))])
+      (define mine (filter (lambda (r) (eq? (caddr r) cause)) rows))
+      (unless (null? mine)
+        (printf "  ~a: ~a, in ~a implementations (~a)\n"
+                (case cause
+                  [(cut-off) "the session was cut off at the turn limit (no verdict written)"]
+                  [(oracle-differs) "the definition executed does not give HL7's validator's verdict for the resource"]
+                  [else "neither"])
+                (length mine) (length (remove-duplicates (map car mine)))
+                (string-join (remove-duplicates (map car mine)) ", "))))))
+
+;; built : (listof Check) -> void   writing the check by hand against running the definition: the
+;; implementations as their build sessions left them, a profile a line, beside the toolkit's
+;; validator on the same held-out cases — as it was before this experiment (before any verdict of
+;; HL7's was seen), and as it is after its misses on the sample cases were fixed
+(define (built checks)
+  (define rows (filter held-out? (agreement)))
+  (define before (and (file-exists? toolkit-before) (read-json-file toolkit-before)))
+  ;; before-right? : Agreement -> boolean   was the earlier validator's verdict HL7's?
+  (define (before-right? r)
+    (eq? (caddr r) (hash-ref (hash-ref before (string->symbol (car r))) (string->symbol (cadr r)))))
+  (printf "~a ~a ~a ~a ~a ~a\n" (padded "right on the held-out cases" 38) (padded "written by hand" 16) (padded "(least, most)" 17)
+          (padded "toolkit, before" 16) (padded "toolkit, now" 13) "cases")
+  (define (line label group ps)
+    (define mine (filter (lambda (r) (member (car r) ps)) rows))
+    (define shares (map (lambda (c) (share-before (list c))) group))
+    (printf "  ~a ~a ~a ~a ~a ~a\n" (padded label 36) (padded (percent (share-before group)) 16)
+            (padded (format "(~a, ~a)" (percent (apply min shares)) (percent (apply max shares))) 17)
+            (padded (if before (percent (/ (count before-right? mine) (length mine))) "-") 16)
+            (padded (percent (/ (count agree? mine) (length mine))) 13) (length mine)))
+  (define ps (remove-duplicates (map review-measure checks)))
+  (line "all" checks ps)
+  (for ([p (in-list ps)]) (line (short-name p) (filter (lambda (c) (equal? (review-measure c) p)) checks) (list p)))
+  (define (m key) (mean (map (lambda (c) (hash-ref (hash-ref (review-cost c) 'B) key)) checks)))
+  (printf "\nwritten by hand: one session an implementation, ~a input and ~a output tokens, ~a turns, ~a s; right on every held-out case: ~a of ~a\n"
+          (thousands (m 'input_tokens)) (thousands (m 'output_tokens)) (exact->inexact (/ (round (* 10 (m 'turns))) 10)) (exact-round (m 'seconds))
+          (count (lambda (c) (perfect? (review-before c))) checks) (length checks))
+  (printf "toolkit: this toolkit's validator holding the resource to the profile, no session. Before: as it was before any of HL7's\n")
+  (printf "  verdicts was seen. Now: after its misses on the SAMPLE cases were fixed. HL7's validator is the truth all are held to.\n")
+  (when before
+    (define better (count (lambda (c) (> (share-before (list c))
+                                         (let ([mine (filter (lambda (r) (equal? (car r) (review-measure c))) rows)])
+                                           (/ (count before-right? mine) (length mine)))))
+                          checks))
+    (printf "implementations more often right than the toolkit was before: ~a of ~a; than the toolkit is now: ~a of ~a\n"
+            better (length checks)
+            (count (lambda (c) (> (share-before (list c))
+                                  (let ([mine (filter (lambda (r) (equal? (car r) (review-measure c))) rows)])
+                                    (/ (count agree? mine) (length mine)))))
+                   checks)
+            (length checks))))
+
 ;; ---- command line ---------------------------------------------------------------------------------------
 (module+ main
-  (define usage "profile-verify.rkt build|run|score|report|changes OUT [options]")
+  (define usage "profile-verify.rkt build|run|score|report|changes|broken|built|keep OUT [options]")
   (define args (vector->list (current-command-line-arguments)))
   (define (option name default)
     (define at (member name args))
@@ -394,8 +474,11 @@
                          (string-join (for/list ([arm (in-list arms)] #:when (hash-has-key? (review-after c) arm))
                                         (format ", ~a ~a" arm (percent (share-after (list c) arm))))
                                       "")))]
-    [("report") (report (read-checks out))]
-    [("changes") (changes (read-checks out))]
+    [("report") (report (checks-of out))]
+    [("changes") (changes (checks-of out))]
+    [("broken") (broken-verdicts (checks-of out))]
+    [("built") (built (checks-of out))]
+    [("keep") (keep! (read-checks out) (caddr args))]
     [else (raise-user-error 'profile-verify usage)]))
 
 (module+ test

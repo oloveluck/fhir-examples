@@ -1,0 +1,31 @@
+implementations built: 30; checked in every arm: 30, of 6 profiles; held-out cases: 583
+the oracle itself, on those held-out cases: 578 of 583 as HL7's validator (99.1%)
+
+right on the held-out cases            as built   after R    after T    after O
+  all                                  96.3%     97.3%      97.2%      97.7%
+  patient                              100.0%     100.0%      100.0%      100.0%
+  medicationrequest                    93.4%     94.1%      95.7%      94.5%
+  organization                         93.1%     93.5%      94.9%      94.9%
+  practitioner                         93.3%     100.0%      93.3%      100.0%
+  condition-problems-health-concerns   96.0%     96.5%      97.9%      96.7%
+  servicerequest                       99.3%     99.5%      99.3%      99.7%
+
+read (R): of 109 verdicts wrong as built, 33 right after (30.3%); of 2806 right as built, 2 wrong after
+tested (T): of 109 verdicts wrong as built, 27 right after (24.8%); of 2806 right as built, 0 wrong after
+oracle (O): of 109 verdicts wrong as built, 48 right after (44.0%); of 2806 right as built, 5 wrong after
+implementations right on every held-out case: as built 10; after R 13, T 10, O 13 (of 30)
+
+read (R): said the implementation is right 21 times, and it was right on every held-out case 10 times; said errors remain 9 times (they did 6 times); no verdict 0
+tested (T): said the implementation is right 21 times, and it was right on every held-out case 8 times; said errors remain 9 times (they did 7 times); no verdict 0
+oracle (O): said the implementation is right 17 times, and it was right on every held-out case 6 times; said errors remain 13 times (they did 6 times); no verdict 0
+
+O − R = +0.4 points (95% interval -0.3 to +1.2; label swap p = 0.1932)
+O − T = +0.5 points (95% interval -0.5 to +2.3; label swap p = 0.9774)
+T − R = -0.1 points (95% interval -1.9 to +1.2; label swap p = 0.991)
+
+a session, build: 316.3k input and 16.6k output tokens, 17.2 turns, 114 s
+a session, read (R): 451.7k input and 10.7k output tokens, 18.8 turns, 103 s
+a session, tested (T): 497.8k input and 11.1k output tokens, 20.4 turns, 79 s
+a session, oracle (O): 645.3k input and 14.3k output tokens, 24.5 turns, 109 s
+
+verdict (O against R)   no difference shown
