@@ -522,3 +522,40 @@ published examples of two other guides — a code of a system that a value set t
 whose content is not at hand was read as "not in the value set". That check now says "cannot
 say" unless the value set's definition never names the system. Its agreement with HL7's
 verdicts on the 741 cases is what it was: 736, and 578 of the 583 held out.
+
+### 2026-11-22, after V-measure and V-profile: where the programme stands, and a proposal
+
+Not run, and not to be run without the owner's word: this entry is a reading and a proposal.
+
+**What five experiments have shown.** M: the toolkit's reading tools against REST and Python, no
+difference. S: a system built from its formal specification is right more often than one built
+from the narrative (+5.4 points), and the specification executed more often still. D: an
+operation declared in the capability language was right less often than one written by hand,
+until two defects the experiment found were fixed; then level. V-measure and V-profile: a
+checker that can run the published artifact fixes more of what is wrong than one that reads or
+has labelled samples, and breaks about as much by copying the artifact's executor where it
+differs from the truth; no difference in how often implementations end up right. Across all
+five, the one advantage that held is S's, and it is an advantage of having a formal
+specification, not of this toolkit's tools.
+
+**What was found beside the questions asked.** Each time the toolkit was set beside a third
+party's verdicts on inputs it had not been built on, it was wrong somewhere nobody knew: two
+defects in the capability runtime (D), and 61 of 583 verdicts of the validator (V-profile: an
+agent's own two-minute validator was ahead of it), now 5. That is where measurable correctness
+was gained in this programme.
+
+**V-view and V-map are not run as stated.** Two parts gave one answer, and these two could add
+little: the view suite's expected rows are the engine's own conformance target (its agreement
+with that truth is 144 of 144 by construction, so there is no ceiling to measure), and the
+mapping tutorial's outputs are 43 small cases the engine was built against.
+
+**Proposed instead (H: held to the reference).** For each engine the toolkit ships, the method
+that worked on the validator: a reference implementation run on published inputs and on copies
+changed in one small way; this toolkit's answer beside it; the disagreements on a sample read
+and fixed as classes, the rest held out and only counted. HL7's validator jar holds reference
+implementations of FHIRPath and of the mapping language as libraries (its command line needs a
+terminology server for a transform, which this environment's network does not reach; the
+library does not); SQL on FHIR has a reference implementation in JavaScript; FSH has SUSHI.
+The outcome is not an agent comparison: it is how often each engine gives the reference's
+answer, before and after, on inputs nobody tuned it on — a number a user of the toolkit can
+rely on, and the thing V showed an oracle's worth to be.
