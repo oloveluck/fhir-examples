@@ -310,3 +310,75 @@ interval above zero; or not worse by 3 points at two thirds of the input tokens 
   changed between this amendment and the end of D's run, whatever the trial operation shows.
 - The expected answers are the author's; both arms are held to them alike.
 
+### 2026-11-22, after D: V (verifying against the source of truth)
+
+The owner, after D: "I want to show the value of the fhir tooling and have that value be real
+… I'm thinking without a single source of truth it's impossible to verify correctness." It
+takes the place of B in the programme's order; B, C, E and S2 follow as stated.
+
+**What is tested.** M, S and D compared ways of *building*. In each, a model built the thing
+by hand about as well as with the toolkit, and what told right from wrong was something that
+could be run against it: the authors' test cases, a request suite. V asks about that part. An
+implementation exists and may be wrong. Can an agent find and correct what is wrong with it
+(a) by reading it against its description, (b) with the expected answers for a few test
+patients, as a test suite gives, or (c) with the specification itself executed, which answers
+for any patient? The claim: without something that decides, checking does not make an
+implementation more right; and a specification that runs is worth more than a fixed set of
+expected answers.
+
+**Material.** S's forty implementations as their implementers left them (twenty written from a
+measure's narrative, twenty from its CQL; ten of the forty are right on every held-out case),
+committed as `spec-first/implementations/`; S's four measures, their descriptions, terminology
+and sample patients; the authors' 151 held-out cases, which no session sees.
+
+**Arms.** A checker is an agent given one implementation, the description its implementer had
+(the narrative, or the CQL to read), the terminology, the sample patients and the script that
+runs the implementation over a directory of patients, and told to check the implementation and
+correct any error it finds. It may write further patients. The three arms differ in one thing:
+
+- **R, read**: nothing more.
+- **T, tested**: the measure authors' expected answers for the sample patients (a fifth of
+  each measure's cases: 12, 6, 12 and 9).
+- **O, oracle**: a command that runs the measure's CQL with this toolkit's engine over any
+  directory of patients and prints its four answers for each. It prints answers only: a
+  checker of an implementation written from the narrative still has the narrative alone to
+  read.
+
+One session for each implementation and arm: 120 sessions, the same model, tools (Python and
+files in its directory; O's one command besides), prompt but for the sentence naming what the
+arm adds. Each session ends by writing its belief: whether the implementation is now right for
+every patient.
+
+**Outcomes**, over the held-out cases, each implementation before and after its session:
+
+- **Right** (primary): as in S, all four populations as the authors expect.
+- **Fixed and broken**: of the answers wrong before, the share right after; of those right
+  before, the share wrong after.
+- **Belief**: how often a checker that says the implementation is right is left with one that
+  is right on every held-out case.
+- **Cost**: input and output tokens, seconds.
+
+**Analysis.** Paired by implementation and case. O − R, O − T and T − R in the share right
+after, each with a 95% interval from a bootstrap (implementations resampled within measure and
+origin, cases within measure) and a test that swaps the two arms' labels within an
+implementation. The forty are 95.7% right before, and the executed CQL is right on 150 of the
+151 cases, so over all forty an arm can gain 3.6 points at most: the bar of 5 points cannot be
+met there, and it is stated now that it is applied where there is room, to the twenty written
+from the narrative (93.0% before). "Significant value" for V: among those twenty, O is right
+more often than R by 5 points with the interval above zero. Over all forty the differences and
+intervals are reported, with the share of wrong answers fixed.
+
+**What can be wrong with it.**
+
+- The oracle is this toolkit's engine and the truth is the authors' cases; they differ on one
+  case of 151. A checker that follows the oracle follows it there too. That is what a single
+  source of truth means, and it is counted against O.
+- O with the narrative mixes two things: the narrative to read and the CQL to ask. It is the
+  situation of someone holding a published measure they cannot read but can run.
+- T's expected answers are the authors', which someone had to write; O's are computed. V does
+  not price that.
+- Forty implementations of four measures by one model; ten start with nothing to fix and can
+  only be broken.
+- The harness is tried on two implementations in each arm first; those sessions are not counted
+  and the sealed run starts every session afresh.
+
