@@ -1,0 +1,30 @@
+breast
+  N 1 of 5 wrong, S 0 of 5   DENEXPass HospiceServicesEndOnDec31OfMP
+  N 1 of 5 wrong, S 0 of 5   DENEXPass HospiceServicesEndOnJan1OfMP
+  N 3 of 5 wrong, S 0 of 5   DENEXPass DementiaMedsDuringMP
+  N 3 of 5 wrong, S 0 of 5   DENEXPass FrailtyDeviceRequestNoPerformedModExt
+  N 2 of 5 wrong, S 0 of 5   DENEXPass HospiceDischargeToHomeDuringMP
+  N 3 of 5 wrong, S 0 of 5   DENEXPass AdvIllnessDxWithin2Yrs
+  N 2 of 5 wrong, S 4 of 5   DENEXFail FrailtyDeviceRequestNotPerformedTrue
+  N 2 of 5 wrong, S 0 of 5   DENEXPass 66yoInNursingHomeOnDec31OfMP
+  N 3 of 5 wrong, S 0 of 5   DENEXPass FrailtyObsDuringMP
+  N 1 of 5 wrong, S 0 of 5   DENEXPass HospiceObsValueIsYes
+  N 2 of 5 wrong, S 0 of 5   DENEXFail AdvIllnessDxBefore2Yrs
+  N 3 of 5 wrong, S 0 of 5   DENEXPass FrailtyDeviceRequestNotPerformedFalse
+cervical
+  N 5 of 5 wrong, S 0 of 5   IPPass 64WithQualifyingEncounter
+  N 5 of 5 wrong, S 0 of 5   IPPass 24FemaleWithQualifyingEncounter
+pressure
+  N 1 of 5 wrong, S 0 of 5   DENEXPass HospiceObsValueIsYes
+  N 1 of 5 wrong, S 0 of 5   DENEXFail PalliativeCareSurveyStatusNotFinal
+  N 0 of 5 wrong, S 1 of 5   DENEXPass DementiaMedAsReferenceCQLIT412
+  N 1 of 5 wrong, S 0 of 5   DENEXPass FrailtyDeviceUsed
+  N 5 of 5 wrong, S 0 of 5   DENEXFail AdvIllnessDxBefore2Yrs
+  N 1 of 5 wrong, S 0 of 5   DENEXPass PalliativeCareSurveyOverlapsB4MP
+  N 1 of 5 wrong, S 0 of 5   DENEXPass PalliativeCareSurveyOverlapsAfterMP
+diabetes
+  N 2 of 5 wrong, S 0 of 5   DENEXPass LivingInNursingHome
+  N 5 of 5 wrong, S 3 of 5   NUMFail HbA1cLessThan9
+  N 0 of 5 wrong, S 2 of 5   NUMPass HbA1cGreaterThan9
+  N 0 of 5 wrong, S 1 of 5   DENEXPass FrailtyEncOverlapsMP
+  N 0 of 5 wrong, S 1 of 5   DENEXPass FrailtyDxOverlapsMP

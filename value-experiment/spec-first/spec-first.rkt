@@ -7,6 +7,8 @@
 ;;;   racket spec-first.rkt run OUT [--implementers 5] [--measures a,b] [--arms N,S] [--parallel 4] [--model M]
 ;;;   racket spec-first.rkt score OUT       each implementation run over every case of its measure
 ;;;   racket spec-first.rkt report OUT      right, agreement and cost by arm, with the intervals
+;;;   racket spec-first.rkt misses OUT      each held-out case some implementer got wrong, by its authors' name
+;;;   racket spec-first.rkt reference       X: the CQL run by the toolkit's engine, over the same held-out cases
 ;;;
 ;;; An implementation is OUT/<measure>-<arm>-<i>/: the implementer's directory (measure.py among
 ;;; its files), record.json (the session: tokens, seconds, commands), and after `score`,
@@ -239,12 +241,48 @@
                 [(and (< (cdr ci) 0) (<= d -0.05)) "the narrative's implementers are right more often"]
                 [else "no difference shown in being right"])))
 
+;; ---- what was missed, and the reference -----------------------------------------------------------------
+;; case-names : measure -> (hash id name)   the authors' names of a measure's cases (its README.txt)
+(define (case-names m)
+  (define f (build-path (collection-path "cql") "tests" "vendor" "qicore-2024" "tests" m "README.txt"))
+  (for/hash ([line (in-list (file->lines f))]
+             #:when (regexp-match? #px"^[0-9a-f-]{36} = " line))
+    (define parts (regexp-match #px"^([0-9a-f-]{36}) = (.*)$" line))
+    (values (cadr parts) (string-trim (caddr parts)))))
+
+;; misses : (listof Impl) -> void   for each measure, the held-out cases some implementation got
+;; wrong: how many of each arm's, under the name its authors gave the case
+(define (misses impls)
+  (for ([m (in-list (remove-duplicates (map impl-measure impls)))])
+    (define names (case-names m))
+    (define (wrong arm c) (count (lambda (i) (not (outcome-right? (hash-ref (impl-outcomes i) c)))) (of-arm impls arm m)))
+    (printf "~a\n" (short-name m))
+    (for ([c (in-list (held-cases (car (of-arm impls 'N m))))]
+          #:when (positive? (+ (wrong 'N c) (wrong 'S c))))
+      (printf "  N ~a of ~a wrong, S ~a of ~a   ~a\n" (wrong 'N c) (length (of-arm impls 'N m))
+              (wrong 'S c) (length (of-arm impls 'S m)) (hash-ref names c c)))))
+
+;; reference : -> void   X of the protocol: the measures' CQL run by the toolkit's engine (cql's own
+;; test harness) over the cases the implementers are scored on
+(define (reference)
+  (define run (dynamic-require '(lib "cql/tests/qicore-measure-harness.rkt") 'run-qicore-measures))
+  (define field (lambda (name) (dynamic-require '(lib "cql/tests/qicore-measure-harness.rkt") name)))
+  (define rs (run (build-path (collection-path "cql") "tests" "vendor" "qicore-2024")))
+  (define (right? r) (equal? ((field 'qicore-case-expected) r) ((field 'qicore-case-actual) r)))
+  (define held (filter (lambda (r) (not (sample-case? ((field 'qicore-case-measure) r) ((field 'qicore-case-case) r)))) rs))
+  (for ([m (in-list measures)])
+    (define mine (filter (lambda (r) (equal? ((field 'qicore-case-measure) r) m)) held))
+    (printf "~a  ~a of ~a held-out cases\n" (short-name m) (count right? mine) (length mine)))
+  (printf "X, the specification executed: ~a of ~a held-out cases (~a of ~a over all)\n"
+          (count right? held) (length held) (count right? rs) (length rs)))
+
 (module+ main
   (define args (vector->list (current-command-line-arguments)))
   (define (option name default)
     (define at (member name args))
     (if (and at (pair? (cdr at))) (cadr at) default))
-  (when (< (length args) 2) (raise-user-error 'spec-first "spec-first.rkt run|score|report OUT [options]"))
+  (when (equal? args '("reference")) (reference) (exit 0))
+  (when (< (length args) 2) (raise-user-error 'spec-first "spec-first.rkt run|score|report|misses OUT [options], or reference"))
   (define out (path->complete-path (cadr args)))
   (case (car args)
     [("run")
@@ -269,6 +307,7 @@
        (define i (read-impl out (car it) (cadr it) (caddr it)))
        (printf "~a held-out right ~a\n" (car it) (percent (share-right (list i)))))]
     [("report") (report (for/list ([it (in-list (implementations out))]) (read-impl out (car it) (cadr it) (caddr it))))]
+    [("misses") (misses (for/list ([it (in-list (implementations out))]) (read-impl out (car it) (cadr it) (caddr it))))]
     [else (raise-user-error 'spec-first "spec-first.rkt run|score|report OUT [options]")]))
 
 (module+ test

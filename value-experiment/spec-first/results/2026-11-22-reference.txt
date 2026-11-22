@@ -1,0 +1,5 @@
+breast  46 of 46 held-out cases
+cervical  23 of 23 held-out cases
+pressure  48 of 48 held-out cases
+diabetes  33 of 34 held-out cases
+X, the specification executed: 150 of 151 held-out cases (188 of 190 over all)

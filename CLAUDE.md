@@ -266,6 +266,27 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   whether a null is a clear one (`clear-null?`). A first start was discarded: the REST server
   had died before it (started with `nohup … &` from a tool call; start it with `setsid`), and
   the run script now checks the server before and after each arm.
+  **S: narrative first against spec first** (the same day; the protocol's second amendment, the
+  same RESULTS.md). The owner's hypothesis: English lacks the specificity a language provides;
+  the spec, not the narrative, is the source of truth. `value-experiment/spec-first/`:
+  `materials.rkt` (cql's vendored ecqm-content-qicore-2024: four measures, each with its
+  published English narrative, its CQL and included libraries, its terminology, its authors' 190
+  test cases — a fifth shown to implementers without expected results and with names removed,
+  the rest scored), `try.py` (a `measure.py` over a directory of patients), `spec-first.rkt`
+  (`run`, `score`, `report`, `misses`, `reference`). Five independent implementers for each
+  measure and description write a Python `evaluate` from the narrative (N) or from the CQL (S,
+  read, not run); the two prompts differ in the sentences naming the description alone. Right on
+  the 151 held-out cases: N 93.0%, S 98.4% (+5.4 points, interval +2.1 to +9.3, none of 20,000
+  label shuffles as large); implementers giving the same answers: 88.1% and 96.0% of cases
+  (+7.9, +2.6 to +13.2); implementations right on every case: 0 and 10 of 20; the CQL executed
+  by cql's engine (X): 150 of 151. The protocol's bar (5 points, interval above zero) is met,
+  narrowly. The narrative fails two ways: implementers differ (breast's exclusions: 74%
+  agreement), and implementers agree on a reading the measure does not mean (four cases all
+  five got wrong the same way: which encounter statuses are "a visit"; a diagnosis "during" a
+  window that the CQL says STARTS in it). S's own misses are translation slips (do-not-perform
+  through a function two libraries away), which executing the specification does not make.
+  S reads 250k input tokens against N's 139k. Four measures, one model: to be repeated on
+  other systems.
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.
