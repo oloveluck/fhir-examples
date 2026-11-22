@@ -18,7 +18,7 @@
 (require racket/list racket/math racket/string racket/file json)
 
 (provide (struct-out pass) (struct-out paired) (struct-out interval) (struct-out comparison)
-         share-right mcnemar-exact holm bootstrap-interval compare verdict-of
+         share-right mcnemar-exact holm bootstrap-interval compare verdict-of clear-null?
          minimum-difference non-inferiority-margin cost-ratio-bound)
 
 (struct pass (right? cost) #:transparent)
@@ -105,6 +105,15 @@
         [(and ratio-ci (> (interval-low diff-ci) non-inferiority-margin) (< (interval-high ratio-ci) cost-ratio-bound)) 'cheaper]
         [else 'no-difference-shown]))
 
+;; clear-null? : Interval (or/c #f Interval) -> boolean   the protocol's "clear null" (amendment
+;; M): the difference's interval inside ±5 points and the cost ratio's inside 0.67 to 1.5. A
+;; comparison that shows no difference and is not a clear null is the one the stated extension
+;; is for.
+(define (clear-null? diff-ci ratio-ci)
+  (and (>= (interval-low diff-ci) (- minimum-difference)) (<= (interval-high diff-ci) minimum-difference)
+       (or (not ratio-ci)
+           (and (>= (interval-low ratio-ci) cost-ratio-bound) (<= (interval-high ratio-ci) (/ 1 cost-ratio-bound))))))
+
 ;; compare : (listof Paired) -> Comparison
 (define (compare ps)
   (define items (list->vector ps))
@@ -161,7 +170,9 @@
             [(more-right) (format "~a is right more often (the protocol's \"significant value\")" name-l)]
             [(cheaper) (format "~a is not worse and costs two thirds or less (the protocol's \"significant value\")" name-l)]
             [(worse) (format "~a is right less often" name-l)]
-            [else "no difference shown"])))
+            [else (if (clear-null? (comparison-diff-interval c) (comparison-ratio-interval c))
+                      "no difference shown, and a clear null (the intervals are inside the protocol's bounds)"
+                      "no difference shown, and not a clear null: the protocol's one extension applies")])))
 
 (module+ main
   (define args (vector->list (current-command-line-arguments)))
@@ -217,4 +228,9 @@
   (check-equal? (verdict-of 0.02 (interval -0.01 0.05) (interval 0.4 0.5)) 'cheaper)
   (check-equal? (verdict-of 0.02 (interval -0.05 0.05) (interval 0.4 0.5)) 'no-difference-shown)
   (check-equal? (verdict-of 0.06 (interval 0.01 0.1) #f) 'more-right)
-  (check-equal? (verdict-of 0.04 (interval 0.01 0.1) #f) 'no-difference-shown))
+  (check-equal? (verdict-of 0.04 (interval 0.01 0.1) #f) 'no-difference-shown)
+  ;; a clear null is both intervals inside the bounds
+  (check-true (clear-null? (interval -0.03 0.04) (interval 0.8 1.2)))
+  (check-false (clear-null? (interval -0.03 0.08) (interval 0.8 1.2)))
+  (check-false (clear-null? (interval -0.03 0.04) (interval 0.5 0.9)))
+  (check-true (clear-null? (interval -0.03 0.04) #f)))
