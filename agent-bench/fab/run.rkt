@@ -15,6 +15,11 @@
 ;;;   tables-tools  the same tables, examples and checks, the arm's three commands as the three tools
 ;;;              of one process (tables-server.rkt) and no shell: the agent has those tools alone and
 ;;;              a system prompt of one sentence
+;;;   rest-tools the general route under that same harness (value-experiment/PROTOCOL.md, A1): a
+;;;              plain FHIR REST server and Python as the three tools of one process
+;;;              (rest-server.rkt: get, python, answer), no shell, the same system prompt.
+;;;              FAB_PREPARED, when set, is what a preparing agent left for it: its PROMPT.md is
+;;;              added to the prompt, the directory is on Python's module path
 ;;; Every arm has the same built-in tools (Bash, Read, Write: `--tools`), and the same closing
 ;;; instruction; the workspace arms get the reading card (`raco fhir guide data`) where the rest
 ;;; arm gets its curl lines.
@@ -64,16 +69,19 @@ EOF
 
 ;; written, only : arm -> string   how the answer file comes to be, and what the agent may use
 (define (written arm)
-  (if (equal? arm "tables-tools")
+  (if (tools-arm? arm)
       "The `answer` tool writes the answer and the resources it rests on to {answer_file}. Once it is written you are done: end with one short line, no summary."
       "When done, write {answer_file}: {\"answer\": \"<your answer>\", \"resources\": [\"Type/id\", ...the resources the answer rests on]}. Once it is written you are done: end with one short line, no summary."))
 (define (only arm)
-  (if (equal? arm "tables-tools")
+  (if (tools-arm? arm)
       "Use only those tools to read the data."
       "Use only that access to read the data; you may use python3 or jq to compute over what it returned. Do not look for the benchmark's files or answers."))
 
 ;; tables-arm? : arm -> boolean   an arm that answers over the tables
 (define (tables-arm? arm) (and (member arm '("tables" "tables-tools")) #t))
+
+;; tools-arm? : arm -> boolean   an arm whose agent has the tools of one process and nothing else
+(define (tools-arm? arm) (and (member arm '("tables-tools" "rest-tools")) #t))
 
 ;; ---- the tables arms' instructions ------------------------------------------------------------------
 ;; The same three steps in two wordings (`tools?`): the commands of a shell, or the tools of
@@ -169,6 +177,14 @@ EOF
       "Work like this:\n"
       (step-1 #t)
       "2 and 3. Write your query from the example and give it to `answer`: `kind` says how, and gives the schema, with the first example it shows. Do as it says there.")]
+    [("rest-tools")
+     (string-append
+      "Access: a FHIR R4 REST server, through your three tools: `get`, `python` and `answer`.\n"
+      "  metadata                      the types and the search parameters of each\n"
+      "  <Type>/<id>                   read one resource\n"
+      "  <Type>?<param>=<value>&...    search: a Bundle (`total`, `entry`, a `next` link when it is a page)\n"
+      "Standard FHIR search applies: _count, _sort (-date descending), _summary=count, date prefixes (date=ge2130-01-01), token system|code, :text, references (patient=Patient/<id>), _include. Read and search are all the server offers."
+      (prepared-prompt))]
     [("mcp")
      (string-append "Access: the FHIR workspace's tools (mcp__fhir__…: query, describe, explain, run, check, …), over this dataset. "
                     "The card below writes a call as the shell does: `describe ref=X as=fsh` is the describe tool with ref and as.\n\n"
@@ -189,6 +205,29 @@ EOF
                                 "{answer_file}" answer-file)])
             ([k '(question assumption patient_fhir_id)])
     (string-replace s (format "{~a}" k) (hash-ref q k))))
+
+;; ---- the `rest-tools` arm ----------------------------------------------------------------------
+;; prepared-dir : -> (or/c #f string)   what a preparing agent left for the general route
+;; (FAB_PREPARED): notes, Python modules, and PROMPT.md, its words to the question agents
+(define (prepared-dir)
+  (define d (getenv "FAB_PREPARED"))
+  (and d (not (string=? d "")) (path->string (path->complete-path d))))
+
+;; prepared-prompt : -> string   PROMPT.md of the prepared directory, to follow the access text
+(define (prepared-prompt)
+  (define d (prepared-dir))
+  (define f (and d (build-path d "PROMPT.md")))
+  (if (and f (file-exists? f)) (string-append "\n\n" (string-trim (file->string f))) ""))
+
+;; rest-mcp : dir string -> string   an MCP configuration: rest-server.rkt over the question's
+;; directory and the FHIR server
+(define-runtime-path rest-server "rest-server.rkt")
+(define (rest-mcp work rest)
+  (jsexpr->string
+   (hasheq 'mcpServers
+           (hasheq 'rest (hasheq 'command "racket"
+                                 'args (append (list (path->string rest-server) (path->string (path->complete-path work)) rest)
+                                               (let ([d (prepared-dir)]) (if d (list d) '()))))))))
 
 ;; ---- the `tables` arm ---------------------------------------------------------------------------
 ;; tables-schema : -> string   the schema's tables and columns (schema.md's table), for the prompt
@@ -268,10 +307,11 @@ EOF
             [("workspace") '("Bash(raco fhir-mcp:*)" "Bash(raco fhir guide:*)")]
             [("tables") '("Bash(raco fhir-mcp:*)" "Bash(./answer:*)" "Bash(./kind:*)" "Bash(cat:*)" "Bash(grep:*)")]
             [("tables-tools") '("mcp__tables")]
+            [("rest-tools") '("mcp__rest")]
             [("mcp") '("mcp__fhir" "Bash(raco fhir guide:*)")]
             [else '("Bash(curl:*)")])
-          (if (equal? arm "tables-tools") '() '("Bash(python3:*)" "Bash(jq:*)"))
-          (if (tables-arm? arm) '() '("Read" "Write"))))
+          (if (tools-arm? arm) '() '("Bash(python3:*)" "Bash(jq:*)"))
+          (if (or (tables-arm? arm) (tools-arm? arm)) '() '("Read" "Write"))))
 
 ;; stop-settings : arm -> string   Claude Code settings whose one hook ends a tables session when
 ;; `./answer` (the `answer` tool) says it is done (stop-when-answered.sh): three in four sessions had nothing left to
@@ -279,7 +319,7 @@ EOF
 (define-runtime-path stop-hook "stop-when-answered.sh")
 (define (stop-settings arm)
   (jsexpr->string
-   (hasheq 'hooks (hasheq 'PostToolUse (list (hasheq 'matcher (if (equal? arm "tables-tools") "mcp__tables__answer" "Bash")
+   (hasheq 'hooks (hasheq 'PostToolUse (list (hasheq 'matcher (case arm [("tables-tools") "mcp__tables__answer"] [("rest-tools") "mcp__rest__answer"] [else "Bash"])
                                                       'hooks (list (hasheq 'type "command" 'command (path->string stop-hook)))))))))
 
 ;; builtin : arm -> (listof string)   the built-in tools an arm's agent has at all. Each tool's
@@ -288,7 +328,7 @@ EOF
 (define (builtin arm)
   (case arm
     [("tables") '("Bash")]
-    [("tables-tools") '()]
+    [("tables-tools" "rest-tools") '()]
     [else builtin-tools]))
 
 ;; tables-mcp : dir -> string   an MCP configuration: tables-server.rkt (the file beside this
@@ -355,8 +395,8 @@ EOF
      [("--collect") "run nothing: rebuild agent_results.json from the run's directories" (set! collect? #t)]
      [("--resume") "skip the items that already have a record (a killed run, resumed)" (current-resume? #t)]
      #:args (arm sample out) (values arm sample out)))
-  (unless (member arm '("rest" "workspace" "mcp" "tables" "tables-tools"))
-    (raise-user-error 'run "the arm is rest, workspace, mcp, tables or tables-tools"))
+  (unless (member arm '("rest" "rest-tools" "workspace" "mcp" "tables" "tables-tools"))
+    (raise-user-error 'run "the arm is rest, rest-tools, workspace, mcp, tables or tables-tools"))
   (define rest (or (getenv "FAB_REST") "http://localhost:8765"))
   (define qs (let ([all (read-json-file sample-file)]) (if limit (take all (min limit (length all))) all)))
   (define dir (path->complete-path out))
@@ -370,9 +410,11 @@ EOF
                          (build-path work "workspace.yaml")))
       (when (tables-arm? arm) (tables-workspace! work q arm)))
     (define rec (run-item id (lambda (real) (prompt arm rest q (path->string (build-path real "answer.json")))) work model (tools arm)
-                          #:prepare prepare #:builtin (builtin arm) #:settings (and (tables-arm? arm) (stop-settings arm))
-                          #:mcp (case arm [("mcp") (workspace-mcp work)] [("tables-tools") (tables-mcp work)] [else #f])
-                          #:system (and (equal? arm "tables-tools") tools-system)))
+                          #:prepare prepare #:builtin (builtin arm)
+                          #:settings (and (or (tables-arm? arm) (tools-arm? arm)) (stop-settings arm))
+                          #:mcp (case arm [("mcp") (workspace-mcp work)] [("tables-tools") (tables-mcp work)]
+                                  [("rest-tools") (rest-mcp work rest)] [else #f])
+                          #:system (and (tools-arm? arm) tools-system)))
     (void (system* (find-executable-path "pkill") "-f" (format "mcp-daemon.*~a" work)))
     ;; the benchmark's files, and the other questions' directories (an agent's own is its cwd)
     (define others (for/list ([o (in-list qs)] #:unless (equal? (hash-ref o 'question_id) id))
@@ -397,6 +439,19 @@ EOF
   (require rackunit)
   (check-equal? (resources-by-type (hasheq 'resources '("Observation/a" "Encounter/b" "Observation/c" "nope")))
                 (hasheq 'Observation '("a" "c") 'Encounter '("b")))
+  ;; the general route under the tools' harness: the question as the other FHIR arms get it, the
+  ;; server through three tools, the answer written by one of them, no shell and no files
+  (let* ([q (hasheq 'question "Q?" 'assumption "A." 'patient_fhir_id "p1")]
+         [text (prompt "rest-tools" "http://localhost:8765" q "/w/answer.json")])
+    (check-regexp-match #rx"^You are answering a question about a patient from a hospital dataset held as FHIR R4 resources" text)
+    (check-regexp-match #rx"The `answer` tool writes the answer and the resources it rests on to /w/answer.json" text)
+    (check-regexp-match #rx"through your three tools: `get`, `python` and `answer`" text)
+    (check-regexp-match #rx"Use only those tools to read the data.$" text)
+    (check-false (regexp-match? #rx"curl|jq" text)))
+  (check-equal? (tools "rest-tools") '("mcp__rest"))
+  (check-equal? (builtin "rest-tools") '())
+  (check-regexp-match #rx"mcp__rest__answer" (stop-settings "rest-tools"))
+  (check-regexp-match #rx"mcp__tables__answer" (stop-settings "tables-tools"))
   ;; with the tools the names go to `kind`, and the schema comes with the first example; with a
   ;; shell the agent asks the tables for each name
   (check-regexp-match #rx"give `kind`, as `names`, each name your question gives" (step-1 #t))

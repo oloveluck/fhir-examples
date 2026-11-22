@@ -35,6 +35,12 @@ What changes between arms is only how the agent reaches the data.
   300 of 300 at 40.6k and 6.4 s on the same machine.
 - **tables** (FHIR-AgentBench) — the benchmark's own relational schema, defined over the FHIR
   store by an agent beforehand, and questions answered in SQL over it (below).
+- **rest-tools** (FHIR-AgentBench) — the general route under the tools arms' harness, for the
+  value experiment (`../value-experiment/PROTOCOL.md`): a plain REST server and Python as the
+  three tools of one process (`fab/rest-server.rkt`: `get`, `python`, `answer`), no shell, the
+  same one-sentence system prompt, the session ended when the answer is written. `FAB_PREPARED`
+  is what a preparing agent left for it (its `PROMPT.md` joins the prompt, the directory is on
+  Python's module path).
 - **official-hapi**, **official-ours** (MedAgentBench) — the benchmark's own protocol: the model
   answers each turn with one `GET`, `POST` or `FINISH` line, at most 8 rounds, no tools of its own.
   Against HAPI and against our server, it shows whether the server is a drop-in replacement.

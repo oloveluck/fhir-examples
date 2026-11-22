@@ -235,6 +235,23 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   second 6.3k) and 4.8 s. A working copy run by `racket <copy>/…/run.rkt` must be compiled
   whole (`raco make fab/*.rkt *.rkt`): its tool server, started by path, otherwise compiles
   itself at every start (1.5 s a question, which looked like a slower prompt).
+- **The value experiment** (2026-11-22; `value-experiment/PROTOCOL.md`, written and committed
+  before any run): does the language route (the languages, checked and run by the toolkit) make
+  an agent more often right, cheaper or safer than the general route (FHIR JSON over REST and
+  Python), with everything else held equal — model, harness (tools of one process, no shell),
+  training material, a preparing agent, the validator behind writes, tuning effort (an agent
+  whose only goal is to make the general route win gets 5 iterations on the development tasks),
+  rounds. Four experiments: A1 FHIR-AgentBench and A2 MedAgentBench (third-party truth, but L
+  has been scored on every question of both), B writing under rules with traps and C computing
+  over a population (truth by construction, tasks written by an agent that has not seen the
+  toolkit: what a claim should rest on). "Significant value" is defined there (right more often
+  by 5 points with the interval above zero; or not worse by 3 at two thirds of the cost).
+  `value-experiment/analysis.rkt`: the paired bootstrap, McNemar's exact test, Holm, the
+  verdict; `analysis.rkt fab L=RUN,… G=RUN,…` over scored runs. Built so far: arm `rest-tools`
+  (`fab/rest-server.rkt`; the other arms' prompts unchanged to the byte). Its smoke, ten
+  development questions, unprepared and untuned: 9 of 10 at 40k input tokens and 5 calls (the
+  shell REST arm of round 4: 69k), so the harness alone is a large part of what the tools arms
+  saved. Ten questions decide nothing.
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.
