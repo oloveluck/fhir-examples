@@ -24,13 +24,13 @@
 
 (require racket/file racket/list racket/string racket/math racket/port racket/runtime-path json
          "materials.rkt"
+         (rename-in "../implementers.rkt" [difference i:difference] [bootstrap-difference i:bootstrap-difference]
+                    [agreement-interval i:agreement-interval] [permutation-p i:permutation-p])
          (only-in "../../agent-bench/run-agent.rkt" run-item in-parallel audit current-resume? read-json-file write-json-file))
 
 (provide (struct-out outcome) (struct-out impl) yes? answer-of call-measure case-seconds
          share-right agreement difference bootstrap-difference permutation-p agreement-interval)
 
-(struct outcome (sample? right? answer) #:transparent)
-(struct impl (measure arm outcomes cost) #:transparent)
 
 (define-runtime-path bridge "call-measure.py")
 
@@ -186,96 +186,11 @@
           (values k (let ([v (hash-ref rec k 0)]) (if (real? v) v 0))))))
 
 ;; ---- analysis ----------------------------------------------------------------------------------------
-(define (mean xs) (if (null? xs) 0 (/ (apply + xs) (length xs))))
-
-;; held-cases : Impl -> (listof string)   the cases an implementer was not shown, in name order
-(define (held-cases i)
-  (sort (for/list ([(c o) (in-hash (impl-outcomes i))] #:unless (outcome-sample? o)) c) string<?))
-
-;; share-right : (listof Impl) [(listof case) per impl] -> real   pooled over implementations and
-;; their held-out cases
-(define (share-right impls)
-  (define rights (for*/list ([i (in-list impls)] [c (in-list (held-cases i))])
-                   (if (outcome-right? (hash-ref (impl-outcomes i) c)) 1 0)))
-  (mean rights))
-
-;; of-arm : (listof Impl) Arm [measure] -> (listof Impl)
-(define (of-arm impls arm [m #f])
-  (filter (lambda (i) (and (eq? (impl-arm i) arm) (or (not m) (equal? (impl-measure i) m)))) impls))
-
-;; difference : (listof Impl) -> real   S's share right less N's
-(define (difference impls) (- (share-right (of-arm impls 'S)) (share-right (of-arm impls 'N))))
-
-;; agreement : (listof Impl) -> real   over the held-out cases of the measures these implement, the
-;; share on which every implementation of a measure gives the same four answers (a failure on a
-;; case agrees with nothing)
-(define (agreement impls)
-  (mean (for*/list ([m (in-list (remove-duplicates (map impl-measure impls)))]
-                    [group (in-value (filter (lambda (i) (equal? (impl-measure i) m)) impls))]
-                    [c (in-list (held-cases (car group)))])
-          (define answers (map (lambda (i) (outcome-answer (hash-ref (impl-outcomes i) c))) group))
-          (if (and (andmap values answers) (= 1 (length (remove-duplicates answers)))) 1 0))))
-
-(define (seeded-rng seed)
-  (define rng (make-pseudo-random-generator))
-  (parameterize ([current-pseudo-random-generator rng]) (random-seed seed))
-  rng)
-
-(define (percentiles vs)
-  (define sorted (list->vector (sort vs <)))
-  (define k (vector-length sorted))
-  (cons (vector-ref sorted (exact-floor (* 0.025 (- k 1)))) (vector-ref sorted (exact-ceiling (* 0.975 (- k 1))))))
-
-;; resampled : (listof Impl) rng (listof Arm) -> (listof Impl)   within each measure: its held-out
-;; cases drawn with replacement (the same draw for every arm: a case is paired), and within each
-;; measure and arm its implementations drawn with replacement. An implementation's outcomes become
-;; a list in the drawn cases' order, under fresh names, so a case drawn twice counts twice.
-(define (resampled impls rng [resample-impls? #t])
-  (parameterize ([current-pseudo-random-generator rng])
-    (append*
-     (for/list ([m (in-list (remove-duplicates (map impl-measure impls)))])
-       (define group (filter (lambda (i) (equal? (impl-measure i) m)) impls))
-       (define cases (list->vector (held-cases (car group))))
-       (define n (vector-length cases))
-       (define drawn (for/list ([_ (in-range n)]) (vector-ref cases (random n))))
-       (append*
-        (for/list ([arm (in-list (remove-duplicates (map impl-arm group)))])
-          (define mine (list->vector (filter (lambda (i) (eq? (impl-arm i) arm)) group)))
-          (for/list ([k (in-range (vector-length mine))])
-            (define i (vector-ref mine (if resample-impls? (random (vector-length mine)) k)))
-            (impl m arm
-                  (for/hash ([c (in-list drawn)] [j (in-naturals)])
-                    (values (format "~a#~a" c j) (hash-ref (impl-outcomes i) c)))
-                  (impl-cost i)))))))))
-
-;; bootstrap-difference : (listof Impl) [natural] -> (cons low high)   the 95% interval of S − N
-(define (bootstrap-difference impls [resamples 4000])
-  (define rng (seeded-rng 20261122))
-  (percentiles (for/list ([_ (in-range resamples)]) (exact->inexact (difference (resampled impls rng))))))
-
-;; agreement-interval : (listof Impl) [natural] -> (cons low high)   of agreement(S) − agreement(N),
-;; the cases resampled (the implementers are the ones there are)
-(define (agreement-interval impls [resamples 4000])
-  (define rng (seeded-rng 20261123))
-  (percentiles (for/list ([_ (in-range resamples)])
-                 (define r (resampled impls rng #f))
-                 (exact->inexact (- (agreement (of-arm r 'S)) (agreement (of-arm r 'N)))))))
-
-;; permutation-p : (listof Impl) [natural] -> real   how often arm labels shuffled within each
-;; measure give a difference at least as large (two-sided)
-(define (permutation-p impls [shuffles 20000])
-  (define rng (seeded-rng 20261124))
-  (define observed (abs (difference impls)))
-  (define by-measure (for/list ([m (in-list (remove-duplicates (map impl-measure impls)))])
-                       (filter (lambda (i) (equal? (impl-measure i) m)) impls)))
-  (parameterize ([current-pseudo-random-generator rng])
-    (/ (for/sum ([_ (in-range shuffles)])
-         (define relabelled
-           (append* (for/list ([group (in-list by-measure)])
-                      (for/list ([i (in-list (shuffle group))] [arm (in-list (map impl-arm group))])
-                        (impl (impl-measure i) arm (impl-outcomes i) (impl-cost i))))))
-         (if (>= (abs (difference relabelled)) observed) 1 0))
-       shuffles)))
+;; The analysis is ../implementers.rkt's, with this experiment's arms: S less N.
+(define (difference impls) (i:difference impls 'S 'N))
+(define (bootstrap-difference impls [resamples 4000]) (i:bootstrap-difference impls 'S 'N resamples))
+(define (agreement-interval impls [resamples 4000]) (i:agreement-interval impls 'S 'N resamples))
+(define (permutation-p impls [shuffles 20000]) (i:permutation-p impls 'S 'N shuffles))
 
 ;; ---- report ------------------------------------------------------------------------------------------
 (define (percent x) (format "~a%" (/ (round (* 1000.0 x)) 10.0)))
@@ -286,10 +201,10 @@
   (define (cost-mean arm key) (mean (map (lambda (i) (hash-ref (impl-cost i) key)) (of-arm impls arm))))
   (printf "implementations: ~a from the narrative (N), ~a from the specification (S)\n"
           (length (of-arm impls 'N)) (length (of-arm impls 'S)))
-  (printf "held-out cases: ~a\n\n" (for/sum ([m (in-list (remove-duplicates (map impl-measure impls)))])
-                                     (length (held-cases (car (filter (lambda (i) (equal? (impl-measure i) m)) impls))))))
+  (printf "held-out cases: ~a\n\n" (for/sum ([m (in-list (remove-duplicates (map impl-unit impls)))])
+                                     (length (held-cases (car (filter (lambda (i) (equal? (impl-unit i) m)) impls))))))
   (printf "~a  ~a  ~a  ~a  ~a\n" "measure  " "N right (each implementer)        " "N agree" "S right (each implementer)        " "S agree")
-  (for ([m (in-list (remove-duplicates (map impl-measure impls)))])
+  (for ([m (in-list (remove-duplicates (map impl-unit impls)))])
     (define (each arm) (string-join (map (lambda (i) (percent (share-right (list i)))) (of-arm impls arm m)) " "))
     (printf "~a  ~a  ~a  ~a  ~a\n" (short-name m) (each 'N) (percent (agreement (of-arm impls 'N m)))
             (each 'S) (percent (agreement (of-arm impls 'S m)))))
@@ -328,7 +243,7 @@
 ;; misses : (listof Impl) -> void   for each measure, the held-out cases some implementation got
 ;; wrong: how many of each arm's, under the name its authors gave the case
 (define (misses impls)
-  (for ([m (in-list (remove-duplicates (map impl-measure impls)))])
+  (for ([m (in-list (remove-duplicates (map impl-unit impls)))])
     (define names (case-names m))
     (define (wrong arm c) (count (lambda (i) (not (outcome-right? (hash-ref (impl-outcomes i) c)))) (of-arm impls arm m)))
     (printf "~a\n" (short-name m))
