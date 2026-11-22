@@ -1,0 +1,43 @@
+lineages: 15 declared in the capability language (L), 15 by hand in Python (G); four sessions each
+requests scored: 549 (v1 111, v2 137, v3 157, v4 144)
+
+operation version  L right (each lineage)              G right (each lineage)
+a v1  90.6% 90.6% 90.6% 90.6% 90.6%    100.0% 100.0% 100.0% 100.0% 100.0%
+a v2  89.5% 89.5% 89.5% 89.5% 89.5%    100.0% 100.0% 100.0% 100.0% 100.0%
+a v3  92.1% 92.1% 92.1% 92.1% 92.1%    100.0% 100.0% 100.0% 100.0% 100.0%
+a v4  92.1% 92.1% 92.1% 92.1% 92.1%    100.0% 100.0% 100.0% 100.0% 100.0%
+b v1  91.5% 91.5% 91.5% 91.5% 91.5%    100.0% 100.0% 100.0% 100.0% 100.0%
+b v2  96.7% 96.7% 96.7% 96.7% 96.7%    100.0% 100.0% 100.0% 100.0% 100.0%
+b v3  93.8% 93.8% 93.8% 93.8% 93.8%    100.0% 100.0% 100.0% 100.0% 100.0%
+b v4  94.0% 94.0% 94.0% 94.0% 94.0%    100.0% 100.0% 100.0% 100.0% 100.0%
+c v1  93.8% 93.8% 93.8% 93.8% 93.8%    100.0% 100.0% 100.0% 100.0% 100.0%
+c v2  100.0% 97.4% 97.4% 97.4% 97.4%    100.0% 100.0% 100.0% 100.0% 100.0%
+c v3  100.0% 94.9% 94.9% 94.9% 94.9%    100.0% 100.0% 100.0% 100.0% 100.0%
+c v4  100.0% 97.4% 97.4% 97.4% 97.4%    100.0% 100.0% 100.0% 100.0% 100.0%
+
+right, every version    L 94.0%, G 100.0%: L − G = -6.0 points (95% interval -8.1 to -4.1; permutation p = 0.0)
+right, after a change   L 94.5%, G 100.0%: L − G = -5.5 points (95% interval -7.8 to -3.4; permutation p = 0.0)
+right, as first built   L 91.9%, G 100.0%: L − G = -8.1 points (95% interval -13.5 to -3.6; permutation p = 0.0)
+  requests that conform                  L 100.0%, G 100.0% (320 requests)
+  a required input missing               L 100.0%, G 100.0% (32 requests)
+  an input more times than its maximum   L 100.0%, G 100.0% (37 requests)
+  a value under a key of another type    L 22.8%, G 100.0% (43 requests)
+  a code outside its binding, or a rule  L 100.0%, G 100.0% (117 requests)
+  requests about the change              L 99.5%, G 100.0% (184 requests)
+after the fact: without the values under another type's key
+                        L 100.0%, G 100.0%: L − G = +0 points (95% interval +0.0 to +0.0; permutation p = 1.0)
+
+input tokens, a lineage      L 512.6k, G 208.7k: L/G = 2.46 (95% interval 2.24 to 2.66)
+input tokens, the changes    L 405.7k, G 141.4k: L/G = 2.87 (95% interval 2.51 to 3.2)
+input tokens, the build      L 106.9k, G 67.3k: L/G = 1.59 (95% interval 1.41 to 1.81)
+a lineage, L and G: output tokens 8.4k and 5.9k; seconds 100 and 49 (the changes 74 and 25); model turns 35.13 and 20.2
+  the session of v1, L and G: input tokens 106.9k and 67.3k; model turns 7.53 and 7.33; seconds 26 and 25
+  the session of v2, L and G: input tokens 103.3k and 43.5k; model turns 7.53 and 3.93; seconds 21 and 8
+  the session of v3, L and G: input tokens 233.6k and 52.2k; model turns 14.33 and 4.87; seconds 38 and 9
+  the session of v4, L and G: input tokens 68.7k and 45.6k; model turns 5.73 and 4.07; seconds 14 and 8
+the implementation, L and G: 48 and 106 lines at the end; 23 and 18 lines touched by the three changes
+servers that did not start: L 0 of 60 stages, G 0 of 60
+lineages right on every request: L 0 of 15, G 15 of 15
+
+verdict, every version   the declared servers are right less often
+verdict, after a change  the declared servers are right less often

@@ -413,12 +413,19 @@
       (define d (stage-dir out slot arm i v))
       (list v (read-json-file (build-path d "score.json")) (read-json-file (build-path d "record.json")))))
   (define (total key from) (for/sum ([s (in-list stages)] #:when (>= (car s) from)) (let ([x (hash-ref (caddr s) key 0)]) (if (real? x) x 0))))
+  (define kinds
+    (for*/hash ([v (in-list versions)] [c (in-list (cases slot v))])
+      (values (format "v~a/~a" v (hash-ref c 'id)) (fault-kind (definition slot v) c))))
   (impl slot arm
         (for*/hash ([s (in-list stages)] [(c o) (in-hash (hash-ref (cadr s) 'cases))])
           (values (format "v~a/~a" (car s) c)
                   (outcome (hash-ref o 'sample) (and (hash-ref o 'right) #t)
-                           (list (hash-ref o 'conforms) (hash-ref o 'change) (let ([w (hash-ref o 'why)]) (if (string? w) w #f))))))
-        (hasheq 'input (total 'input_tokens 1) 'change-input (total 'input_tokens 2)
+                           (list (hash-ref kinds (format "v~a/~a" (car s) c)) (hash-ref o 'change)
+                                 (let ([w (hash-ref o 'why)]) (if (string? w) w #f))))))
+        (hasheq 'by-version (for/list ([s (in-list stages)])
+                              (for/hasheq ([k (in-list '(input_tokens output_tokens turns seconds))])
+                                (values k (let ([x (hash-ref (caddr s) k 0)]) (if (real? x) x 0)))))
+                'input (total 'input_tokens 1) 'change-input (total 'input_tokens 2)
                 'build-input (- (total 'input_tokens 1) (total 'input_tokens 2))
                 'output (total 'output_tokens 1) 'change-output (total 'output_tokens 2)
                 'seconds (total 'seconds 1) 'change-seconds (total 'seconds 2)
@@ -492,14 +499,24 @@
   (define after (restricted impls (lambda (c) (not (equal? (case-version c) "v1")))))
   (define-values (d2 ci2) (report-right "right, after a change  " after))
   (call-with-values (lambda () (report-right "right, as first built  " (restricted impls (lambda (c) (equal? (case-version c) "v1"))))) void)
-  (for ([label (in-list '("  requests that conform  " "  requests that do not   " "  about the change       "))]
-        [keep? (in-list (list (lambda (o) (car (outcome-answer o))) (lambda (o) (not (car (outcome-answer o))))
-                              (lambda (o) (cadr (outcome-answer o)))))])
+  ;; what the requests ask, read from each definition and request (tasks.rkt fault-kind)
+  (for ([label (in-list '("  requests that conform                 " "  a required input missing              "
+                          "  an input more times than its maximum  " "  a value under a key of another type   "
+                          "  a code outside its binding, or a rule " "  requests about the change             "))]
+        [keep? (in-list (append (for/list ([k (in-list '(conforms missing too-many other-type value))])
+                                  (lambda (o) (eq? (car (outcome-answer o)) k)))
+                                (list (lambda (o) (cadr (outcome-answer o))))))])
     (define sub (for/list ([i (in-list impls)])
                   (impl (impl-unit i) (impl-arm i)
                         (for/hash ([(c o) (in-hash (impl-outcomes i))] #:when (keep? o)) (values c o)) (impl-cost i))))
-    (printf "~a L ~a, G ~a (~a requests a lineage)\n" label (percent (share-right (of-arm sub 'L))) (percent (share-right (of-arm sub 'G)))
-            (exact->inexact (two (mean (map (lambda (i) (length (held-cases i))) sub))))))
+    (printf "~a L ~a, G ~a (~a requests)\n" label (percent (share-right (of-arm sub 'L))) (percent (share-right (of-arm sub 'G)))
+            (for/sum ([u (in-list (units sub))]) (length (held-cases (car (of-arm sub 'L u)))))))
+  ;; after the fact, and said so: the one kind of request the arms differ on, set aside
+  (define rest (for/list ([i (in-list impls)])
+                 (impl (impl-unit i) (impl-arm i)
+                       (for/hash ([(c o) (in-hash (impl-outcomes i))] #:unless (eq? (car (outcome-answer o)) 'other-type)) (values c o))
+                       (impl-cost i))))
+  (call-with-values (lambda () (report-right "after the fact: without the values under another type's key\n                       " rest)) void)
   (newline)
   (define-values (r rci) (report-cost "input tokens, a lineage     " impls 'input))
   (define-values (r2 rci2) (report-cost "input tokens, the changes   " impls 'change-input))
@@ -509,6 +526,12 @@
           (thousands (m 'L 'output)) (thousands (m 'G 'output)) (exact-round (m 'L 'seconds)) (exact-round (m 'G 'seconds))
           (exact-round (m 'L 'change-seconds)) (exact-round (m 'G 'change-seconds))
           (exact->inexact (two (m 'L 'turns))) (exact->inexact (two (m 'G 'turns))))
+  (for ([v (in-list versions)])
+    (define (at arm key) (mean (map (lambda (i) (hash-ref (list-ref (hash-ref (impl-cost i) 'by-version) (sub1 v)) key)) (of-arm impls arm))))
+    (printf "  the session of v~a, L and G: input tokens ~a and ~a; model turns ~a and ~a; seconds ~a and ~a\n" v
+            (thousands (at 'L 'input_tokens)) (thousands (at 'G 'input_tokens))
+            (exact->inexact (two (at 'L 'turns))) (exact->inexact (two (at 'G 'turns)))
+            (exact-round (at 'L 'seconds)) (exact-round (at 'G 'seconds))))
   (printf "the implementation, L and G: ~a and ~a lines at the end; ~a and ~a lines touched by the three changes\n"
           (exact-round (m 'L 'lines)) (exact-round (m 'G 'lines)) (exact-round (m 'L 'touched)) (exact-round (m 'G 'touched)))
   (printf "servers that did not start: L ~a of ~a stages, G ~a of ~a\n"

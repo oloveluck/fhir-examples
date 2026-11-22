@@ -16,6 +16,7 @@
 
 (provide slots sealed-slots trial-slot versions arms
          definition operation-code statement change-text all-cases cases sample-case? held-cases-of sample-cases-of
+         fault-kind
          contract-text task-prompt prepare-stage! start-command implementation-files given-names
          tasks-root guide-text)
 
@@ -62,6 +63,31 @@
 (define (sample-case? index) (zero? (modulo index 5)))
 (define (sample-cases-of slot v) (for/list ([c (in-list (cases slot v))] [k (in-naturals)] #:when (sample-case? k)) c))
 (define (held-cases-of slot v) (for/list ([c (in-list (cases slot v))] [k (in-naturals)] #:unless (sample-case? k)) c))
+
+;; type-key : string -> symbol   the key a value of a FHIR type is under in a Parameters entry
+(define (type-key type) (string->symbol (string-append "value" (string-upcase (substring type 0 1)) (substring type 1))))
+
+;; fault-kind : jsexpr Case -> symbol   what a case asks of a server, read from the definition and
+;; the request: 'conforms; else the contract's fault it has — 'missing (a required input is not
+;; given), 'too-many (an input more times than its maximum), 'other-type (a value under a key of
+;; another type than declared), or 'value (a code outside its binding, or a rule of the statement
+;; broken: the request's shape is the definition's)
+(define (fault-kind definition c)
+  (define inputs (filter (lambda (p) (equal? (hash-ref p 'use #f) "in")) (hash-ref definition 'parameter '())))
+  (define given (filter hash? (hash-ref (hash-ref c 'request) 'parameter '())))
+  (define (times name) (count (lambda (g) (equal? (hash-ref g 'name #f) name)) given))
+  (define (declared name) (findf (lambda (p) (equal? (hash-ref p 'name) name)) inputs))
+  (cond [(equal? (hash-ref (hash-ref c 'expect) 'status) 200) 'conforms]
+        [(for/or ([p (in-list inputs)]) (and (>= (hash-ref p 'min 0) 1) (zero? (times (hash-ref p 'name))))) 'missing]
+        [(for/or ([p (in-list inputs)])
+           (define most (string->number (format "~a" (hash-ref p 'max "*"))))
+           (and most (> (times (hash-ref p 'name)) most)))
+         'too-many]
+        [(for/or ([g (in-list given)])
+           (define p (declared (hash-ref g 'name #f)))
+           (and p (not (hash-has-key? g (type-key (hash-ref p 'type))))))
+         'other-type]
+        [else 'value]))
 
 ;; ---- the contract ------------------------------------------------------------------------------------
 ;; Its first paragraph is the protocol's, word for word; the details say how each of its terms is
@@ -213,6 +239,20 @@ TEXT
   (check-regexp-match #rx"CHANGE.md" (task-prompt 'G 2))
   (check-false (regexp-match? #rx"CHANGE.md" (task-prompt 'G 1)))
   (check-equal? (map sample-case? '(0 1 4 5 10)) '(#t #f #f #t #t))
+  ;; what a case asks, read from the definition and the request
+  (define a-definition
+    (hasheq 'parameter (list (hasheq 'name "weight" 'use "in" 'min 1 'max "1" 'type "decimal")
+                             (hasheq 'name "sex" 'use "in" 'min 0 'max "1" 'type "code")
+                             (hasheq 'name "bmi" 'use "out" 'min 1 'max "1" 'type "decimal"))))
+  (define (a-case status . entries)
+    (hasheq 'request (hasheq 'resourceType "Parameters" 'parameter entries) 'expect (hasheq 'status status)))
+  (define weight (hasheq 'name "weight" 'valueDecimal 70.5))
+  (check-equal? (fault-kind a-definition (a-case 200 weight)) 'conforms)
+  (check-equal? (fault-kind a-definition (a-case "4xx" (hasheq 'name "sex" 'valueCode "female"))) 'missing)
+  (check-equal? (fault-kind a-definition (a-case "4xx" weight weight)) 'too-many)
+  (check-equal? (fault-kind a-definition (a-case "4xx" (hasheq 'name "weight" 'valueString "70.5"))) 'other-type)
+  (check-equal? (fault-kind a-definition (a-case "4xx" weight (hasheq 'name "sex" 'valueString "female"))) 'other-type)
+  (check-equal? (fault-kind a-definition (a-case "4xx" weight (hasheq 'name "sex" 'valueCode "x"))) 'value)
   ;; an implementer's files are what it wrote, not what it was given or what a run leaves
   (define dir (make-temporary-file "definition-first-~a" 'directory))
   (for ([n (in-list '("server.py" "OperationDefinition.json" "try.py" "server.log" "fhir.db" ".hidden"))])

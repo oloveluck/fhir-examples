@@ -169,3 +169,117 @@ description once, to an implementer; a system that executes the specification pa
   whose source of truth is a formal specification is built more consistently and more correctly
   than one whose source of truth is prose, and that the same specification run is better still.
 
+## D. The definition as the implementation (2026-11-22)
+
+The protocol's third amendment, run as stated there. Three clinical calculator operations — an
+eGFR equation, a corrected QT interval, an anion gap — each written by an agent that has not
+seen this toolkit, in four versions (as first published, then a new required input, an input
+constrained, an output changed), with 752 test requests; a second agent, given the requests
+alone, decided every one again and left four undecided, which were dropped. Five implementers
+for each operation and arm built a server and, in three later sessions, brought it up to each
+change: 30 lineages, 120 sessions, one model. Each of the 120 servers was started and sent the
+requests of its version that its implementer had not been shown (549 a lineage in all).
+
+```
+$ racket value-experiment/definition-first/definition-first.rkt report <run>
+lineages: 15 declared in the capability language (L), 15 by hand in Python (G); four sessions each
+requests scored: 549 (v1 111, v2 137, v3 157, v4 144)
+
+operation version  L right (each lineage)              G right (each lineage)
+a v1  90.6% 90.6% 90.6% 90.6% 90.6%    100.0% 100.0% 100.0% 100.0% 100.0%
+a v2  89.5% 89.5% 89.5% 89.5% 89.5%    100.0% 100.0% 100.0% 100.0% 100.0%
+a v3  92.1% 92.1% 92.1% 92.1% 92.1%    100.0% 100.0% 100.0% 100.0% 100.0%
+a v4  92.1% 92.1% 92.1% 92.1% 92.1%    100.0% 100.0% 100.0% 100.0% 100.0%
+b v1  91.5% 91.5% 91.5% 91.5% 91.5%    100.0% 100.0% 100.0% 100.0% 100.0%
+b v2  96.7% 96.7% 96.7% 96.7% 96.7%    100.0% 100.0% 100.0% 100.0% 100.0%
+b v3  93.8% 93.8% 93.8% 93.8% 93.8%    100.0% 100.0% 100.0% 100.0% 100.0%
+b v4  94.0% 94.0% 94.0% 94.0% 94.0%    100.0% 100.0% 100.0% 100.0% 100.0%
+c v1  93.8% 93.8% 93.8% 93.8% 93.8%    100.0% 100.0% 100.0% 100.0% 100.0%
+c v2  100.0% 97.4% 97.4% 97.4% 97.4%    100.0% 100.0% 100.0% 100.0% 100.0%
+c v3  100.0% 94.9% 94.9% 94.9% 94.9%    100.0% 100.0% 100.0% 100.0% 100.0%
+c v4  100.0% 97.4% 97.4% 97.4% 97.4%    100.0% 100.0% 100.0% 100.0% 100.0%
+
+right, every version    L 94.0%, G 100.0%: L − G = -6.0 points (95% interval -8.1 to -4.1; permutation p = 0.0)
+right, after a change   L 94.5%, G 100.0%: L − G = -5.5 points (95% interval -7.8 to -3.4; permutation p = 0.0)
+right, as first built   L 91.9%, G 100.0%: L − G = -8.1 points (95% interval -13.5 to -3.6; permutation p = 0.0)
+  requests that conform                  L 100.0%, G 100.0% (320 requests)
+  a required input missing               L 100.0%, G 100.0% (32 requests)
+  an input more times than its maximum   L 100.0%, G 100.0% (37 requests)
+  a value under a key of another type    L 22.8%, G 100.0% (43 requests)
+  a code outside its binding, or a rule  L 100.0%, G 100.0% (117 requests)
+  requests about the change              L 99.5%, G 100.0% (184 requests)
+after the fact: without the values under another type's key
+                        L 100.0%, G 100.0%: L − G = +0 points (95% interval +0.0 to +0.0; permutation p = 1.0)
+
+input tokens, a lineage      L 512.6k, G 208.7k: L/G = 2.46 (95% interval 2.24 to 2.66)
+input tokens, the changes    L 405.7k, G 141.4k: L/G = 2.87 (95% interval 2.51 to 3.2)
+input tokens, the build      L 106.9k, G 67.3k: L/G = 1.59 (95% interval 1.41 to 1.81)
+a lineage, L and G: output tokens 8.4k and 5.9k; seconds 100 and 49 (the changes 74 and 25); model turns 35.13 and 20.2
+  the session of v1, L and G: input tokens 106.9k and 67.3k; model turns 7.53 and 7.33; seconds 26 and 25
+  the session of v2, L and G: input tokens 103.3k and 43.5k; model turns 7.53 and 3.93; seconds 21 and 8
+  the session of v3, L and G: input tokens 233.6k and 52.2k; model turns 14.33 and 4.87; seconds 38 and 9
+  the session of v4, L and G: input tokens 68.7k and 45.6k; model turns 5.73 and 4.07; seconds 14 and 8
+the implementation, L and G: 48 and 106 lines at the end; 23 and 18 lines touched by the three changes
+servers that did not start: L 0 of 60 stages, G 0 of 60
+lineages right on every request: L 0 of 15, G 15 of 15
+
+verdict, every version   the declared servers are right less often
+verdict, after a change  the declared servers are right less often
+```
+
+| | declared in the capability language (L) | by hand in Python (G) |
+|---|---|---|
+| requests answered as the definition and the statement say | 94.0% | 100.0% |
+| … after a change to the definition | 94.5% | 100.0% |
+| lineages right on every request | 0 of 15 | 15 of 15 |
+| input tokens, a lineage (the build; the three changes) | 513k (107k; 406k) | 209k (67k; 141k) |
+| seconds of sessions, a lineage | 100 | 49 |
+| the server, lines | 48 | 106 |
+
+**The hypothesis does not hold, and the result goes the other way.** The servers built by hand
+answered every request of every version as the definition says, in all fifteen lineages. The
+declared servers were right less often (6.0 points, the interval 4.1 to 8.1) and cost two and a
+half times the input tokens. The prediction — level when first built, apart after the
+definition changes — was wrong on both counts: the arms were apart from the first build, the
+other way, and no change made a hand-built server fall behind its definition.
+
+**Where the declared servers failed: one kind of request, and it is the toolkit's doing.**
+Every miss is a value sent under the key of another type than the definition declares
+(`valueString` where a decimal, an integer, a code or a date is declared): 43 of the 549
+requests, of which the declared servers refused 23%. The capability runtime reads a POSTed
+Parameters the way it reads a GET query, where every value is text, and converts it — so
+`"valueString": "1.2"` for a decimal input is taken as 1.2 and answered 200. The implementer
+has no say in it: the check runs before the handler, and the handler is given the converted
+value. On everything else the declaration is meant to give — a required input missing, an
+input given too often, a code outside its binding, a rule of the statement, the outputs after
+each change — the declared servers were right on every request (506 of 506). So were the
+hand-built ones.
+
+**Why the declared route cost more.** Not the build (107k tokens against 67k: the guide is
+read once) but the changes: 406k against 141k. The session of the third version took 234k
+tokens against 52k. Two of the three operations changed an input to a Quantity there, and the
+guide says how to *answer* a Quantity and nowhere how a handler *reads* one: four of the five
+implementers of that operation printed the value and took it apart with regular expressions.
+One lineage noticed the wrong-type requests in its examples and got them right from the second
+version on, by printing the whole request and parsing that, at 435k tokens for the session.
+No session read outside its directory (the audit found nothing in 120 sessions).
+
+**What the declaration did buy.** Half the code (48 lines against 106), and the server
+publishes the definition it implements. Neither is something the suite scores, and neither
+made the server more often right.
+
+**What this says about the claim.** "The definition makes the implementation" is true of
+this toolkit in the narrow sense that the declared checks ran and were right. It is not an
+advantage an agent needs: a model writes those checks by hand, from the definition, correctly
+and for fewer tokens, and keeps them right through three changes. And a check the framework
+owns is a check the implementer cannot fix: where the framework was lenient, every server
+built on it was wrong the same way, which is the other side of "by construction".
+
+**What it does not show.** Calculators with flat parameters; operations over stored data,
+with nested parameters or resources, are not covered, and the cost of hand-written checks
+grows with the definition. One model, which writes far more Python than Racket. Fifteen
+lineages an arm; the hand-built arm's 100% leaves no variance to estimate from, so its
+interval is the declared arm's. The toolkit was used as it was at fhir `c587dcb` (and the
+language repositories' commits of the same day); the two gaps this run found are fixed after
+it, and that is reported apart, below.
+
