@@ -15,7 +15,7 @@
 (require racket/file racket/list racket/string racket/path racket/runtime-path json)
 
 (provide measures short-name measure-title populations
-         library-closure declared-terms valueset-members
+         library-closure declared-terms valueset-members valuesets-json
          case-ids sample-case? case-resources case-expected
          narrative spec-readme terminology-text contract-text task-prompt
          prepare-task! write-cases!

@@ -9,22 +9,34 @@ one process, no shell, the same system prompt, the same `python` and `answer` to
 alone; the benchmark's own grader.
 
 ```
-$ racket value-experiment/analysis.rkt fab toolkit=<m-mcp-tools> harness=<m-rest-tools>
+$ racket value-experiment/analysis.rkt fab toolkit=<m-mcp-tools> harness=<m-rest-tools> tables=<fab-tables19-held-a>
 toolkit against harness, 150 tasks both ran
   right           toolkit 83.3%, harness 84.0%
   difference      -0.7 points (95% interval -4.0 to +2.7); McNemar p = 1.0
   input tokens    toolkit's are 0.85 of harness's (95% interval 0.69 to 1.05)
   verdict         no difference shown, and a clear null (the intervals are inside the protocol's bounds)
+  by task         right under both 122, under toolkit only 3, under harness only 4, under neither 21
+  a toolkit session: input tokens 25.5k (median 15.8k, 90th percentile 45.2k), output tokens 553, 3.4 tool calls, 7.9 s
+    its calls: 254 query search, 150 answer, 62 describe, 30 query sql, 18 query find, 3 query fhirpath
+  a harness session: input tokens 29.9k (median 17.7k, 90th percentile 62.1k), output tokens 736, 3.6 tool calls, 8.1 s
+    its calls: 212 get, 174 python, 150 answer
+tables on the same tasks (150 of them run): right on 148, 10.0k input tokens a task; of the 21 neither arm is right on, right on 19
 ```
 
 | | the toolkit's tools (`mcp-tools`) | the harness alone (`rest-tools`) |
 |---|---|---|
 | right, as scored | 125 of 150 | 126 of 150 |
-| input tokens a question, mean (median; 90th percentile) | 25.5k (15.8k; 45.4k) | 29.9k (17.7k; 65.1k) |
+| input tokens a question, mean (median; 90th percentile) | 25.5k (15.8k; 45.2k) | 29.9k (17.7k; 62.1k) |
 | output tokens | 553 | 736 |
-| tool calls a question | 3.5 | 3.6 |
+| tool calls a question | 3.4 | 3.6 |
 | seconds | 7.9 | 8.1 |
 | citations: precision, recall | 0.92, 0.78 | 0.90, 0.79 |
+
+Every figure here is printed by committed Racket: the comparison, the questions by arm, the
+sessions' costs and calls and the third arm by `analysis.rkt` (above), the citations by
+`agent-bench/report.rkt` from the benchmark's own grader. (The 90th percentiles and the
+toolkit's calls a question were first written from a scratch script as 45.4k, 65.1k and 3.5; they
+are `analysis.rkt`'s now, whose percentile is stated in its `quantile`.)
 
 **The answer to the question asked: no.** For answering questions of a patient's record, the
 toolkit's reading tools through MCP (search with digested rows, `find`, the census, SQL over the
@@ -75,6 +87,14 @@ Python function from it (40 sessions, one model, the same tools, prompt, termino
 patients and contract). Each function was run over the measure's test cases that were not in
 its sample (151 of the authors' 190) and held to the authors' expected results.
 
+The scoring is Racket (`spec-first.rkt score`): it reads each case and its expected result from
+the measure's published test cases, decides what an answer must look like, what counts as yes,
+how long a patient may take, and whether the answer is the expected one. An implementation is a
+Python function, so one thing is Python: `call-measure.py`, 40 lines that load the function,
+call it for the patient given and pass back what it returned or raised. (The run was first
+scored through the implementers' `try.py`; scored again this way, all 1,900 case results of
+the 40 implementations are the same, and so are the report and the list of misses.)
+
 ```
 $ racket value-experiment/spec-first/spec-first.rkt report <run>
 implementations: 20 from the narrative (N), 20 from the specification (S)
@@ -88,6 +108,7 @@ diabetes  97.1% 94.1% 97.1% 97.1% 94.1%  97.1%  97.1% 97.1% 97.1% 97.1% 91.2%  8
 
 right        N 93.0%, S 98.4%: S − N = +5.4 points (95% interval +2.1 to +9.3; permutation p = 0.0)
 agreement    N 88.1%, S 96.0%: S − N = +7.9 points (95% interval +2.6 to +13.2)
+every case   implementations right on every held-out case: N 0 of 20, S 10 of 20
 cost         an implementation: N 139.1k input and 9.2k output tokens, 8.3 turns, 55 s; S 250.1k and 13.9k, 12.6 turns, 84 s
 verdict      the specification's implementers are right more often (the protocol's "significant value")
 ```

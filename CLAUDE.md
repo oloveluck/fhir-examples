@@ -272,7 +272,10 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   `materials.rkt` (cql's vendored ecqm-content-qicore-2024: four measures, each with its
   published English narrative, its CQL and included libraries, its terminology, its authors' 190
   test cases — a fifth shown to implementers without expected results and with names removed,
-  the rest scored), `try.py` (a `measure.py` over a directory of patients), `spec-first.rkt`
+  the rest scored), `try.py` (the implementers' own check: a `measure.py` over their sample, no
+  expected results), `call-measure.py` (the scorer's bridge: it loads an implementation, calls
+  it for a patient and passes back what it returned or raised, and decides nothing),
+  `spec-first.rkt`
   (`run`, `score`, `report`, `misses`, `reference`). Five independent implementers for each
   measure and description write a Python `evaluate` from the narrative (N) or from the CQL (S,
   read, not run); the two prompts differ in the sentences naming the description alone. Right on
@@ -287,6 +290,16 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   through a function two libraries away), which executing the specification does not make.
   S reads 250k input tokens against N's 139k. Four measures, one model: to be repeated on
   other systems.
+  **Scoring is Racket** (the owner, 2026-11-22: "Code for scoring things should still be written
+  in racket"). `spec-first.rkt score` holds everything that decides a result (`call-measure`,
+  `answer-of`, `yes?`, `case-seconds`: the cases and expected results from the published test
+  cases, the answer's shape, Python's truth of a JSON value, 20 s a patient with the
+  implementation started again after one it does not finish); the Python bridge only calls the
+  candidate's function. Scored again this way the 1,900 case results, the report and the misses
+  are what they were. `analysis.rkt fab L=… G=… [OTHER=…]` prints every figure of RESULTS.md's
+  M (the questions by arm, a session's tokens, calls and seconds, each kind of call, a third
+  arm on the same questions); a number in a write-up comes from committed Racket, not from a
+  scratch script (two 90th percentiles and one rounding of M's table were corrected by that).
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.

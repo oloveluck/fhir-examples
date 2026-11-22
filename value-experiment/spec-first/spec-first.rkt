@@ -5,7 +5,8 @@
 ;;; test cases.
 ;;;
 ;;;   racket spec-first.rkt run OUT [--implementers 5] [--measures a,b] [--arms N,S] [--parallel 4] [--model M]
-;;;   racket spec-first.rkt score OUT       each implementation run over every case of its measure
+;;;   racket spec-first.rkt score OUT       each implementation run over every case of its measure (the
+;;;                                         scoring is here; call-measure.py only calls the Python function)
 ;;;   racket spec-first.rkt report OUT      right, agreement and cost by arm, with the intervals
 ;;;   racket spec-first.rkt misses OUT      each held-out case some implementer got wrong, by its authors' name
 ;;;   racket spec-first.rkt reference       X: the CQL run by the toolkit's engine, over the same held-out cases
@@ -21,17 +22,17 @@
 ;;; An Impl is (impl measure arm outcomes cost): outcomes is a hash case-id -> Outcome; cost a
 ;;; hasheq of the session's input_tokens, output_tokens, seconds, turns.
 
-(require racket/file racket/list racket/string racket/math racket/system racket/runtime-path json
+(require racket/file racket/list racket/string racket/math racket/port racket/runtime-path json
          "materials.rkt"
          (only-in "../../agent-bench/run-agent.rkt" run-item in-parallel audit current-resume? read-json-file write-json-file))
 
-(provide (struct-out outcome) (struct-out impl)
+(provide (struct-out outcome) (struct-out impl) yes? answer-of call-measure case-seconds
          share-right agreement difference bootstrap-difference permutation-p agreement-interval)
 
 (struct outcome (sample? right? answer) #:transparent)
 (struct impl (measure arm outcomes cost) #:transparent)
 
-(define-runtime-path try-script "try.py")
+(define-runtime-path bridge "call-measure.py")
 
 ;; ---- run ---------------------------------------------------------------------------------------------
 ;; what an implementer may do: Python and reading and writing in its own directory
@@ -66,39 +67,110 @@
               #:when (directory-exists? (build-path out (impl-id m arm i))))
     (list (impl-id m arm i) m arm)))
 
-;; score-one! : dir id measure dir -> void   the implementation's measure.py over every case
-(define (score-one! out id m cases-dir)
+;; An implementation is a Python function, so the scorer calls it through call-measure.py, which
+;; passes back what the function returned or raised and decides nothing. Everything else is here:
+;; which patients, how long one may take, what an answer must look like, what counts as yes, and
+;; whether it is the expected one.
+
+;; case-seconds : how long an implementation may take over one patient
+(define case-seconds (make-parameter 20))
+
+;; yes? : jsexpr -> boolean   a value of an answer read as Python reads it for truth: false, null,
+;; zero, and the empty string, list and object are no
+(define (yes? v)
+  (not (or (eq? v #f) (eq? v (json-null)) (and (number? v) (zero? v)) (equal? v "") (null? v)
+           (and (hash? v) (zero? (hash-count v))))))
+
+;; answer-of : jsexpr -> (values (or/c #f (hash string boolean)) (or/c #f string))   what the
+;; bridge said of one patient, as the four answers or as why there are none
+(define (answer-of said)
+  (define returned (and (hash? said) (hash-ref said 'answer 'none)))
+  (cond [(not (hash? said)) (values #f "the implementation's process ended")]
+        [(hash-ref said 'error #f) => (lambda (e) (values #f e))]
+        [(not (hash? returned)) (values #f "evaluate answered something that is not a dict")]
+        [else
+         (define missing (filter (lambda (p) (not (hash-has-key? returned (string->symbol p)))) populations))
+         (if (pair? missing)
+             (values #f (format "the answer lacks ~a" (string-join missing ", ")))
+             (values (for/hash ([p (in-list populations)]) (values p (yes? (hash-ref returned (string->symbol p))))) #f))]))
+
+;; start-bridge : path jsexpr output-port -> (values subprocess input-port output-port (or/c #f string))
+;; an implementation loaded and given the value sets; the string is why it did not load
+(define (start-bridge measure-file valuesets log)
+  (define-values (proc from to _e)
+    (subprocess #f #f log (find-executable-path "python3") "-X" "utf8" (path->string bridge) (path->string measure-file)))
+  (define first (sync/timeout 60 (read-line-evt from 'linefeed)))
+  (define said (and (string? first) (with-handlers ([exn:fail? (lambda (_) #f)]) (string->jsexpr first))))
+  (cond [(and (hash? said) (hash-ref said 'loaded #f))
+         (write-json valuesets to) (newline to) (flush-output to)
+         (values proc from to #f)]
+        [else (values proc from to (if (hash? said) (hash-ref said 'error "measure.py did not load") "measure.py did not load in a minute"))]))
+
+(define (stop-bridge! proc from to)
+  (subprocess-kill proc #t)
+  (close-input-port from)
+  (with-handlers ([exn:fail? void]) (close-output-port to)))
+
+;; call-measure : path jsexpr (listof (cons id (listof jsexpr))) path -> (hash id jsexpr)   what the
+;; implementation says of each patient: a hasheq of 'answer or 'error. A patient that takes too long,
+;; or on which the process ends, is an error, and the implementation is started again for the rest.
+(define (call-measure measure-file valuesets cases log-file)
+  (define log (open-output-file log-file #:exists 'truncate))
+  (define (one-line from) (sync/timeout (case-seconds) (read-line-evt from 'linefeed)))
+  (begin0
+    (let loop ([cases cases] [results (hash)] [bridge #f])
+      (cond
+        [(null? cases) (when bridge (apply stop-bridge! bridge)) results]
+        [(not bridge)
+         (define-values (proc from to why) (start-bridge measure-file valuesets log))
+         (cond [why (stop-bridge! proc from to)
+                    (for/fold ([r results]) ([c (in-list cases)]) (hash-set r (car c) (hasheq 'error why)))]
+               [else (loop cases results (list proc from to))])]
+        [else
+         (define-values (proc from to) (apply values bridge))
+         (define c (car cases))
+         (define line
+           (with-handlers ([exn:fail? (lambda (_) eof)])
+             (write-json (hasheq 'resources (cdr c) 'start "2025-01-01" 'end "2025-12-31") to)
+             (newline to) (flush-output to)
+             (one-line from)))
+         (cond [(string? line)
+                (loop (cdr cases) (hash-set results (car c) (with-handlers ([exn:fail? (lambda (_) (hasheq 'error "an answer that is not JSON"))])
+                                                             (string->jsexpr line)))
+                      bridge)]
+               [else
+                (stop-bridge! proc from to)
+                (loop (cdr cases)
+                      (hash-set results (car c)
+                                (hasheq 'error (if line "the implementation's process ended"
+                                                   (format "more than ~a seconds for one patient" (case-seconds)))))
+                      #f)])]))
+    (close-output-port log)))
+
+;; score-one! : dir id measure -> void   the implementation's measure.py over every case of its
+;; measure, each answer set against the authors' expected one
+(define (score-one! out id m)
   (define work (build-path out id))
-  (define results-file (build-path work "results.json"))
   (define measure-file (build-path work "measure.py"))
-  (when (file-exists? results-file) (delete-file results-file))
-  (define results
-    (cond [(not (file-exists? measure-file)) (hasheq)]
-          [else
-           ;; what the run prints goes to a file: a pipe nobody reads would stop it
-           (define log (open-output-file (build-path work "score.log") #:exists 'truncate))
-           (define-values (proc _o i _e)
-             (subprocess log #f 'stdout (find-executable-path "python3")
-                         (path->string try-script) "--cases" (path->string cases-dir) "--measure" (path->string measure-file)
-                         "--valuesets" (path->string (build-path work "valuesets.json")) "--json" (path->string results-file)))
-           (close-output-port i)
-           (unless (sync/timeout 900 proc) (subprocess-kill proc #t))
-           (close-output-port log)
-           (if (file-exists? results-file) (read-json-file results-file) (hasheq))]))
+  (define said
+    (if (file-exists? measure-file)
+        (call-measure measure-file (valuesets-json m)
+                      (for/list ([c (in-list (case-ids m))]) (cons c (map cdr (case-resources m c))))
+                      (build-path work "score.log"))
+        (hash)))
   (write-json-file
    (build-path work "score.json")
    (hasheq 'measure m
            'cases (for/hasheq ([c (in-list (case-ids m))])
-                    (define r (hash-ref results (string->symbol c) (hasheq 'error "no answer: measure.py missing, or the run did not finish")))
+                    (define-values (answer why)
+                      (answer-of (hash-ref said c (hasheq 'error "no answer: there is no measure.py"))))
                     (define expected (case-expected m c))
-                    (define answer (hash-ref r 'answer #f))
                     (values (string->symbol c)
                             (hasheq 'sample (sample-case? m c)
                                     'expected (for/hasheq ([p (in-list populations)]) (values (string->symbol p) (hash-ref expected p)))
-                                    'answer (or answer (json-null))
-                                    'error (hash-ref r 'error (json-null))
-                                    'right (and answer (for/and ([p (in-list populations)])
-                                                         (equal? (hash-ref answer (string->symbol p) 'none) (hash-ref expected p))))))))))
+                                    'answer (if answer (for/hasheq ([p (in-list populations)]) (values (string->symbol p) (hash-ref answer p))) (json-null))
+                                    'error (or why (json-null))
+                                    'right (and answer (for/and ([p (in-list populations)]) (equal? (hash-ref answer p) (hash-ref expected p))))))))))
 
 ;; read-impl : dir id measure Arm -> Impl   a scored implementation
 (define (read-impl out id m arm)
@@ -231,6 +303,9 @@
   (printf "agreement    N ~a, S ~a: S − N = ~a points (95% interval ~a to ~a)\n"
           (percent (agreement (of-arm impls 'N))) (percent (agreement (of-arm impls 'S)))
           (points ad) (points (car aci)) (points (cdr aci)))
+  (define (whole arm) (count (lambda (i) (= 1 (share-right (list i)))) (of-arm impls arm)))
+  (printf "every case   implementations right on every held-out case: N ~a of ~a, S ~a of ~a\n"
+          (whole 'N) (length (of-arm impls 'N)) (whole 'S) (length (of-arm impls 'S)))
   (printf "cost         an implementation: N ~a input and ~a output tokens, ~a turns, ~a s; S ~a and ~a, ~a turns, ~a s\n"
           (thousands (cost-mean 'N 'input_tokens)) (thousands (cost-mean 'N 'output_tokens))
           (exact->inexact (/ (round (* 10 (cost-mean 'N 'turns))) 10)) (exact-round (cost-mean 'N 'seconds))
@@ -298,12 +373,8 @@
                         (lambda (it) (run-one! out (car it) (cadr it) (caddr it) model))))
      (printf "ALL DONE: ~a implementations\n" (length items))]
     [("score")
-     (define cases-root (build-path out "_cases"))
-     (for ([m (in-list measures)])
-       (define dir (build-path cases-root (short-name m)))
-       (unless (directory-exists? dir) (write-cases! m dir (lambda (_) #t))))
      (for ([it (in-list (implementations out))])
-       (score-one! out (car it) (cadr it) (build-path cases-root (short-name (cadr it))))
+       (score-one! out (car it) (cadr it))
        (define i (read-impl out (car it) (cadr it) (caddr it)))
        (printf "~a held-out right ~a\n" (car it) (percent (share-right (list i)))))]
     [("report") (report (for/list ([it (in-list (implementations out))]) (read-impl out (car it) (cadr it) (caddr it))))]
@@ -312,6 +383,55 @@
 
 (module+ test
   (require rackunit)
+  ;; what counts as yes, and what an answer must be
+  (check-equal? (map yes? (list #t #f (json-null) 0 1 0.0 "" "no" '() '(0) (hasheq) (hasheq 'a 1)))
+                '(#t #f #f #f #t #f #f #t #f #t #f #t))
+  (define (answered said) (call-with-values (lambda () (answer-of said)) list))
+  (check-equal? (answered (hasheq 'answer (hasheq 'initial-population #t 'denominator 1 'denominator-exclusion (json-null) 'numerator 0)))
+                (list (hash "initial-population" #t "denominator" #t "denominator-exclusion" #f "numerator" #f) #f))
+  (check-equal? (answered (hasheq 'answer (hasheq 'initial-population #t 'denominator #t)))
+                '(#f "the answer lacks denominator-exclusion, numerator"))
+  (check-equal? (answered (hasheq 'answer '(#t #t #f #f))) '(#f "evaluate answered something that is not a dict"))
+  (check-equal? (answered (hasheq 'error "KeyError: 'x'")) '(#f "KeyError: 'x'"))
+  (check-equal? (answered eof) '(#f "the implementation's process ended"))
+  ;; an implementation called through the bridge: its answers, an exception, something that is no
+  ;; dict, a patient it never finishes (it is started again for the next), what it prints
+  (when (find-executable-path "python3")
+    (define dir (make-temporary-file "spec-first-~a" 'directory))
+    (display-to-file #<<PY
+import time
+def evaluate(resources, valuesets, start, end):
+    print("this is not an answer")
+    kind = resources[0]["kind"]
+    if kind == "raise": raise ValueError("no birth date")
+    if kind == "list": return [True, True, False, False]
+    if kind == "slow": time.sleep(30)
+    if kind == "exit": raise SystemExit(3)
+    return {"initial-population": ("a", "b") in valuesets["V"], "denominator": 1,
+            "denominator-exclusion": None, "numerator": start == "2025-01-01"}
+PY
+                     (build-path dir "measure.py"))
+    (define said
+      (parameterize ([case-seconds 2])
+        (call-measure (build-path dir "measure.py") (hasheq 'V '(("a" "b")))
+                      (for/list ([k (in-list '("ok" "raise" "list" "slow" "after" "exit" "last"))])
+                        (cons k (list (hasheq 'kind k))))
+                      (build-path dir "score.log"))))
+    (check-equal? (answered (hash-ref said "ok"))
+                  (list (hash "initial-population" #t "denominator" #t "denominator-exclusion" #f "numerator" #t) #f))
+    (check-equal? (answered (hash-ref said "raise")) '(#f "ValueError: no birth date"))
+    (check-equal? (cadr (answered (hash-ref said "list"))) "evaluate answered something that is not a dict")
+    (check-equal? (cadr (answered (hash-ref said "slow"))) "more than 2 seconds for one patient")
+    (check-not-false (car (answered (hash-ref said "after"))))
+    (check-equal? (cadr (answered (hash-ref said "exit"))) "SystemExit: 3")
+    (check-not-false (car (answered (hash-ref said "last"))))
+    (check-regexp-match #rx"this is not an answer" (file->string (build-path dir "score.log")))
+    ;; an implementation that does not load is wrong on every patient, and says why
+    (display-to-file "def evaluate(:
+" (build-path dir "broken.py"))
+    (define broken (call-measure (build-path dir "broken.py") (hasheq) (list (cons "a" '()) (cons "b" '())) (build-path dir "b.log")))
+    (check-regexp-match #rx"^measure.py did not load: SyntaxError" (cadr (answered (hash-ref broken "b"))))
+    (delete-directory/files dir))
   ;; a made measure of 10 held-out cases and 2 sample ones; an implementation right on the first k
   (define (made m arm k [wrong-answer '(#t #t #f #f)])
     (impl m arm

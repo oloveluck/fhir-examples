@@ -1,11 +1,13 @@
-"""Run measure.py over a directory of test patients.
+"""Run measure.py over a directory of test patients: the implementer's own check.
 
     python3 try.py                      measure.py over sample/, one line a patient
-    python3 try.py --cases DIR --measure FILE --valuesets FILE --json OUT   (the scorer's call)
 
 A patient is a directory of FHIR R4 resources, one JSON file each. For each patient the
 function `evaluate(resources, valuesets, period_start, period_end)` of measure.py is called and
 must answer a dict with the four keys below, each True or False.
+
+This scores nothing: it has no expected results. An implementation is scored by spec-first.rkt
+(in Racket), which calls the function through call-measure.py.
 """
 import argparse
 import importlib.util
@@ -61,7 +63,6 @@ def main():
     ap.add_argument("--valuesets", default=os.path.join(here, "valuesets.json"))
     ap.add_argument("--period-start", default="2025-01-01")
     ap.add_argument("--period-end", default="2025-12-31")
-    ap.add_argument("--json")
     args = ap.parse_args()
 
     with open(args.valuesets) as f:
@@ -85,17 +86,13 @@ def main():
         except BaseException as e:
             results[case] = {"error": "%s: %s" % (type(e).__name__, e),
                              "trace": traceback.format_exc(limit=3)}
-    if args.json:
-        with open(args.json, "w") as f:
-            json.dump(results, f)
-    else:
-        for case, r in results.items():
-            if "answer" in r:
-                print(case, " ".join("%s=%s" % (p, "yes" if r["answer"][p] else "no") for p in POPULATIONS))
-            else:
-                print(case, "ERROR", r["error"])
-                if r.get("trace"):
-                    print(r["trace"])
+    for case, r in results.items():
+        if "answer" in r:
+            print(case, " ".join("%s=%s" % (p, "yes" if r["answer"][p] else "no") for p in POPULATIONS))
+        else:
+            print(case, "ERROR", r["error"])
+            if r.get("trace"):
+                print(r["trace"])
     return 0
 
 

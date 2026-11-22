@@ -2,11 +2,14 @@
 
 ;;; analysis.rkt — the comparisons of value-experiment/PROTOCOL.md, as it states them.
 ;;;
-;;;   racket analysis.rkt fab NAME_L=RUN_DIR,RUN_DIR,… NAME_G=RUN_DIR,…
+;;;   racket analysis.rkt fab NAME_L=RUN_DIR,RUN_DIR,… NAME_G=RUN_DIR,… [NAME_OTHER=RUN_DIR,…]…
 ;;;
 ;;; Two arms' scored FHIR-AgentBench runs (fab/score.sh), paired by question: the share right of
 ;;; each, the difference with its interval, McNemar's test, the cost ratio with its interval, and
-;;; the verdict the protocol defines.
+;;; the verdict the protocol defines; then the questions by which arm is right, what a session of
+;;; each arm cost and called (the sessions' record.json), and where any further arm named stands
+;;; on the same questions. Every figure of RESULTS.md's section M is printed by this command or by
+;;; agent-bench/report.rkt (retrieval precision and recall, from the benchmark's own grader).
 ;;;
 ;;; Data definitions.
 ;;; A Pass is (pass right? cost): one run of one task by one arm; cost is a real (input tokens) or #f.
@@ -18,6 +21,7 @@
 (require racket/list racket/math racket/string racket/file json)
 
 (provide (struct-out pass) (struct-out paired) (struct-out interval) (struct-out comparison)
+         overlap neither call-kind tool-use tokens-a-task quantile records session-costs
          share-right mcnemar-exact holm bootstrap-interval compare verdict-of clear-null?
          minimum-difference non-inferiority-margin cost-ratio-bound)
 
@@ -121,7 +125,6 @@
   (define diff-ci (bootstrap-interval items difference))
   (define ratio (cost-ratio ps))
   (define ratio-ci (and ratio (bootstrap-interval items cost-ratio)))
-  (define (all-right? xs) (and (pair? xs) (andmap pass-right? xs)))
   (define b (count (lambda (p) (and (all-right? (paired-ls p)) (not (all-right? (paired-gs p))))) ps))
   (define c (count (lambda (p) (and (all-right? (paired-gs p)) (not (all-right? (paired-ls p))))) ps))
   (comparison (length ps)
@@ -140,6 +143,66 @@
     (values (hash-ref r 'question_id)
             (pass (equal? (hash-ref r 'answer_correctness 0) 1)
                   (let ([v (hash-ref usage 'input #f)]) (and (real? v) (not (nan? v)) v))))))
+
+;; ---- what else a comparison is read with ------------------------------------------------------------
+;; all-right? : (listof Pass) -> boolean   right in every pass that was run
+(define (all-right? xs) (and (pair? xs) (andmap pass-right? xs)))
+
+;; overlap : (listof Paired) -> (list both only-l only-g neither)   the tasks by which arm is right
+(define (overlap ps)
+  (define (n l? g?) (count (lambda (p) (and (eq? l? (all-right? (paired-ls p))) (eq? g? (all-right? (paired-gs p))))) ps))
+  (list (n #t #t) (n #t #f) (n #f #t) (n #f #f)))
+
+;; neither : (listof Paired) -> (listof id)   the tasks neither arm is right on
+(define (neither ps)
+  (for/list ([p (in-list ps)] #:unless (or (all-right? (paired-ls p)) (all-right? (paired-gs p)))) (paired-id p)))
+
+;; call-kind : string -> string   a recorded tool call ("mcp__fhir__query {…}") as the kind of call it
+;; is: the tool, and for a tool that takes a language, the language
+(define (call-kind command)
+  (define m (regexp-match #rx"^([^ ]+) ?(.*)$" command))
+  (define tool (last (string-split (cadr m) "__")))
+  (define arguments (with-handlers ([exn:fail? (lambda (_) #f)]) (string->jsexpr (caddr m))))
+  (define language (and (hash? arguments) (hash-ref arguments 'language #f)))
+  (if (string? language) (format "~a ~a" tool language) tool))
+
+;; tool-use : (listof path) -> (listof (cons kind count))   the calls a run's sessions made
+;; (each question's record.json), by kind, most first
+(define (tool-use dirs)
+  (define counts
+    (for*/fold ([h (hash)]) ([r (in-list (records dirs))] [c (in-list (hash-ref r 'commands '()))])
+      (hash-update h (call-kind c) add1 0)))
+  (sort (hash->list counts) (lambda (a b) (or (> (cdr a) (cdr b)) (and (= (cdr a) (cdr b)) (string<? (car a) (car b)))))))
+
+;; records : (listof path) -> (listof jsexpr)   each session's record.json of some runs
+(define (records dirs)
+  (for*/list ([d (in-list dirs)] [q (in-list (directory-list d #:build? #t))]
+              #:when (file-exists? (build-path q "record.json")))
+    (call-with-input-file (build-path q "record.json") read-json)))
+
+;; quantile : (listof real) real -> real   the value at share q of the sorted list, between the two
+;; nearest when q falls between them (q = 1/2 is the median)
+(define (quantile xs q)
+  (define v (list->vector (sort xs <)))
+  (define at (* q (sub1 (vector-length v))))
+  (define low (floor at))
+  (define high (min (sub1 (vector-length v)) (add1 low)))
+  (+ (vector-ref v low) (* (- at low) (- (vector-ref v high) (vector-ref v low)))))
+
+;; session-costs : (listof jsexpr) -> (hash symbol real)   what a session of these records costs:
+;; input tokens (mean, median, 90th percentile), output tokens, tool calls and seconds (means)
+(define (session-costs rs)
+  (define (field k) (filter real? (map (lambda (r) (hash-ref r k #f)) rs)))
+  (define in (field 'input_tokens))
+  (hasheq 'input (mean in) 'input-median (quantile in 1/2) 'input-90th (quantile in 9/10)
+          'output (mean (field 'output_tokens))
+          'calls (mean (map (lambda (r) (length (hash-ref r 'commands '()))) rs))
+          'seconds (mean (field 'seconds))))
+
+;; tokens-a-task : (hash id (listof Pass)) (listof id) -> (or/c #f real)   input tokens a task, over ids
+(define (tokens-a-task arm ids)
+  (define costs (filter values (for*/list ([id (in-list ids)] [p (in-list (hash-ref arm id '()))]) (pass-cost p))))
+  (and (pair? costs) (mean costs)))
 
 ;; arm-passes : (listof path) -> (hash id (listof Pass))
 (define (arm-passes dirs)
@@ -174,21 +237,85 @@
                       "no difference shown, and a clear null (the intervals are inside the protocol's bounds)"
                       "no difference shown, and not a clear null: the protocol's one extension applies")])))
 
+;; report-overlap : string string (listof Paired) -> void
+(define (report-overlap name-l name-g ps)
+  (define o (overlap ps))
+  (printf "  by task         right under both ~a, under ~a only ~a, under ~a only ~a, under neither ~a\n"
+          (first o) name-l (second o) name-g (third o) (fourth o)))
+
+;; report-sessions : string (listof path) -> void   what a session of the arm cost and what it called
+(define (report-sessions name dirs)
+  (define rs (records dirs))
+  (when (pair? rs)
+    (define c (session-costs rs))
+    (define (k x) (format "~ak" (/ (round (/ x 100.0)) 10.0)))
+    (define (one x) (/ (round (* 10.0 x)) 10.0))
+    (printf "  a ~a session: input tokens ~a (median ~a, 90th percentile ~a), output tokens ~a, ~a tool calls, ~a s\n"
+            name (k (hash-ref c 'input)) (k (hash-ref c 'input-median)) (k (hash-ref c 'input-90th))
+            (inexact->exact (round (hash-ref c 'output))) (one (hash-ref c 'calls)) (one (hash-ref c 'seconds)))
+    (printf "    its calls: ~a\n"
+            (string-join (for/list ([u (in-list (tool-use dirs))]) (format "~a ~a" (cdr u) (car u))) ", "))))
+
+;; report-other : string (hash id (listof Pass)) (listof Paired) -> void   another arm on the same
+;; tasks: not one of the comparison's two, so no test, only where it stands
+(define (report-other name arm ps)
+  (define ids (filter (lambda (id) (hash-ref arm id #f)) (map paired-id ps)))
+  (define missed (filter (lambda (id) (hash-ref arm id #f)) (neither ps)))
+  (define cost (tokens-a-task arm ids))
+  (printf "~a on the same tasks (~a of them run): right on ~a~a; of the ~a neither arm is right on, right on ~a\n"
+          name (length ids) (count (lambda (id) (all-right? (hash-ref arm id))) ids)
+          (if cost (format ", ~ak input tokens a task" (/ (round (/ cost 100.0)) 10.0)) "")
+          (length missed) (count (lambda (id) (all-right? (hash-ref arm id))) missed)))
+
 (module+ main
   (define args (vector->list (current-command-line-arguments)))
   (define (arm-of spec)
     (define m (regexp-match #rx"^([^=]+)=(.+)$" spec))
     (unless m (raise-user-error 'analysis "an arm is NAME=RUN_DIR,RUN_DIR,…: ~a" spec))
     (cons (cadr m) (string-split (caddr m) ",")))
-  (unless (and (= (length args) 3) (equal? (car args) "fab"))
-    (raise-user-error 'analysis "analysis.rkt fab NAME_L=RUN_DIR,… NAME_G=RUN_DIR,…"))
+  (unless (and (>= (length args) 3) (equal? (car args) "fab"))
+    (raise-user-error 'analysis "analysis.rkt fab NAME_L=RUN_DIR,… NAME_G=RUN_DIR,… [NAME_OTHER=RUN_DIR,…]…"))
   (define l (arm-of (cadr args)))
   (define g (arm-of (caddr args)))
-  (report (car l) (car g) (compare (pairs (arm-passes (cdr l)) (arm-passes (cdr g))))))
+  (define ps (pairs (arm-passes (cdr l)) (arm-passes (cdr g))))
+  (report (car l) (car g) (compare ps))
+  (report-overlap (car l) (car g) ps)
+  (report-sessions (car l) (cdr l))
+  (report-sessions (car g) (cdr g))
+  (for ([other (in-list (map arm-of (cdddr args)))])
+    (report-other (car other) (arm-passes (cdr other)) ps)))
 
 (module+ test
   (require rackunit)
   (check-equal? (share-right (list (pass #t 1) (pass #f 1) (pass #t 1))) 2/3)
+  ;; the tasks by which arm is right; a task is right when every pass of it is
+  (define four
+    (list (paired "a" (list (pass #t 1)) (list (pass #t 1))) (paired "b" (list (pass #t 1)) (list (pass #f 1)))
+          (paired "c" (list (pass #f 1)) (list (pass #t 1))) (paired "d" (list (pass #f 1)) (list (pass #f 1)))
+          (paired "e" (list (pass #t 1) (pass #f 1)) (list (pass #f 1) (pass #f 1)))))
+  (check-equal? (overlap four) '(1 1 1 2))
+  (check-equal? (neither four) '("d" "e"))
+  (check-equal? (quantile '(4 1 3 2 5) 1/2) 3)
+  (check-equal? (quantile '(1 2 3 4) 1/2) 5/2)
+  (check-equal? (quantile '(10 20) 9/10) 19)
+  (check-equal? (quantile '(7) 9/10) 7)
+  (check-equal? (tokens-a-task (hash "a" (list (pass #t 10) (pass #t 30)) "b" (list (pass #f #f))) '("a" "b" "z")) 20)
+  ;; a recorded call by its kind
+  (check-equal? (call-kind "mcp__fhir__query {\"language\":\"search\",\"text\":\"Patient?name=a b\"}") "query search")
+  (check-equal? (call-kind "mcp__fhir__describe {\"ref\":\"data\"}") "describe")
+  (check-equal? (call-kind "mcp__rest__python {\"code\":\"print(1)\"}") "python")
+  (check-equal? (call-kind "mcp__rest__get {cut off") "get")
+  (check-equal? (call-kind "Bash") "Bash")
+  (let ([dir (make-temporary-file "analysis-~a" 'directory)])
+    (for ([q (in-list '("q1" "q2"))] [cs (in-list '(("mcp__rest__get {}" "mcp__rest__python {}") ("mcp__rest__get {}")))])
+      (make-directory (build-path dir q))
+      (call-with-output-file (build-path dir q "record.json")
+        (lambda (o) (write-json (hasheq 'commands cs 'input_tokens (* 1000 (length cs)) 'output_tokens 10 'seconds 2.5) o))))
+    (make-directory (build-path dir "eval"))
+    (check-equal? (tool-use (list dir)) '(("get" . 2) ("python" . 1)))
+    (check-equal? (session-costs (records (list dir)))
+                  (hasheq 'input 1500 'input-median 1500 'input-90th 1900 'output 10 'calls 3/2 'seconds 2.5))
+    (delete-directory/files dir))
   ;; McNemar, exact: 10 against 0 is 2·(1/2)^10; even counts are 1; nothing discordant is 1
   (check-equal? (mcnemar-exact 10 0) 1/512)
   (check-equal? (mcnemar-exact 0 10) 1/512)
