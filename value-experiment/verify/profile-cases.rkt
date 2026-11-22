@@ -19,7 +19,10 @@
 (require racket/file racket/list racket/string racket/runtime-path racket/port racket/system json file/untgz
          (only-in fhir/spec-package spec-package-path)
          (only-in fhir/package-set package-set)
-         (only-in fhir/conformance/validate write-errors/rows))
+         (only-in fhir/conformance/validate write-errors/rows)
+         ;; the guide is FHIR R4: its types, loaded, are what the validator reads a resource's
+         ;; typed form with (no invariant is evaluated without them)
+         (only-in fhir/r4/schemas))
 
 (provide guide-package profiles profile-definition profile-url profile-examples changes cases
          sample-case? truth toolkit-valid? case-example)
@@ -183,6 +186,8 @@
 
 ;; label! : dir path -> void   HL7's validator over each profile's cases, held to that profile, with
 ;; no terminology server (it is not reachable from here: codes of external systems are not checked)
+;; and example urls allowed, as a guide's examples are validated (without that it refuses every
+;; published Patient example for its `http://example.org/…` identifier system)
 (define (label! dir jar)
   (make-directory* truth-dir)
   (for ([p (in-list (profiles))])
@@ -193,7 +198,7 @@
         (parameterize ([current-error-port (current-output-port)])
           (system* (find-executable-path "java") "-jar" (path->string (path->complete-path jar))
                    (path->string (build-path dir p)) "-version" "4.0.1" "-ig" (path->string guide-package)
-                   "-profile" (profile-url p) "-tx" "n/a" "-output" (path->string out)))))
+                   "-profile" (profile-url p) "-tx" "n/a" "-allow-example-urls" "true" "-output" (path->string out)))))
     (define result (call-with-input-file out read-json))
     (define outcomes (if (equal? (hash-ref result 'resourceType #f) "Bundle")
                          (map (lambda (e) (hash-ref e 'resource)) (hash-ref result 'entry '()))
@@ -229,6 +234,11 @@
            (printf "~a: ~a cases, ~a valid by HL7's validator; the toolkit agrees on ~a (says valid where HL7 says not: ~a; says not where HL7 says valid: ~a)\n"
                    p (length mine) (count caddr mine) (count (lambda (r) (eq? (caddr r) (cadddr r))) mine)
                    (count (lambda (r) (and (cadddr r) (not (caddr r)))) mine) (count (lambda (r) (and (caddr r) (not (cadddr r)))) mine)))
+         ;; by the kind of change: an example as published, or one of the catalogue's five changes
+         (for ([kind (in-list '("published" "remove" "code" "twice" "text" "unknown"))])
+           (define mine (filter (lambda (r) (equal? kind (let ([m (regexp-match #rx"~([a-z]+)-[0-9]+$" (cadr r))]) (if m (cadr m) "published")))) rows))
+           (printf "  ~a: ~a cases, ~a valid by HL7's validator; the toolkit agrees on ~a\n" kind (length mine) (count caddr mine)
+                   (count (lambda (r) (eq? (caddr r) (cadddr r))) mine)))
          (define held (filter (lambda (r) (not (sample-case? (car r) (cadr r)))) rows))
          (printf "all: the toolkit agrees with HL7's validator on ~a of ~a cases (~a of the ~a held out)\n"
                  (count (lambda (r) (eq? (caddr r) (cadddr r))) rows) (length rows)
