@@ -10,6 +10,9 @@
 ;;;                                   run over every case of its measure (spec-first's scorer)
 ;;;   racket verify.rkt report OUT    the comparison the protocol states
 ;;;   racket verify.rkt changes OUT   each held-out answer a session fixed or broke
+;;;   racket verify.rkt broken OUT    the answers a session broke, by what broke them
+;;;   racket verify.rkt keep OUT FILE the scored run as one file, which report, changes and broken
+;;;                                   read in place of OUT
 ;;;
 ;;; Data definitions.
 ;;; A Start is a string: the id of one of S's implementations, "<measure's short name>-<N|S>-<i>";
@@ -23,6 +26,7 @@
 (require racket/file racket/list racket/string racket/math racket/runtime-path json
          "../spec-first/materials.rkt"
          (only-in "../spec-first/spec-first.rkt" score-one!)
+         (only-in "oracle.rkt" oracle)
          (only-in "../analysis.rkt" verdict-of interval)
          (only-in "../../agent-bench/run-agent.rkt" run-item in-parallel audit current-resume? read-json-file write-json-file))
 
@@ -184,6 +188,32 @@
                            (values k (let ([v (hash-ref rec k 0)]) (if (real? v) v 0))))))
            (for/hash ([arm (in-list run)]) (values arm (belief-of (build-path out (check-id s arm))))))))
 
+;; keep! : (listof Check) path -> void   a scored run as one JSON file
+(define (keep! checks file)
+  (define (rights->json r) (for/hasheq ([(k v) (in-hash r)]) (values (string->symbol k) v)))
+  (write-json-file
+   file
+   (for/list ([c (in-list checks)])
+     (hasheq 'start (review-start c)
+             'before (rights->json (review-before c))
+             'after (for/hasheq ([(arm r) (in-hash (review-after c))]) (values arm (rights->json r)))
+             'cost (for/hasheq ([(arm k) (in-hash (review-cost c))]) (values arm k))
+             'belief (for/hasheq ([(arm b) (in-hash (review-belief c))]) (values arm (if (boolean? b) b "none")))))))
+
+;; kept : path -> (listof Check)   what `keep!` wrote
+(define (kept file)
+  (define (json->rights j) (for/hash ([(k v) (in-hash j)]) (values (symbol->string k) v)))
+  (for/list ([j (in-list (read-json-file file))])
+    (define s (hash-ref j 'start))
+    (review s (start-measure s) (start-origin s)
+            (json->rights (hash-ref j 'before))
+            (for/hash ([(arm r) (in-hash (hash-ref j 'after))]) (values arm (json->rights r)))
+            (for/hash ([(arm k) (in-hash (hash-ref j 'cost))]) (values arm k))
+            (for/hash ([(arm b) (in-hash (hash-ref j 'belief))]) (values arm (if (boolean? b) b 'none))))))
+
+;; checks-of : path -> (listof Check)   a scored run's directory, or the file kept of one
+(define (checks-of path) (if (directory-exists? path) (read-checks path) (kept path)))
+
 ;; ---- analysis ---------------------------------------------------------------------------------------
 (define (mean xs) (if (null? xs) 0 (/ (apply + xs) (length xs))))
 (define (ones rights) (for/list ([(c r) (in-hash rights)]) (if r 1 0)))
@@ -337,6 +367,42 @@
       (printf "~a ~a: ~a before; ~a\n" (review-start c) k (if before "right" "wrong")
               (string-join (for/list ([a (in-list after)]) (format "~a ~a" (car a) (if (cdr a) "right" "wrong"))) ", ")))))
 
+;; oracle-right? : measure case -> boolean   does the specification executed give the authors' answers?
+(define (oracle-right? m c) (equal? (oracle m (map cdr (case-resources m c))) (case-expected m c)))
+
+;; broken-answers : (listof Check) -> void   for each arm, the held-out answers right before and wrong
+;; after its session, told apart by what can be known of the cause: the session wrote no verdict
+;; (it was cut off at the turn limit, its implementation left as it stood then); else the oracle
+;; itself gives another answer than the authors for that patient, or for a sample patient of the
+;; measure (an oracle's checker is shown the one answer, a tested arm's checker the other); else
+;; neither.
+(define (broken-answers checks)
+  (define measures-oracle-wrong-on-sample
+    (for/list ([m (in-list (remove-duplicates (map review-measure checks)))]
+               #:when (for/or ([c (in-list (case-ids m))]) (and (sample-case? m c) (not (oracle-right? m c)))))
+      m))
+  (for ([arm (in-list arms)])
+    (define rows
+      (for*/list ([c (in-list checks)] #:when (hash-has-key? (review-after c) arm)
+                  [(k r) (in-hash (review-before c))] #:when (and r (not (hash-ref (hash-ref (review-after c) arm) k))))
+        (list (review-start c) k
+              (cond [(eq? (hash-ref (review-belief c) arm) 'none) 'cut-off]
+                    [(not (oracle-right? (review-measure c) k)) 'oracle-differs-on-it]
+                    [(member (review-measure c) measures-oracle-wrong-on-sample) 'oracle-differs-on-a-sample-patient-of-the-measure]
+                    [else 'other]))))
+    (printf "~a: ~a answers right before and wrong after\n" (hash-ref arm-name arm) (length rows))
+    (for ([cause (in-list '(cut-off oracle-differs-on-it oracle-differs-on-a-sample-patient-of-the-measure other))])
+      (define mine (filter (lambda (r) (eq? (caddr r) cause)) rows))
+      (unless (null? mine)
+        (printf "  ~a: ~a, in ~a implementations (~a)\n"
+                (case cause
+                  [(cut-off) "the session was cut off at the turn limit (no verdict written)"]
+                  [(oracle-differs-on-it) "the specification executed does not give the authors' answer for the patient"]
+                  [(oracle-differs-on-a-sample-patient-of-the-measure) "another patient of a measure where, for a sample patient, the specification executed does not give the authors' answer"]
+                  [else "neither"])
+                (length mine) (length (remove-duplicates (map car mine)))
+                (string-join (remove-duplicates (map car mine)) ", "))))))
+
 ;; ---- command line ---------------------------------------------------------------------------------------
 (module+ main
   (define args (vector->list (current-command-line-arguments)))
@@ -360,9 +426,11 @@
                          (string-join (for/list ([arm (in-list arms)] #:when (hash-has-key? (review-after c) arm))
                                         (format ", ~a ~a" arm (percent (share-after (list c) arm))))
                                       "")))]
-    [("report") (report (read-checks out))]
-    [("changes") (changes (read-checks out))]
-    [else (raise-user-error 'verify "verify.rkt run|score|report|changes OUT [options]")]))
+    [("report") (report (checks-of out))]
+    [("changes") (changes (checks-of out))]
+    [("broken") (broken-answers (checks-of out))]
+    [("keep") (keep! (read-checks out) (caddr args))]
+    [else (raise-user-error 'verify "verify.rkt run|score|report|changes|broken|keep OUT [options]")]))
 
 (module+ test
   (require rackunit)

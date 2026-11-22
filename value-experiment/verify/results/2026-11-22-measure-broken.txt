@@ -1,0 +1,8 @@
+read (R): 0 answers right before and wrong after
+tested (T): 2 answers right before and wrong after
+  another patient of a measure where, for a sample patient, the specification executed does not give the authors' answer: 2, in 2 implementations (diabetes-S-1, diabetes-S-3)
+oracle (O): 25 answers right before and wrong after
+  the session was cut off at the turn limit (no verdict written): 8, in 1 implementations (pressure-N-3)
+  the specification executed does not give the authors' answer for the patient: 8, in 8 implementations (diabetes-N-1, diabetes-N-2, diabetes-N-3, diabetes-N-4, diabetes-N-5, diabetes-S-2, diabetes-S-4, diabetes-S-5)
+  another patient of a measure where, for a sample patient, the specification executed does not give the authors' answer: 4, in 4 implementations (diabetes-N-1, diabetes-N-2, diabetes-N-4, diabetes-N-5)
+  neither: 5, in 3 implementations (breast-N-1, breast-N-3, pressure-N-1)

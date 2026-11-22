@@ -1,0 +1,33 @@
+implementations checked in every arm: 40 (20 written from the narrative, 20 from the CQL); held-out cases: 151
+
+right on the held-out cases          before    after R    after T    after O
+  all                                95.7%     96.0%      96.0%      96.1%
+  written from the narrative         93.0%     93.6%      93.2%      93.0%
+  written from the CQL               98.4%     98.4%      98.7%      99.2%
+  breast                             93.5%     94.6%      93.5%      94.3%
+  cervical                           95.7%     95.7%      95.7%      98.3%
+  diabetes                           95.9%     95.9%      96.8%      95.3%
+  pressure                           97.7%     97.7%      97.9%      97.3%
+
+read (R): of 65 answers wrong before, 5 right after (7.7%); of 1445 right before, 0 wrong after
+tested (T): of 65 answers wrong before, 6 right after (9.2%); of 1445 right before, 2 wrong after
+oracle (O): of 65 answers wrong before, 31 right after (47.7%); of 1445 right before, 25 wrong after
+implementations right on every held-out case: before 10; after R 10, T 10, O 17 (of 40)
+
+read (R): said the implementation is right 22 times, and it was right on every held-out case 7 times; said errors remain 18 times (they did 15 times); no verdict 0
+tested (T): said the implementation is right 17 times, and it was right on every held-out case 4 times; said errors remain 23 times (they did 17 times); no verdict 0
+oracle (O): said the implementation is right 25 times, and it was right on every held-out case 12 times; said errors remain 10 times (they did 8 times); no verdict 5
+
+written from the narrative: O − R = -0.7 points (95% interval -4.4 to +2.8; label swap p = 0.717)
+written from the narrative: O − T = -0.3 points (95% interval -4.1 to +3.2; label swap p = 0.9307)
+written from the narrative: T − R = -0.4 points (95% interval -1.9 to +0.7; label swap p = 0.6218)
+written from the CQL:       O − R = +0.8 points (95% interval -0.8 to +2.6; label swap p = 0.061)
+all:                        O − R = +0.1 points (95% interval -2.3 to +2.3; label swap p = 1.0)
+all:                        O − T = +0.1 points (95% interval -2.5 to +2.6; label swap p = 0.9289)
+all:                        T − R = -0.1 points (95% interval -0.9 to +0.7; label swap p = 1.0)
+
+a session, read (R): 304.7k input and 5.3k output tokens, 12.2 turns, 45 s
+a session, tested (T): 272.4k input and 4.6k output tokens, 11.0 turns, 40 s
+a session, oracle (O): 2134.9k input and 35.4k output tokens, 43.0 turns, 265 s
+
+verdict (written from the narrative, O against R)   no difference shown

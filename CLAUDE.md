@@ -329,6 +329,36 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   the trial: the audit's list must not name the agents' own directory (`/tmp/agent-bench/`),
   and an implementer told only "use this directory" searched the toolkit's source (the prompt
   now says to read nothing outside it; 0 flags in the 120 sealed sessions).
+  **V: verifying against the source of truth** (2026-11-22; the protocol's amendments "after D: V",
+  "V is every kind of artifact", "V-profile in full"). The owner: "without a single source of
+  truth it's impossible to verify correctness", and then "beyond measure implementations. Also
+  FHIR spec implementation, mappings, valueset definitions". An implementation written outside
+  the toolkit is checked and corrected by agents that can read (R), have a third party's
+  expected answers for a sample (T), or can run the published artifact on any input (O); truth
+  is the third party's on inputs no session sees; the oracle's own agreement with it is
+  reported as its ceiling. `value-experiment/verify/`.
+  *V-measure* (`oracle.rkt`: the CQL executed by cql's engine; `verify.rkt`: `run`, `score`,
+  `report`, `changes`, `broken`, `keep` — a scored run kept as one JSON file that the reports
+  read): S's forty implementations, 120 sessions. No difference shown on the bar (O − R −0.7
+  points, −4.4 to +2.8, on the twenty written from the narrative). R and T changed almost
+  nothing (5 and 6 of 65 wrong answers fixed); O fixed 31 (48%), took implementations right on
+  every held-out case from 10 to 17 of 40, and broke 25 right answers at seven times the
+  tokens: 12 by copying the oracle's own disagreement with the authors on two diabetes patients
+  (data exported without the value the case describes; one of them a sample patient), 8 in one
+  session cut off at the 60-turn limit. An oracle is what makes checking find anything, and
+  whatever it gets wrong is written into every implementation checked against it.
+  *V-profile* (stated, harness built, not yet run): six US Core 9.0.0 profiles by rule
+  (`profile-cases.rkt`: `profiles`, `cases` — the 28 published examples and 713 copies with one
+  change of five kinds —, `truth`: HL7's Java validator's verdicts, committed under
+  `verify/truth/`, `label` to make them again with a validator_cli jar; `agreement`, `ceiling`),
+  `profile-materials.rkt` (what a session is given, by a rule: `spec-files`), `profile-oracle.rkt`
+  (valid or invalid, nothing more), `profile-verify.rkt` (`build`, `run`, `score`, `report`,
+  `changes`; a Python `valid(resource)` called through `call-valid.py`, scored in Racket).
+  Measuring the oracle first was itself a result: this toolkit's validator agreed with HL7's on
+  659 of the 741 cases, refusing nothing HL7's passes; the misses on the 158 sample cases were
+  read and fixed as classes in fhir-validation, and it agrees on 736 (578 of the 583 held out)
+  — the module's test holds those as floors. Disk: a session directory is ~2.7 MB (spec/);
+  HL7's validator keeps 1.2 GB under ~/.fhir.
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.

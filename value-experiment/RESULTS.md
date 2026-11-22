@@ -315,3 +315,115 @@ tokens, mostly reading the language's guide in every session. The experiment fou
 advantage for the declared route. What it did was find two defects in it, which a suite
 written by someone who had not seen the toolkit caught and its own tests had not.
 
+## V-measure. Verifying against the source of truth: measures (2026-11-22)
+
+The protocol's amendments "after D: V" and "V is every kind of artifact" state it. S's forty
+implementations of four quality measures (twenty written from the narrative, twenty from the
+CQL), each checked and corrected by three more agents — one that can only read what the
+implementer had (R), one that also has the authors' expected answers for the sample patients
+(T), one that can also run the measure's published CQL over any patient it writes and see the
+four answers (O: cql's engine; nothing of the CQL's text beyond what the implementer had) —
+and held to the authors' 151 held-out cases before and after. 120 sessions, one model, at most
+60 turns each; no session's commands named anything outside its directory (the audit: 0
+flags). The bar was set on the twenty written from the narrative: O above R by 5 points, the
+interval above zero.
+
+`racket verify.rkt report verify/results/2026-11-22-measure-run.json` (the scored run, kept as
+one file), as printed:
+
+```
+implementations checked in every arm: 40 (20 written from the narrative, 20 from the CQL); held-out cases: 151
+
+right on the held-out cases          before    after R    after T    after O
+  all                                95.7%     96.0%      96.0%      96.1%
+  written from the narrative         93.0%     93.6%      93.2%      93.0%
+  written from the CQL               98.4%     98.4%      98.7%      99.2%
+  breast                             93.5%     94.6%      93.5%      94.3%
+  cervical                           95.7%     95.7%      95.7%      98.3%
+  diabetes                           95.9%     95.9%      96.8%      95.3%
+  pressure                           97.7%     97.7%      97.9%      97.3%
+
+read (R): of 65 answers wrong before, 5 right after (7.7%); of 1445 right before, 0 wrong after
+tested (T): of 65 answers wrong before, 6 right after (9.2%); of 1445 right before, 2 wrong after
+oracle (O): of 65 answers wrong before, 31 right after (47.7%); of 1445 right before, 25 wrong after
+implementations right on every held-out case: before 10; after R 10, T 10, O 17 (of 40)
+
+read (R): said the implementation is right 22 times, and it was right on every held-out case 7 times; said errors remain 18 times (they did 15 times); no verdict 0
+tested (T): said the implementation is right 17 times, and it was right on every held-out case 4 times; said errors remain 23 times (they did 17 times); no verdict 0
+oracle (O): said the implementation is right 25 times, and it was right on every held-out case 12 times; said errors remain 10 times (they did 8 times); no verdict 5
+
+written from the narrative: O − R = -0.7 points (95% interval -4.4 to +2.8; label swap p = 0.717)
+written from the narrative: O − T = -0.3 points (95% interval -4.1 to +3.2; label swap p = 0.9307)
+written from the narrative: T − R = -0.4 points (95% interval -1.9 to +0.7; label swap p = 0.6218)
+written from the CQL:       O − R = +0.8 points (95% interval -0.8 to +2.6; label swap p = 0.061)
+all:                        O − R = +0.1 points (95% interval -2.3 to +2.3; label swap p = 1.0)
+all:                        O − T = +0.1 points (95% interval -2.5 to +2.6; label swap p = 0.9289)
+all:                        T − R = -0.1 points (95% interval -0.9 to +0.7; label swap p = 1.0)
+
+a session, read (R): 304.7k input and 5.3k output tokens, 12.2 turns, 45 s
+a session, tested (T): 272.4k input and 4.6k output tokens, 11.0 turns, 40 s
+a session, oracle (O): 2134.9k input and 35.4k output tokens, 43.0 turns, 265 s
+
+verdict (written from the narrative, O against R)   no difference shown
+```
+
+**The bar is not met: no difference shown.** After an oracle's checker the implementations are
+right as often as after a reader's (O − R: −0.7 points on those written from the narrative,
+−4.4 to +2.8; +0.1 over all forty). The prediction (V's amendment: O clearly above R) was
+wrong.
+
+What the average hides is that the arms did very different things:
+
+- **Reading and labelled samples changed almost nothing.** R fixed 5 of the 65 wrong answers
+  and broke none; T fixed 6 and broke 2. A checker with nothing to run the measure on mostly
+  re-reads the code and agrees with it (R said "right" of 22 implementations; 7 were).
+- **The oracle's checkers found half of what was wrong, and broke nearly as much.** They fixed
+  31 of the 65 wrong answers (48%), and the implementations right on every held-out case went
+  from 10 to 17 of 40 (R: 10, T: 10). They also turned 25 right answers wrong, at seven times
+  the tokens (2.1M input a session against 0.3M).
+
+`racket verify.rkt broken verify/results/2026-11-22-measure-run.json` tells the 25 apart:
+
+```
+read (R): 0 answers right before and wrong after
+tested (T): 2 answers right before and wrong after
+  another patient of a measure where, for a sample patient, the specification executed does not give the authors' answer: 2, in 2 implementations (diabetes-S-1, diabetes-S-3)
+oracle (O): 25 answers right before and wrong after
+  the session was cut off at the turn limit (no verdict written): 8, in 1 implementations (pressure-N-3)
+  the specification executed does not give the authors' answer for the patient: 8, in 8 implementations (diabetes-N-1, diabetes-N-2, diabetes-N-3, diabetes-N-4, diabetes-N-5, diabetes-S-2, diabetes-S-4, diabetes-S-5)
+  another patient of a measure where, for a sample patient, the specification executed does not give the authors' answer: 4, in 4 implementations (diabetes-N-1, diabetes-N-2, diabetes-N-4, diabetes-N-5)
+  neither: 5, in 3 implementations (breast-N-1, breast-N-3, pressure-N-1)
+```
+
+- **12 of the 25 are the oracle's own disagreement with the truth, copied.** On two of the
+  diabetes measure's 43 patients the CQL executed says "not in the numerator" where the authors
+  expect "in" (cql's own test names both: the published bundle holds the HbA1c value as a
+  SNOMED concept where the case's description gives a percentage, so there is no number to
+  exceed 9%). One of the two is a sample patient, so every diabetes checker with the oracle saw
+  it; eight of the ten diabetes implementations were changed to agree with the oracle on the
+  other, and four of those were made wrong on a similar patient besides. (The same
+  disagreement is why T broke two answers: its checkers were shown the authors' answer for
+  that sample patient, which the CQL they were given does not produce.)
+- **8 are one session cut off.** Five oracle sessions reached the 60-turn limit and wrote no
+  verdict; one of them left its implementation half-changed (pressure-N-3: eight answers).
+- 5 are neither.
+
+So, read plainly: **an executable source of truth is what lets a checker find errors at all**
+— without one, checking was close to a no-op — **and it is trusted completely, so whatever it
+gets wrong is written into every implementation checked against it.** Here its two wrong
+answers of 190 (by the authors' labels; by the data, arguably the labels') cost as much as its
+fixes gained. An oracle's value in verification is bounded by its own agreement with the truth
+more tightly than its 150 of 151 suggests, because its errors are systematic and its checkers
+generalise from them.
+
+What this does not show: that the gain and the loss would balance on another artifact. They
+balance here because the implementations were already 93% to 98% right (65 wrong answers of
+1,510), so one copied disagreement outweighs many fixes. The profile part is run for that
+reason on implementations that start much further from the truth.
+
+Costs: `a session` lines above. Limits: four measures, one model, the twenty implementations
+written from the CQL had 12 wrong answers among them to fix; a patient the checker writes is
+not a patient the authors wrote, and the held-out cases reward only fixes that generalise.
+Files: `verify/results/2026-11-22-measure-*`; the sessions' directories are not kept in the
+repository (262 MB), the scored run is.
+
