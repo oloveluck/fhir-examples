@@ -252,6 +252,20 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   development questions, unprepared and untuned: 9 of 10 at 40k input tokens and 5 calls (the
   shell REST arm of round 4: 69k), so the harness alone is a large part of what the tools arms
   saved. Ten questions decide nothing.
+  **Narrowed and run: M** (the same day; the protocol's amendment, `value-experiment/RESULTS.md`).
+  The owner asked for just enough to tell whether the FHIR tools add value over the harness
+  alone. Arm `mcp-tools` (`raco fhir-mcp`'s query and describe, the reading card; the same
+  `python` and `answer` from `rest-server.rkt WORK -`, which then reaches no data) against
+  `rest-tools`, one pass of `test-heldout-150` (never run on either, nor on the workspace or MCP
+  arms): 125 and 126 of 150; the difference −0.7 points (interval −4.0 to +2.7); input tokens
+  25.5k against 29.9k, ratio 0.85 (0.69 to 1.05). No difference shown, a clear null by the
+  protocol's bounds: the generic reading tools add nothing significant over REST and Python
+  under the same harness. 21 questions are missed by both, and `tables-tools` is right on 19 of
+  them (148 of the 150 at 10k tokens) — but that arm also has the training split's examples and
+  checks, so what carries it is not isolated (the protocol's A1 would). `analysis.rkt` says
+  whether a null is a clear one (`clear-null?`). A first start was discarded: the REST server
+  had died before it (started with `nohup … &` from a tool call; start it with `setsid`), and
+  the run script now checks the server before and after each arm.
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.

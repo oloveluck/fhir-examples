@@ -41,6 +41,11 @@ What changes between arms is only how the agent reaches the data.
   same one-sentence system prompt, the session ended when the answer is written. `FAB_PREPARED`
   is what a preparing agent left for it (its `PROMPT.md` joins the prompt, the directory is on
   Python's module path).
+- **mcp-tools** (FHIR-AgentBench) — the toolkit under that same harness: `raco fhir-mcp`'s
+  reading tools (`query`, `describe`) in place of `get`, the same `python` (which then reaches
+  no data) and `answer`, the reading card in the prompt. On 150 questions neither had been run
+  on: 125 right at 25.5k input tokens against `rest-tools`' 126 at 29.9k — no difference
+  (`../value-experiment/RESULTS.md`).
 - **official-hapi**, **official-ours** (MedAgentBench) — the benchmark's own protocol: the model
   answers each turn with one `GET`, `POST` or `FINISH` line, at most 8 rounds, no tools of its own.
   Against HAPI and against our server, it shows whether the server is a drop-in replacement.
