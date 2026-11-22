@@ -28,7 +28,7 @@
                     [agreement-interval i:agreement-interval] [permutation-p i:permutation-p])
          (only-in "../../agent-bench/run-agent.rkt" run-item in-parallel audit current-resume? read-json-file write-json-file))
 
-(provide (struct-out outcome) (struct-out impl) yes? answer-of call-measure case-seconds
+(provide (struct-out outcome) (struct-out impl) yes? answer-of call-measure case-seconds score-one!
          share-right agreement difference bootstrap-difference permutation-p agreement-interval)
 
 
