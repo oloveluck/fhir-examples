@@ -156,11 +156,13 @@
               #:builtin builtin #:timeout 3000 #:max-turns session-turns))
   (define bad (audit rec forbidden))
   (unless (null? bad) (display-lines-to-file bad (build-path work "AUDIT") #:exists 'truncate))
-  (printf "~a ~as in ~a out ~a turns ~a~a~a~a\n" id (hash-ref rec 'seconds) (hash-ref rec 'input_tokens)
+  (printf "~a ~as in ~a out ~a turns ~a~a~a~a~a\n" id (hash-ref rec 'seconds) (hash-ref rec 'input_tokens)
           (hash-ref rec 'output_tokens) (hash-ref rec 'turns)
           (if (file-exists? (build-path work "validator.py")) "" "  no validator.py")
           (if (or (eq? arm 'B) (file-exists? (build-path work "verdict.json"))) "" "  no verdict")
-          (if (null? bad) "" "  AUDIT"))
+          (if (null? bad) "" "  AUDIT")
+          ;; files written beside the session's directory (the harness keeps them under _outside/)
+          (if (directory-exists? (build-path work "_outside")) "  WROTE OUTSIDE" ""))
   (flush-output))
 
 ;; ---- score: everything that decides a result is here, in Racket ------------------------------------

@@ -500,3 +500,25 @@ sample shows (a few points); O is at least 5 points above R, because every "unkn
 A trial (one implementation of one profile, built and checked in the three arms) is run first to
 find faults in the harness; its sessions are not counted and its directory is not the sealed
 run's.
+
+### 2026-11-22, after V-profile's trial and before its sealed run
+
+The trial (one implementation of the Organization profile, built and checked in the three arms;
+not counted) found one fault in the harness and nothing to change in the design:
+
+- A checker wrote two scratch files beside its directory (`../t.py`), and the harness, which
+  moves a session's directory into the run and removes what held it, failed on the directory
+  that was not empty; that session left no record and was run again. The harness now keeps such
+  files with the session, under `_outside/`, and the run's log marks the session
+  (`agent-bench/run-agent.rkt` `settle!`). Another checker wrote its test resources under
+  `/tmp`. Neither reads anything it was not given; both are counted and reported, not excluded.
+- The implementation as built was right on 94.1% of its held-out cases — above the 75% to 90%
+  predicted — and no arm changed it. The prediction and the bar stand as written.
+
+One thing about the oracle changed between the trial and the sealed run, and is said here because
+the oracle is part of what is tested: a gate of this repository (the six fetched guides'
+examples through their generated servers) showed that one of the validator's new checks refused
+published examples of two other guides — a code of a system that a value set takes whole but
+whose content is not at hand was read as "not in the value set". That check now says "cannot
+say" unless the value set's definition never names the system. Its agreement with HL7's
+verdicts on the 741 cases is what it was: 736, and 578 of the 583 held out.

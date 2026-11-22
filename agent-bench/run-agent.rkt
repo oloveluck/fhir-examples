@@ -135,11 +135,18 @@
   (define d (build-path (make-temporary-directory "~a" #:base-dir work-root) id))
   (make-directory* d)
   d)
-;; settle! : real work -> void   the agent's directory moved to the item's place in the run
+;; settle! : real work -> void   the agent's directory moved to the item's place in the run. What
+;; an agent wrote BESIDE its directory (`../t.py`: one did, and the item failed on the directory
+;; that was not empty) is kept with the item, apart, under `_outside/`.
 (define (settle! real work)
   (when (link-exists? work) (delete-file work))
   (rename-file-or-directory real work)
-  (delete-directory (let-values ([(parent _n _d) (split-path real)]) parent)))
+  (define parent (let-values ([(parent _n _d) (split-path real)]) parent))
+  (define strays (directory-list parent))
+  (unless (null? strays)
+    (make-directory* (build-path work "_outside"))
+    (for ([s (in-list strays)]) (rename-file-or-directory (build-path parent s) (build-path work "_outside" s))))
+  (delete-directory parent))
 
 (define (run-item id prompt workdir model tools
                   #:prepare [prepare #f] #:timeout [timeout 1200] #:max-turns [max-turns 60] #:env [env-extra '()]
