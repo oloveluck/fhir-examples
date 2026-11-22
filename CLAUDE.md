@@ -217,6 +217,24 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   said is held once (0 of 600 sessions). Two passes: 300 and 300 at 6.2k input tokens and
   3.7 s a task (iteration 6: 9.7k, 3.7 s); a first call is 2.3k tokens; agents ask for the
   definition in the same call as their first search four times in five.
+  **Iteration 8: what both calls re-read** (2026-11-22, the same write-up). Counted in the
+  model's tokens (scratch `count-tokens.py`: a one-word session with and without a text): the
+  tools arm's prompt was 2.3k, 1.5k of it the kinds list, and the second call re-reads it; the
+  `kind` tool's answer 3.6k, 1.5k of it the schema. For the tools arm alone (the other arms'
+  prompts unchanged to the byte): the kinds list without what every kind says (`run.rkt`
+  `short-kinds-list`, `short-kind`: "patient {patient}" is P, "of P" and `[when]` left out, a
+  slot one word; about 1.0k tokens; which kind is picked moves no more than between two runs
+  of one code, 7 of 150); the schema a line a table (`fab/schema-lines.md`, `schema-lines`:
+  0.8k tokens; `schema-columns` holds it to schema.md's tables and columns in a test); and
+  what each tool does said by its definition alone. Tried and put back: a shorter step 3 —
+  its list of what the notes are about works as an instruction (left out, two questions of 150
+  were answered with a time where they ask whether, and held: a third call). Same machine,
+  the same 150 validation questions: 11.6k -> 9.9k tokens, 4.7 to 4.9 s either way. Whole
+  validation split 414 of 414 in scope at 9.9k; whole test split, three passes: 1206 of 1227
+  as scored, 1203 of 1203 in scope, PASS, at 10.0k input tokens (11.8k; a first call 3.3k, a
+  second 6.3k) and 4.8 s. A working copy run by `racket <copy>/…/run.rkt` must be compiled
+  whole (`raco make fab/*.rkt *.rkt`): its tool server, started by path, otherwise compiles
+  itself at every start (1.5 s a question, which looked like a slower prompt).
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.

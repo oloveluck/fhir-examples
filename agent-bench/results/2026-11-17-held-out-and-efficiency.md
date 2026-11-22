@@ -562,28 +562,109 @@ then the POST), which the shorter calls of every task pay for: the time is the s
 the shell arm on the same machine (40.6k tokens, 6.4 s): 15% of the tokens, 58% of the time,
 the same 300 of 300.
 
+## Iteration 8: what both calls re-read (2026-11-22)
+
+A question of the tables arm is two calls of the model, and the second re-reads the first's
+prompt. Counted part by part, in the model's own tokens (a one-word session with and without
+the text): the prompt is 2.3k, of which the list of the 45 kinds of question is 1.5k, and so
+costs 3.0k a question; the `kind` tool's answer is 3.6k, of which the schema is 1.5k, the
+examples 0.9k, how to write the query 0.6k and how to give it to `answer` 0.5k. Three things
+were shortened, for the tools arm alone (the other arms' prompts are unchanged to the byte):
+
+- **The kinds list without what every kind says** (`run.rkt` `short-kinds-list`, `short-kind`):
+  "patient {patient}" is `P`, said once above the list; "of P" and a kind's time, `[when]`, are
+  left out; a slot is named by one word (`{vital}`, where it was `{vital_name}`). About 1.0k
+  tokens where it was 1.5k. The `kind` tool still shows a kind whole. Which kind an agent picks moved
+  no more than it moves between two runs of the same code: 7 of 150 validation questions
+  differ between yesterday's run and today's of the old list, and 7 between the old list and
+  the new.
+- **The schema a line a table** (`fab/schema-lines.md`, `schema-lines`): `labevents: hadm_id,
+  itemid, charttime (when the specimen was taken), valuenum (the result as a number)`, with a
+  meaning only where the name does not say it, in place of a table of a row a column in pipes
+  and backticks: 0.8k tokens where it was 1.5k. A test holds the two writings to the same
+  tables and columns (`schema-columns`).
+- **What each tool does, said by its definition alone.** The prompt described the three tools
+  and then the `kind` tool again, in the words of their definitions, which every call carries
+  too: said twice, read four times a question.
+
+**Tried and put back: a shorter step 3.** Its list of what the `answer` tool's notes are about
+("a value selected where the question asks whether something is so, a time selected where it
+does not ask when", …) reads like something to say when a note is printed, which three sessions
+in a hundred see. Left out, two questions of 150 that ask "has there been …" were answered with
+a time, which the tool then held (a third call: 7k tokens and a second and a half), where with
+the list the agents select a comparison at once. The list is an instruction, not a description:
+it stays.
+
+One machine (the container was replaced again, so the old code was run first), the same 150
+validation questions, one after the other:
+
+| 150 validation questions | in scope | input tokens | … 90th percentile | output tokens | seconds |
+|---|---|---|---|---|---|
+| iteration 5's code | 144 of 144 | 11,603 | 12,396 | 430 | 4.7 |
+| the kinds list and the schema shortened | 144 of 144 | 10,157 | 10,942 | 432 | 4.7 |
+| … and each tool described once | 144 of 144 | 9,897 | 10,675 | 434 | 4.9 |
+
+The whole validation split once, then the whole test split three times, under the final code:
+
+```
+runs 2, questions 424, answers 424
+as scored       415 of 424 (97.9%)
+set aside       10 questions (set-aside.json): 1 of 10 marked right
+in scope        414 of 414 (100.0%) over 414 questions: 414 right every time, 0 missed sometimes, 0 missed every time
+
+a question costs  input tokens: mean 9858, median 9538   turns: mean 3.04   seconds: mean 4.8
+citations         precision 0.958   recall 0.969
+
+PASS
+```
+
+```
+runs 9, questions 409, answers 1227
+as scored       1206 of 1227 (98.3%)
+set aside       8 questions (set-aside.json): 3 of 24 marked right
+in scope        1203 of 1203 (100.0%) over 401 questions: 401 right every time, 0 missed sometimes, 0 missed every time
+
+a question costs  input tokens: mean 10030, median 9563   turns: mean 3.04   seconds: mean 4.8
+citations         precision 0.991   recall 0.993
+
+PASS
+```
+
+| the test split, three passes | iteration 5 | iteration 8 |
+|---|---|---|
+| as scored | 1205 of 1227 | 1206 of 1227 |
+| in scope | 1202 of 1203 (the one the judge's) | 1203 of 1203 |
+| input tokens a question, mean | 11,769 | **10,030** (−15%) |
+| … median | 11,307 | 9,563 |
+| … 90th percentile | 12,487 | 10,736 |
+| output tokens a question, mean | 434 | 438 |
+| seconds a question, mean | 4.6 (4.7 on this machine, above) | 4.8 (4.7 above) |
+| citations: precision, recall | 0.991, 0.993 | 0.991, 0.993 |
+
+The first call of the model carries 3.3k tokens and the second 6.3k; 1,158 of the 1,227
+sessions are those two calls. The time did not move (4.7 to 4.9 s a question on this machine
+under either code): a call's seconds are what the model writes, not what it reads. The gate's output is in `2026-11-17-tables/gate-iteration8.txt`.
+
+Against the baseline the loop began from (45,474 tokens a question): 22% of the tokens, the
+same answers.
+
 ## Next in the loop
 
-Read from iteration 5's sessions: the first call of the model carries 3.9k tokens, the second
-7.5k, and 3% of the sessions make a third. A question's 4.5 s are, by the sessions' own
-timestamps: the first call 1.2 s, the second 1.6 s, the two tools 0.4 s, and 1.2 s around them
-(the agent runtime starting, connecting its tool server, and ending).
-
-- **Two calls** is what the arm's design takes: one to pick the kind and give the names, one to
-  write the query. What the second call carries beyond the first is the `kind` tool's answer
-  (3.5k tokens: the schema, the example, how to write the query, the time phrases the question
-  says, the names).
-- **The time** is the model's (2.8 s, some 430 tokens written) and the runtime's own start and
-  end (1.2 s; the tool server says its tools 0.2 s after it starts and opens the workspace
-  while the model reads).
+- **FHIR-AgentBench's tables arm** is two calls of 3.3k and 6.3k tokens. Of the first, the
+  kinds list is about 1.0k and the rest of the prompt 0.7k; the other 1.6k is the agent
+  runtime's own and the three tool definitions. What the second adds is the `kind` tool's answer (2.9k:
+  two examples 0.9k, the schema 0.8k, how to write the query and give it to `answer` 1.0k).
+  The time is the model's writing (some 440 tokens, 2.8 s), the tools' 0.4 s and the runtime's
+  start and end (1.2 s).
+- **What a note is about, said before the query is written, works as an instruction**
+  (iteration 8): a shorter text is not always a cheaper session.
 - **"no: none on record"** is the one wording the benchmark's judge has marked both ways: three
-  times in 882 judgements over every run so far (this iteration's one among them), each time on
-  an answer marked right in the other passes. Its judge first asks whether an answer says the
-  question cannot be answered, and an answer it reads so is right without a second judgement
-  where the benchmark records none. Tried on the 26 validation questions answered with that
-  wording, five judgements of each of three wordings ("no: none on record", "none: nothing on
-  record", "no: nothing on record"): read as no answer 0, 22 and 4 times of 130, and marked
-  right 130 of 130 under each. Nothing to choose between them at that size; the wording stays.
+  times in 882 judgements over the runs up to iteration 5, each time on an answer marked right
+  in the other passes; not in iteration 8's three passes. Tried on the 26 validation questions
+  answered with that wording, five judgements of each of three wordings ("no: none on record",
+  "none: nothing on record", "no: nothing on record"): read as no answer 0, 22 and 4 times of
+  130, and marked right 130 of 130 under each. Nothing to choose between them at that size; the
+  wording stays.
 - **MedAgentBench** is two calls of 2.3k and 3.0k tokens for three sessions in four; what is
   left in them is the runtime's own 0.6k, the three tool definitions and the question.
 - **FHIR-AgentBench's other arms** (the workspace verbs with no tables, MCP, plain REST) have

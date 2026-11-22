@@ -84,6 +84,25 @@ EOF
   (string-append "People who compute against this schema write each kind of question's query one way. The kinds (a kind's slots in braces and brackets):\n"
                  (examples-file "kinds.md")))
 
+;; short-kinds-list : -> string   the same list for an agent with the tools, whose every call
+;; re-reads it: without what every kind says ("patient {patient}" is P, "of P" is left out) or
+;; nearly every one (its time, `[when]`), a slot named by one word. 1.0k tokens where the list
+;; is 1.5k; the `kind` tool shows a kind whole.
+(define (short-kinds-list)
+  (string-append "People who compute against this schema write each kind of question's query one way. The kinds (a kind's slots in braces and brackets; each is asked of one patient, P, and most within a time — \"since 2100\", \"on the last hospital visit\" — which the list leaves out):\n"
+                 (string-join (map short-kind (string-split (examples-file "kinds.md") "\n")) "\n")))
+
+;; short-kind : string -> string   one line of kinds.md, shortened
+(define (short-kind line)
+  (for/fold ([l line])
+            ([from+to (in-list '((#rx" \\[when[0-9]*\\]" "")
+                                 (#rx" of patient {patient}" "")
+                                 (#rx"patient {patient}" "P")
+                                 (#rx"{([a-z]+)_name([0-9]*)}" "{\\1\\2}")
+                                 (#rx"{vital_value}" "{value}")
+                                 (#rx"{drug_route}" "{route}")))])
+    (regexp-replace* (car from+to) l (cadr from+to))))
+
 ;; step-1 : boolean -> string   picking the kind, looking the names up: with a shell the agent
 ;; asks the tables for each name; with the tools it gives the names to `kind`, which asks
 (define (step-1 tools?)
@@ -116,7 +135,7 @@ EOF
 ;; the `kind` tool with the first example it shows (tables-workspace! writes it to
 ;; examples/next.md). The first call picks a kind and gives the names, which needs neither.
 (define (next-steps)
-  (string-append (tables-schema) "\n\n"
+  (string-append (schema-lines) "\n\n"
                  "What to do next (steps 2 and 3). Write a query whole, a condition that occurs twice written out twice.\n"
                  (step-2) (step-3 #t)))
 
@@ -143,15 +162,13 @@ EOF
      ;; example (`next-steps`, which the `kind` tool says once): in the prompt they were read
      ;; again in every call
      (string-append
-      "Access: the dataset as the tables of a relational schema (the tables are defined over the FHIR data), through three tools:\n"
-      "  kind     how a kind of question is answered (below), how the tables write the names you give it, and, with the first example, the schema\n"
-      "  answer   the query that answers the question: its rows, the answer, the resources behind it — written to the answer file\n"
-      "  sql      one SQLite statement; rows come back as JSON\n\n"
-      (kinds-list) "\n\n"
-      "The `kind` tool shows the kinds whose numbers you give it: a question or two of that kind, what each assumes, the query that answers it, and then how the tables write your names and how the time phrases of your question are written in such a query.\n\n"
+      ;; what each tool does is its definition's to say: said here as well it was read four
+      ;; times a question
+      "Access: the dataset as the tables of a relational schema (the tables are defined over the FHIR data), through your three tools: `kind`, `answer` and `sql`.\n\n"
+      (short-kinds-list) "\n\n"
       "Work like this:\n"
       (step-1 #t)
-      "2 and 3. Write your query from the example and give it to `answer`: how is said with what `kind` answers. Do as it says there.")]
+      "2 and 3. Write your query from the example and give it to `answer`: `kind` says how, and gives the schema, with the first example it shows. Do as it says there.")]
     [("mcp")
      (string-append "Access: the FHIR workspace's tools (mcp__fhir__…: query, describe, explain, run, check, …), over this dataset. "
                     "The card below writes a call as the shell does: `describe ref=X as=fsh` is the describe tool with ref and as.\n\n"
@@ -179,6 +196,31 @@ EOF
 (define (tables-schema)
   (string-append "The schema (a time is text, `YYYY-MM-DD HH:MM:SS`; an identifier an integer):\n"
                  (string-join (filter (lambda (l) (regexp-match? #rx"^[|]" l)) (file->lines schema-file)) "\n")))
+
+;; schema-lines : -> string   the same schema a line a table (schema-lines.md), for an agent
+;; with the tools: 0.8k tokens where the table is 1.5k (its pipes and backticks, and a meaning
+;; said for every column, where most columns' names say theirs)
+(define-runtime-path schema-lines-file "schema-lines.md")
+(define (schema-lines) (string-trim (file->string schema-lines-file)))
+
+;; schema-columns : string -> (listof (cons string (listof string)))   the tables and their
+;; columns a schema text names, as written: the table's rows, or the lines
+(define (schema-columns text)
+  (define rows
+    (for/fold ([acc '()]) ([l (in-list (string-split text "\n"))])
+      (cond
+        [(regexp-match #rx"^[|] *(`[a-z_]+`)? *[|]([^|]*)[|]" l)
+         => (lambda (m)
+              (define cols (regexp-match* #rx"`([a-z_]+)`" (caddr m) #:match-select cadr))
+              (cond [(cadr m) (cons (cons (substring (cadr m) 1 (sub1 (string-length (cadr m)))) cols) acc)]
+                    [(pair? acc) (cons (cons (caar acc) (append (cdar acc) cols)) (cdr acc))]
+                    [else acc]))]
+        [(regexp-match #rx"^([a-z_]+): (.*)$" l)
+         => (lambda (m)
+              (define without-notes (regexp-replace* #rx" [(][^()]*[)]" (caddr m) ""))
+              (cons (cons (cadr m) (map string-trim (string-split without-notes ","))) acc))]
+        [else acc])))
+  (reverse rows))
 
 ;; examples-dir : -> path   what make-examples wrote (FAB_EXAMPLES): kinds.md, phrases.md, <n>.md
 (define (examples-dir) (or (getenv "FAB_EXAMPLES") (error 'run "set FAB_EXAMPLES to the directory make-examples wrote")))
@@ -360,6 +402,23 @@ EOF
   (check-regexp-match #rx"give `kind`, as `names`, each name your question gives" (step-1 #t))
   (check-false (regexp-match? #rx"SELECT DISTINCT drug" (step-1 #t)))
   (check-regexp-match #rx"SELECT DISTINCT drug FROM prescriptions WHERE lower[(]trim[(]drug[)][)] = '5% dextrose'" (step-1 #f))
-  (check-regexp-match #rx"^The schema [(].*[|] `patients` [|] `subject_id` [|].*
+  (check-regexp-match #rx"^The schema [(].*\npatients: subject_id, gender [(]`M` or `F`[)]\n.*
 
-What to do next [(]steps 2 and 3[)]" (next-steps)))
+What to do next [(]steps 2 and 3[)]" (next-steps))
+  ;; the two writings of the schema name the same tables and columns
+  (check-equal? (schema-columns (schema-lines)) (schema-columns (tables-schema)))
+  (check-equal? (length (schema-columns (tables-schema))) 15)
+  (check-equal? (car (schema-columns "| `patients` | `subject_id` | the patient's number |\n| | `gender` | `M` or `F` |"))
+                '("patients" "subject_id" "gender"))
+  ;; the kinds as the tools arm's prompt lists them
+  (check-equal? (short-kind "1. When was the [first/last] time that the {vital_name} of patient {patient} was [less/greater] than {vital_value} [when]?")
+                "1. When was the [first/last] time that the {vital} was [less/greater] than {value}?")
+  (check-equal? (short-kind "13. When was patient {patient}'s [first/last] {spec_name} microbiology test [when]?")
+                "13. When was P's [first/last] {spec} microbiology test?")
+  (check-equal? (short-kind "2. Has patient {patient} been prescribed {drug_name1}, {drug_name2}, or {drug_name3} [when]?")
+                "2. Has P been prescribed {drug1}, {drug2}, or {drug3}?")
+  (check-equal? (short-kind "15. What was the name of the drug that patient {patient} was [first/last] prescribed via {drug_route} route [when]?")
+                "15. What was the name of the drug that P was [first/last] prescribed via {route} route?")
+  ;; step 3 says what each note is about before the query is written: left out, five sessions
+  ;; in 150 more wrote what a note then held (a time where the question asks whether)
+  (check-regexp-match #rx"a time selected where it does not ask when" (step-3 #t)))

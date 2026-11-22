@@ -103,7 +103,7 @@ SQL:
    the `kind` tool says the rest with the first example (how to write the query and give it to
    `answer`, the conditions of the time phrases the question says), and `kind` also answers how
    the tables write each name the question gives, so the schema comes with the example and the
-   first call looks nothing up. 12k input tokens and 4.6 s a question where `tables` takes 29k
+   first call looks nothing up. 10k input tokens and 4.8 s a question where `tables` takes 29k
    and 7.7 s, the same answers. (An agent is started without the variables by which a hosted
    session names itself, `run-agent.rkt` `withheld`: with them every call carried 1.4k tokens
    of that session's reminders.)
