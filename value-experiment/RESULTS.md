@@ -267,8 +267,8 @@ and nowhere how a handler *reads* one: four of the five implementers of that ope
 the value and took it apart with regular expressions. One of them had also noticed the
 wrong-type requests among its examples and got them right from the second version on, by
 printing the whole request and parsing that. The other change sessions cost the declared arm
-one to two and a half times the hand-built one's (54k to 131k against 41k to 63k): the guide is
-read again by each new session.
+from a little less to nearly three times the hand-built one's (54k to 131k against 41k to
+63k): the guide is read again by each new session.
 No session read outside its directory (the audit found nothing in 120 sessions).
 
 **What the declaration did buy.** Half the code (48 lines against 106), and the server
@@ -289,4 +289,29 @@ lineages an arm; the hand-built arm's 100% leaves no variance to estimate from, 
 interval is the declared arm's. The toolkit was used as it was at fhir `c587dcb` (and the
 language repositories' commits of the same day); the two gaps this run found are fixed after
 it, and that is reported apart, below.
+
+### After the run: the two gaps closed, and the same servers scored again
+
+Not part of D's result: the tasks had been seen by then. Reported because the servers are the
+same 120 the implementers left, and nothing in them was touched.
+
+- The capability runtime now holds a POSTed value to the type its key names (a `valueString`
+  for a declared decimal, code or date, a `valueDecimal` for a declared Quantity, is a 400
+  naming the key to send) and converts only what came as text in a GET query. Number kinds
+  stay interchangeable, as FHIR leaves a server free to take them.
+- A handler reads the parts of an input that is not one value with `field` and `fields`
+  (`(field q 'value)`, `(field q 'code)`), and the guide has a tested example of an operation
+  that takes a Quantity.
+
+Scored again under that toolkit (`results/2026-11-22-report-after-the-fix.txt`), every
+declared server answers every request as its definition says: 100.0% in all fifteen lineages,
+level with the hand-built ones. The cost is the run's (the sessions happened before the fix),
+so what the fix would do to the 548k-token session is not measured.
+
+So D, read with what followed it: declaring an operation is not more often right than writing
+it by hand, and was less often right while the framework had a leniency no implementer could
+correct; with that closed the two are level, and the declared route costs an agent more
+tokens, mostly reading the language's guide in every session. The experiment found no
+advantage for the declared route. What it did was find two defects in it, which a suite
+written by someone who had not seen the toolkit caught and its own tests had not.
 

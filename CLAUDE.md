@@ -300,6 +300,35 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   M (the questions by arm, a session's tokens, calls and seconds, each kind of call, a third
   arm on the same questions); a number in a write-up comes from committed Racket, not from a
   scratch script (two 90th percentiles and one rounding of M's table were corrected by that).
+  **D: the definition as the implementation** (2026-11-22; the protocol's third amendment, which
+  also states the programme: one claimed advantage to an experiment — D, then B and C, then E
+  (an error said at its cause) and S2 (S on another kind of system) — each stated before its
+  run). The owner: "Operation definition make the implementation." `value-experiment/
+  definition-first/`: `tasks.rkt` (tasks/<slot>/v1…v4: an operation's OperationDefinition,
+  statement, change and cases, written by an agent that has not seen the toolkit —
+  `definition-first.rkt author` — and every request decided again by a second agent given the
+  requests alone — `check`: what it decides otherwise is dropped; the contract; each arm's
+  prompt and directory; `fault-kind`: what a request asks, read from the definition), `try.py`
+  (the implementers' own check), `definition-first.rkt` (`run`: a lineage is four sessions, the
+  build and then each change in a new session over what the one before left; `score`: each
+  stage's server started and sent its version's requests, in Racket — `call-with-server`,
+  `post`, `wrong`; `report`, `misses`). `../implementers.rkt` is the analysis S and D share
+  (two-level bootstrap, cases drawn within strata, permutation, cost ratios; S's report
+  unchanged to the byte). Three operations (eGFR, corrected QT, anion gap), 752 requests, 30
+  lineages, 120 sessions: by hand in Python 100.0% in all 15 lineages; declared in the capability
+  language 94.0% (−6.0 points, −8.1 to −4.1) at 2.46 times the input tokens. The prediction
+  (level when built, apart after changes) was wrong both ways. Every miss is one kind of
+  request, a value POSTed under the key of another type than declared, which the capability
+  runtime converted as it converts a GET query's text; on the other 506 requests both arms are
+  right every time. Most of the extra cost is one session (a decimal input became a Quantity:
+  548k tokens against 46k), because the guide did not say how a handler reads a Quantity and
+  implementers parsed its printed form. Both gaps were fixed in fhir-server after the run (a
+  POSTed value held to its key's type; `field`/`fields`; a tested guide example) and the same
+  120 servers scored again: every declared server 100%, level — reported apart, as after the
+  fact. No advantage found for the declared route for an agent; two defects found in it. From
+  the trial: the audit's list must not name the agents' own directory (`/tmp/agent-bench/`),
+  and an implementer told only "use this directory" searched the toolkit's source (the prompt
+  now says to read nothing outside it; 0 flags in the 120 sealed sessions).
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.
