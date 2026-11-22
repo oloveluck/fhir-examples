@@ -1,0 +1,100 @@
+{
+  "resourceType": "OperationDefinition",
+  "url": "http://example.org/fhir/OperationDefinition/energy-needs",
+  "version": "2.0.0",
+  "name": "EnergyNeeds",
+  "title": "Adult energy needs",
+  "status": "active",
+  "kind": "operation",
+  "code": "energy-needs",
+  "system": true,
+  "type": false,
+  "instance": false,
+  "description": "Estimates basal metabolic rate (Mifflin-St Jeor), body mass index and daily energy need of an adult.",
+  "parameter": [
+    {
+      "name": "weight",
+      "use": "in",
+      "min": 1,
+      "max": "1",
+      "type": "decimal",
+      "documentation": "Body weight in kg."
+    },
+    {
+      "name": "height",
+      "use": "in",
+      "min": 1,
+      "max": "1",
+      "type": "decimal",
+      "documentation": "Standing height in cm."
+    },
+    {
+      "name": "age",
+      "use": "in",
+      "min": 1,
+      "max": "1",
+      "type": "integer",
+      "documentation": "Age in whole years, 18 to 100."
+    },
+    {
+      "name": "sex",
+      "use": "in",
+      "min": 1,
+      "max": "1",
+      "type": "code",
+      "documentation": "Sex used in the equation: male or female.",
+      "binding": {
+        "strength": "required",
+        "valueSet": "http://example.org/fhir/ValueSet/energy-sex"
+      }
+    },
+    {
+      "name": "activity",
+      "use": "in",
+      "min": 0,
+      "max": "1",
+      "type": "code",
+      "documentation": "Activity level: sedentary, light, moderate, active, very-active. Default sedentary.",
+      "binding": {
+        "strength": "required",
+        "valueSet": "http://example.org/fhir/ValueSet/energy-activity"
+      }
+    },
+    {
+      "name": "goal",
+      "use": "in",
+      "min": 1,
+      "max": "1",
+      "type": "code",
+      "documentation": "Energy goal: maintain, lose or gain.",
+      "binding": {
+        "strength": "required",
+        "valueSet": "http://example.org/fhir/ValueSet/energy-goal"
+      }
+    },
+    {
+      "name": "bmr",
+      "use": "out",
+      "min": 1,
+      "max": "1",
+      "type": "decimal",
+      "documentation": "Basal metabolic rate, kcal/day, 0 decimals."
+    },
+    {
+      "name": "bmi",
+      "use": "out",
+      "min": 1,
+      "max": "1",
+      "type": "decimal",
+      "documentation": "Body mass index, kg/m2, 1 decimal."
+    },
+    {
+      "name": "energy",
+      "use": "out",
+      "min": 1,
+      "max": "1",
+      "type": "decimal",
+      "documentation": "Daily energy target, kcal/day, 0 decimals."
+    }
+  ]
+}

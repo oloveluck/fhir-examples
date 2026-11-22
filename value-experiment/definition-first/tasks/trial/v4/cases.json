@@ -1,0 +1,2890 @@
+[
+ {
+  "id": "c01",
+  "about": "age as string",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 70
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 175,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueString": "30"
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c02",
+  "about": "valid random",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 53.5
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 161,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 26
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "activity",
+     "valueCode": "light"
+    },
+    {
+     "name": "goal",
+     "valueCode": "lose"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1250.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 20.6,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 1219.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "normal"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c03",
+  "about": "sex outside binding",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 70
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 175,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 30
+    },
+    {
+     "name": "sex",
+     "valueCode": "other"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c04",
+  "about": "valid random",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 98.1
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 165,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 30
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "activity",
+     "valueCode": "light"
+    },
+    {
+     "name": "goal",
+     "valueCode": "lose"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1701.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 36.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 1839.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "obese"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c05",
+  "about": "missing age",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 70
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 175,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c06",
+  "about": "height unit m",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 70
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 1.75,
+      "unit": "m",
+      "system": "http://unitsofmeasure.org",
+      "code": "m"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 30
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c07",
+  "about": "valid random",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 108.8
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 149,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 40
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "activity",
+     "valueCode": "moderate"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1658.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 49.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 2570.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "obese"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c08",
+  "about": "height as decimal",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 70
+    },
+    {
+     "name": "height",
+     "valueDecimal": 175
+    },
+    {
+     "name": "age",
+     "valueInteger": 30
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c09",
+  "about": "age 101",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 70
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 175,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 101
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c10",
+  "about": "weight 19",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 19
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 100,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 30
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c11",
+  "about": "valid female light",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 45
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 170,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 19
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "activity",
+     "valueCode": "light"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1257.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 15.6,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 1728.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "underweight"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c12",
+  "about": "missing height",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 70
+    },
+    {
+     "name": "age",
+     "valueInteger": 30
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c13",
+  "about": "activity outside binding",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 70
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 175,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 30
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "activity",
+     "valueCode": "extreme"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c14",
+  "about": "sex as string",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 70
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 175,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 30
+    },
+    {
+     "name": "sex",
+     "valueString": "male"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c15",
+  "about": "activity twice",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 70
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 175,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 30
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "activity",
+     "valueCode": "light"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    },
+    {
+     "name": "activity",
+     "valueCode": "active"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c16",
+  "about": "valid male None",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 80
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 230,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 64
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "goal",
+     "valueCode": "lose"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1923.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 15.1,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 1807.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "underweight"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c17",
+  "about": "valid male sedentary",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 52
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 175,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 100
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "activity",
+     "valueCode": "sedentary"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1119.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 17.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 1343.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "underweight"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c18",
+  "about": "valid male light",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 85.5
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 180,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 45
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "activity",
+     "valueCode": "light"
+    },
+    {
+     "name": "goal",
+     "valueCode": "gain"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1760.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 26.4,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 2920.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "overweight"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c19",
+  "about": "sex twice",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 70
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 175,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 30
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c20",
+  "about": "valid random",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 40.7
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 180,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 84
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "activity",
+     "valueCode": "sedentary"
+    },
+    {
+     "name": "goal",
+     "valueCode": "gain"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1117.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 12.6,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 1840.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "underweight"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c21",
+  "about": "height 231",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 80
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 231,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 30
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c22",
+  "about": "goal outside binding",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 70
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 175,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 30
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "goal",
+     "valueCode": "bulk"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c23",
+  "about": "weight as string",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueString": "70"
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 175,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 30
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c24",
+  "about": "valid random",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 54.0
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 187,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 44
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "activity",
+     "valueCode": "sedentary"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1328.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 15.4,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 1593.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "underweight"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c25",
+  "about": "valid male active",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 75
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 170,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 40
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "activity",
+     "valueCode": "active"
+    },
+    {
+     "name": "goal",
+     "valueCode": "gain"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1618.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 26.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 3290.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "overweight"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c26",
+  "about": "age 17",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 70
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 175,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 17
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c27",
+  "about": "valid random",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 86.4
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 188,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 57
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "goal",
+     "valueCode": "gain"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1593.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 24.4,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 2412.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "normal"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c28",
+  "about": "valid random",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 66.1
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 140,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 24
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "activity",
+     "valueCode": "moderate"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1421.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 33.7,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 2203.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "obese"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c29",
+  "about": "valid male None",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 70
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 175,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 30
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1649.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 22.9,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 1979.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "normal"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c30",
+  "about": "valid random",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 45.9
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 186,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 42
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "activity",
+     "valueCode": "active"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1251.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 13.3,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 2157.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "underweight"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c31",
+  "about": "bmi above 70",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 300
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 200,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 30
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c32",
+  "about": "valid female active",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 59
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 170,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 29
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "activity",
+     "valueCode": "active"
+    },
+    {
+     "name": "goal",
+     "valueCode": "lose"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1347.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 20.4,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 1823.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "normal"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c33",
+  "about": "valid random",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 60.2
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 162,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 28
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "activity",
+     "valueCode": "moderate"
+    },
+    {
+     "name": "goal",
+     "valueCode": "gain"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1314.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 22.9,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 2536.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "normal"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c34",
+  "about": "very-active no longer bound",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 70
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 175,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 30
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "activity",
+     "valueCode": "very-active"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c35",
+  "about": "valid female light",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 20
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 100,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 18
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "activity",
+     "valueCode": "light"
+    },
+    {
+     "name": "goal",
+     "valueCode": "gain"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 574.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 20.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 1289.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "normal"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c36",
+  "about": "valid random",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 88.8
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 193,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 43
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "activity",
+     "valueCode": "light"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1718.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 23.8,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 2363.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "normal"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c37",
+  "about": "valid random",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 96.3
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 167,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 77
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "goal",
+     "valueCode": "gain"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1461.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 34.5,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 2253.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "obese"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c38",
+  "about": "missing goal",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 70
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 175,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 30
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c39",
+  "about": "missing sex",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 70
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 175,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 30
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c40",
+  "about": "valid random",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 89.3
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 162,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 54
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "goal",
+     "valueCode": "lose"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1641.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 34.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 1469.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "obese"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c41",
+  "about": "valid female moderate",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 55.2
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 160,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 60
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "activity",
+     "valueCode": "moderate"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1091.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 21.6,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 1691.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "normal"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c42",
+  "about": "valid random",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 79.1
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 166,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 90
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "goal",
+     "valueCode": "gain"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1384.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 28.7,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 2160.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "overweight"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c43",
+  "about": "weight twice",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 70
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 175,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 30
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    },
+    {
+     "name": "weight",
+     "valueDecimal": 71
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c44",
+  "about": "bmi below 12",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 30
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 160,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 30
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c45",
+  "about": "valid female sedentary",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 60
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 165,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 25
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "activity",
+     "valueCode": "sedentary"
+    },
+    {
+     "name": "goal",
+     "valueCode": "lose"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1345.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 22.0,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 1114.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "normal"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c46",
+  "about": "valid male active",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 95
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 185,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 35
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "activity",
+     "valueCode": "active"
+    },
+    {
+     "name": "goal",
+     "valueCode": "lose"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1936.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 27.8,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 2840.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "overweight"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c47",
+  "about": "valid female active",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 48
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 158,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 22
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "activity",
+     "valueCode": "active"
+    },
+    {
+     "name": "goal",
+     "valueCode": "gain"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1197.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 19.2,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 2564.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "normal"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c48",
+  "about": "valid female None",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 150
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 165,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 38
+    },
+    {
+     "name": "sex",
+     "valueCode": "female"
+    },
+    {
+     "name": "goal",
+     "valueCode": "lose"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 2180.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 55.1,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 2116.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "obese"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c49",
+  "about": "missing weight",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 175,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 30
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c50",
+  "about": "valid random",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 75.9
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 166,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 88
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "activity",
+     "valueCode": "active"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1362.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 27.5,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 2349.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "overweight"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c51",
+  "about": "height 99",
+  "change": false,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 40
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 99,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 30
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "goal",
+     "valueCode": "maintain"
+    }
+   ]
+  },
+  "expect": {
+   "status": "4xx"
+  }
+ },
+ {
+  "id": "c52",
+  "about": "valid male moderate",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 110
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 178,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 50
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "activity",
+     "valueCode": "moderate"
+    },
+    {
+     "name": "goal",
+     "valueCode": "lose"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1968.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 34.7,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 2550.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "obese"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c53",
+  "about": "valid random",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 78.0
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 157,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 83
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "activity",
+     "valueCode": "active"
+    },
+    {
+     "name": "goal",
+     "valueCode": "lose"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1351.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 31.6,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 1831.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "obese"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c54",
+  "about": "valid random",
+  "change": true,
+  "request": {
+   "resourceType": "Parameters",
+   "parameter": [
+    {
+     "name": "weight",
+     "valueDecimal": 75.4
+    },
+    {
+     "name": "height",
+     "valueQuantity": {
+      "value": 141,
+      "unit": "cm",
+      "system": "http://unitsofmeasure.org",
+      "code": "cm"
+     }
+    },
+    {
+     "name": "age",
+     "valueInteger": 22
+    },
+    {
+     "name": "sex",
+     "valueCode": "male"
+    },
+    {
+     "name": "activity",
+     "valueCode": "active"
+    },
+    {
+     "name": "goal",
+     "valueCode": "gain"
+    }
+   ]
+  },
+  "expect": {
+   "status": 200,
+   "outputs": [
+    {
+     "name": "bmr",
+     "type": "valueDecimal",
+     "value": 1530.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "bmi",
+     "type": "valueDecimal",
+     "value": 37.9,
+     "tolerance": 0.05
+    },
+    {
+     "name": "energy",
+     "type": "valueDecimal",
+     "value": 3140.0,
+     "tolerance": 0.5
+    },
+    {
+     "name": "category",
+     "type": "valueCode",
+     "value": "obese"
+    }
+   ]
+  }
+ }
+]
