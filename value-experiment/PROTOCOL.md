@@ -840,3 +840,56 @@ types this engine writes differently (a narrative's xhtml, a Bundle's entries, a
 resolved from a reference). At least two are this engine's. On the fresh set the engines agree
 on more than 80% of the pairs: its maps are near kin of matchbox's QuestionnaireResponse maps,
 and they are the reference's own tests.
+
+### 2026-11-23, H part 3: the FSH compiler held to SUSHI
+
+Stated before any output of the two compilers is compared. Parts 1 and 2 stand as measured.
+
+**The reference**: SUSHI 3.21.1 (`fsh-sushi` from npm), HL7's compiler of FHIR Shorthand, run as a
+library by a Node bridge (`reference/SushiReference.js`) that does what SUSHI's own
+`sushiClient.fshToFhir` does, with SUSHI's own functions (the text into its tank, its external
+definitions, its exporter), the definitions loaded once instead of for every text. The bridge
+is held to `sushiClient.fshToFhir` itself on fifty texts (the same resources, the same error
+count) before it is used: it calls and prints, and decides nothing. FHIR 4.0.1; canonical
+`http://example.org`; version 1.0.0; the client's `FSHOnly`; no dependency beyond what SUSHI
+loads by itself. This toolkit's compiler is given the same facts in a `sushi-config.yaml`
+beside the text and run as `raco fsh <dir>` runs (`compile-project`: parse, lint, compile, every
+diagnostic), as committed (fsh ca44330, fhir e2dbd6f).
+
+**The pairs** are texts, each a whole FSH document:
+- *published*: the 515 inputs of SUSHI's own importer tests (vendored by fsh, from SUSHI 3.21.0:
+  written to test its parser, so many name elements that do not exist — which is what an
+  author's mistake looks like); the 22 texts of fsh's golden corpus; the FSH blocks of fsh's
+  guide.
+- *changed*: each published text changed in one small way, each change a text edit of one rule
+  line (`* …`): the line removed; a cardinality replaced by another (`1..1`, `0..1`, `1..*`,
+  `0..*`, whichever it is not); a flag added (`MS`) where the rule has none, or removed; a
+  binding's strength replaced (`required`, `extensible`, `preferred`, `example`: the next one);
+  `(exactly)` added to an assignment or removed from it; an assigned code, text or number
+  replaced by another of its kind.
+
+**What is compared**, in Racket (`reference/fsh-reference.rkt`): `error` when the compiler
+reported an error (SUSHI: a message logged at error level; this compiler: a diagnostic of
+severity error), else the resources it wrote, each as JSON with its keys in order of name and
+numbers by value, in order of type and id. Two answers agree when they are equal. Beside it the
+VERDICT alone (error or not) is reported, since "is this text wrong" is the first thing a
+compiler tells an author.
+
+**Sample and held out.** A published text is in the sample when the first byte of the SHA-1 of
+`<corpus>/<its name>` is divisible by three, with every text changed from it. Part 2's lesson
+is applied: the sample's disagreements are read by cause (the reference's messages and the
+shape of the difference), put under *ours*, *the reference's* or *open* with the sentence of
+the FSH specification (or SUSHI's own test, where the specification is silent — SUSHI is the
+language's reference implementation, and its tests are what the language's authors assert);
+what is this compiler's is fixed in fsh with a test that fails without it; the classes are
+rules, counted over the held-out texts, which are not read in this pass.
+
+**Gates**: fsh's corpus floors (IPS 108/111, mCODE 339/348, Plan-Net 104/105, HRex 46/46,
+Genomics 134/137, GoFSH 117 and 348, importer 514/515, golden 22/22), every package's tests.
+
+**A prediction.** The verdicts agree on more than 85% of the published texts and fewer of the
+changed ones; the whole answers agree on 55 to 70%. The largest class is errors SUSHI reports
+that this compiler does not: a path whose later step is no element, a value of the wrong type
+for its element, a cardinality wider than the base's. Among the texts both compile, most
+differences are in what a differential states (SUSHI writes only what changes) rather than in
+instances. At least five causes are this compiler's.
