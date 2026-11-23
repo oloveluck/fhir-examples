@@ -746,3 +746,25 @@ pairs, which are not read. Gates: fml's corpus floors (`raco fml --tck`), every 
 expected results; the reference is what produced them, with two stale files); changed sources
 on more than 85%; changed maps on fewer than 75%, the largest class being what each engine does
 with a value that does not fit its target (a string truncated or cast into an integer element).
+
+### 2026-11-23, H part 2, second pass: the held-out mapping pairs opened, and a fresh set
+
+Stated before any held-out pair is read. Part 2's outcome (cdcace2) stands as measured.
+
+**Opened.** The 55 held-out pairs that differ under no class, or under a rule whose cause in the
+sample is fixed (52 and 3), are read, classed and — where this engine's — fixed with a test. The
+agreement over part 2's pairs after this pass is then a description.
+
+**A fresh set.** ahdis/matchbox's own top-level maps (fml's vendored corpus: maps over FHIR
+resources — a QuestionnaireResponse to a Patient, a Bundle's entries, casts, narrative — where
+the tutorial's are over small logical models), each with the source fml's own corpus test pairs
+it with; the same change catalogues for the maps; for the sources, every single change down to
+three levels (they are whole resources). Both engines once, after this pass's fixes, with this
+engine also as it was at part 2's outcome (fml ab3d76e). None of its disagreements is read.
+Reported: agreement before and after, and the differences by the classes as they stand.
+
+**A prediction.** The 52 hold three or four more classes, at least one of them this engine's.
+On the fresh set the engines agree less than on the tutorial (under 80%), because these maps
+use FHIR's own types and the reference reads them as R5 where they were written for R4; more
+than 10% of its pairs differ under no class. If so, the fresh set says the method has not yet
+covered the mapping engine as it has FHIRPath, and that is the finding.
