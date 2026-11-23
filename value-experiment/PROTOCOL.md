@@ -802,3 +802,9 @@ sample's differences that remain, more than half are this engine's, in at least 
 (what a FHIR type's own shape asks of a target: a choice element, a primitive with its
 extension, a resource created inside another). After the fixes the held-out maps agree on more
 than they did, but stay under the sample: more than 10% of their pairs differ under no class.
+
+**After the two runs, before any pair is read** (results/2026-11-23-map-fresh-r4-before.txt). The
+sample is a tie: 289 of its 325 pairs agree as R5 and as R4. The held-out maps agree on 205 of
+342 as R5 and 234 as R4; the reference raises on 137 pairs as R5 and 105 as R4. The rule above
+does not decide a tie, so it is decided here: R4, the version the maps were written for. The
+prediction's first part is already wrong (fewer than 40 raised, more than 85% agreeing).

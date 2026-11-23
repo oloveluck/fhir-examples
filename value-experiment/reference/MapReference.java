@@ -1,7 +1,7 @@
 // MapReference.java — the bridge to the validator's StructureMap engine (value-experiment/PROTOCOL.md, H part 2).
 //
 //   javac -proc:none -cp validator_cli.jar -d OUT MapReference.java
-//   java -cp validator_cli.jar:OUT MapReference PAIRS.jsonl ANSWERS.jsonl
+//   java -cp validator_cli.jar:OUT MapReference PAIRS.jsonl ANSWERS.jsonl [4.0.1|5.0.0]
 //
 // PAIRS.jsonl holds one JSON object a line, the pairs of one step together:
 //   {"id": "...", "dir": "<the step's logical models>", "map": "<a map's text, a file>", "url": "<the map's url>",
@@ -10,8 +10,9 @@
 // {"id": "...", "error": "<why the map was not read, or the exception's message>"}.
 //
 // What runs is what `java -jar validator_cli.jar transform` runs once it has a terminology server:
-// FHIR 5.0.0, the core package, the step's logical models; the map parsed by the engine's own
-// parser. This program loads, calls and prints. It compares nothing.
+// the FHIR version asked for (5.0.0 unless 4.0.1 is given) and its core package, the step's logical
+// models; the map parsed by the engine's own parser. This program loads, calls and prints. It
+// compares nothing.
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -32,6 +33,9 @@ import org.hl7.fhir.validation.ValidationEngine;
 public class MapReference {
   public static void main(String[] args) throws Exception {
     Gson gson = new Gson();
+    boolean r4 = args.length > 2 && args[2].equals("4.0.1");
+    String version = r4 ? "4.0.1" : "5.0.0";
+    String core = r4 ? "hl7.fhir.r4.core#4.0.1" : "hl7.fhir.r5.core#5.0.0";
     String dir = null;
     ValidationEngine engine = null;
     Map<String, String> maps = new HashMap<>();   // map file -> "" when read, else why it was not
@@ -47,7 +51,7 @@ public class MapReference {
         try {
           String d = pair.get("dir").getAsString();
           if (!d.equals(dir)) {
-            engine = new ValidationEngine.ValidationEngineBuilder().withVersion("5.0.0").withNoTerminologyServer().fromSource("hl7.fhir.r5.core#5.0.0");
+            engine = new ValidationEngine.ValidationEngineBuilder().withVersion(version).withNoTerminologyServer().fromSource(core);
             String[] models = new java.io.File(d).list();
             if (models != null && models.length > 0) engine.getIgLoader().loadIg(engine.getIgs(), engine.getBinaries(), d, false);
             dir = d;

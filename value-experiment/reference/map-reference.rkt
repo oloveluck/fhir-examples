@@ -4,9 +4,11 @@
 ;;; (value-experiment/PROTOCOL.md, H part 2). Everything that decides a result is here.
 ;;;
 ;;;   racket map-reference.rkt pairs DIR            the materials and DIR/pairs.jsonl
-;;;   racket map-reference.rkt ask DIR JAR          the reference over them (the Java bridge): DIR/answers.jsonl
+;;;   racket map-reference.rkt ask DIR JAR [4.0.1]  the reference over them (the Java bridge): DIR/answers.jsonl
 ;;;   racket map-reference.rkt keep DIR FILE.gz     the reference's answers, in the compared form
-;;;   racket map-reference.rkt ours DIR FILE.gz     this engine's answers, in the compared form
+;;;   racket map-reference.rkt ours DIR FILE.gz [4.0.1]   this engine's answers, in the compared form
+;;; Both engines read FHIR's own types as R5, or as R4 when 4.0.1 is given (a process holds one
+;;; version: `load-version!`).
 ;;;   racket map-reference.rkt report DIR REF.gz OURS.gz [OURS-AFTER.gz]
 ;;;   racket map-reference.rkt read DIR REF.gz OURS.gz [CLASS]     the SAMPLE's disagreements
 ;;;   racket map-reference.rkt classes DIR REF.gz OURS.gz          every disagreement counted by class
@@ -15,7 +17,6 @@
 ;;; with its keys in order of name and its numbers by value. Answers is (hash id Answer).
 
 (require racket/file racket/list racket/string racket/port racket/system racket/runtime-path racket/path json file/gzip file/gunzip
-         (only-in fhir/r5/schemas)
          (only-in fhir/data-source current-data-source resources->data-source)
          (only-in fhir/serialize/from-json from-json)
          (only-in fhir/result/result ok? ok-value)
@@ -23,11 +24,16 @@
          (only-in fml/transform run-map uses-types)
          "map-cases.rkt")
 
-(provide canonical our-map-answer read-answers read-errors map-rows classes class-of)
+(provide canonical our-map-answer read-answers read-errors map-rows classes class-of head-of agree? load-version!
+         write-map-materials! all-map-pairs current-fresh-maps? (struct-out map-pair))
 
 (define-runtime-path bridge "MapReference.java")
 (define-runtime-path kept-reference "answers/map-reference.jsonl.gz")
 (define-runtime-path kept-fresh "answers/map-fresh-reference.jsonl.gz")
+
+;; load-version! : string -> void   the FHIR types this process reads resources by: R5's, or R4's
+;; for "4.0.1". Called once, before any map is run.
+(define (load-version! v) (void (dynamic-require (if (equal? v "4.0.1") 'fhir/r4/schemas 'fhir/r5/schemas) #f)))
 
 ;; ---- the compared form ---------------------------------------------------------------------------
 ;; canonical : jsexpr -> string   JSON with an object's keys in order of name and numbers by value
@@ -110,8 +116,8 @@
   (define f (errors-file file))
   (if (file-exists? f) (for/hash ([(k v) (in-hash (call-with-input-file f read-json))]) (values (symbol->string k) v)) (hash)))
 
-;; ask-reference! : dir jar -> void   the bridge compiled and run (it reads a pair's map as "map")
-(define (ask-reference! dir jar)
+;; ask-reference! : dir jar string -> void   the bridge compiled and run (it reads a pair's map as "map")
+(define (ask-reference! dir jar [version "5.0.0"])
   (define classes (build-path dir "classes"))
   (make-directory* classes)
   (putenv "JAVA_TOOL_OPTIONS" "")
@@ -127,7 +133,7 @@
                                           'url (hash-ref j 'url) 'file (hash-ref j 'file)) o)
                       (newline o))))))
   (unless (system* (find-executable-path "java") "-Xmx6g" "-cp" (format "~a:~a" jar (path->string classes)) "MapReference"
-                   (path->string (build-path dir "bridge-pairs.jsonl")) (path->string (build-path dir "answers.jsonl")))
+                   (path->string (build-path dir "bridge-pairs.jsonl")) (path->string (build-path dir "answers.jsonl")) version)
     (raise-user-error 'map-reference "the bridge failed")))
 
 (define (keep-reference! dir file)
@@ -273,13 +279,16 @@
     ;; the second pass's fresh set: matchbox's top-level maps under the same rules
     [(and (= (length args) 2) (equal? (car args) "fresh-pairs"))
      (parameterize ([current-fresh-maps? #t]) (printf "~a pairs\n" (write-pairs! (cadr args))))]
-    [(and (= (length args) 3) (equal? (car args) "ask")) (ask-reference! (cadr args) (caddr args))]
+    [(and (<= 3 (length args) 4) (equal? (car args) "ask")) (ask-reference! (cadr args) (caddr args) (if (= (length args) 4) (cadddr args) "5.0.0"))]
     [(and (= (length args) 3) (equal? (car args) "keep")) (keep-reference! (cadr args) (caddr args))]
-    [(and (= (length args) 3) (equal? (car args) "ours")) (keep-ours! (cadr args) (caddr args))]
+    [(and (<= 3 (length args) 4) (equal? (car args) "ours"))
+     (load-version! (if (= (length args) 4) (cadddr args) "5.0.0"))
+     (keep-ours! (cadr args) (caddr args))]
     [(and (>= (length args) 4) (equal? (car args) "report"))
      (print-agreement "this engine's result is the reference's:" (rows-of (cadr args) (caddr args) (cadddr args)))
      (when (= (length args) 5) (newline) (print-agreement "after:" (rows-of (cadr args) (caddr args) (list-ref args 4))))]
-    [(and (>= (length args) 4) (member (car args) '("read" "read-opened")))
+    [(and (>= (length args) 4) (member (car args) '("read" "read-opened" "read-r4")))
+     (load-version! (if (equal? (car args) "read-r4") "4.0.1" "5.0.0"))
      (print-sample (cadr args) (rows-of (cadr args) (caddr args) (cadddr args)) (and (= (length args) 5) (list-ref args 4)) (equal? (car args) "read-opened"))]
     [(and (= (length args) 4) (equal? (car args) "classes")) (print-classes (rows-of (cadr args) (caddr args) (cadddr args)))]
     [(and (= (length args) 5) (equal? (car args) "classes") (member (list-ref args 4) '("opened" "fresh")))
@@ -290,6 +299,7 @@
 
 (module+ test
   (require rackunit)
+  (load-version! "5.0.0")
   ;; the engine as it is now, over every pair made afresh, held to the reference's kept answers:
   ;; the write-up's agreement as floors, and nothing of the sample left that is this engine's or
   ;; in no class
