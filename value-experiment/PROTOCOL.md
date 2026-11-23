@@ -669,3 +669,27 @@ What the protocol does not provide for, and the outcome asks: 618 held-out pairs
 class, and 60 raise under a rule whose cause in the sample is fixed. They have not been read.
 Opening them ends their being held out, so it is a second pass with its own entry: the outcome
 above stands as measured, and anything found there is reported as found after it.
+
+### 2026-11-23, H part 1, second pass: the held-out pairs opened, and a fresh set
+
+Stated before any held-out pair is read. Part 1's outcome (46c31fc) stands as measured; what
+follows is after it and is reported as such.
+
+**Opened.** The 678 held-out pairs of part 1 that differ under no class or under a rule whose
+cause in the sample is fixed (618 and 60) are read, sorted into classes by the same three heads,
+and what is this engine's is fixed with a test. Once read they are no longer held out, so the
+agreement over part 1's pairs after this pass is a description, not a test.
+
+**A fresh set, to test it.** The same rules of `fhirpath-cases.rkt` applied to two guides no
+part of this programme has used for FHIRPath: IPS 2.0.1 and mCODE 4.0.0 — their published
+examples; the search expressions of the R4 core package and of the guide for each type the
+guide publishes an example of; the invariants of each such type's core definition and of the
+guide's profiles of it; the same continuations over the first three examples of a type. No
+changed copies, no suite. Both engines are run over it once, after this pass's fixes, with this
+engine also as it was at part 1's outcome (fhirpath 36f52ff). None of its disagreements is read.
+Reported: agreement before and after, and the differences counted by the classes as they stand
+at the end of this pass — so the number of fresh pairs that differ under no class says how much
+of what there is to find the two passes found.
+
+**A prediction.** The unread 618 are mostly one or two more departures of the reference and a
+handful of this engine's; on the fresh set, fewer than 1% of pairs differ under no class.
