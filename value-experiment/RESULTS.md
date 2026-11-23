@@ -802,3 +802,146 @@ types), so the two differ there by construction and only the suite shows it. Fil
 `reference/answers/` (the reference's answers and messages, this engine's before and after),
 `reference/results/2026-11-23-fhirpath-*`; the module's test holds the live engine to the
 reference's kept answers, with the agreement above as floors.
+
+### Second pass: the held-out pairs opened, and a fresh set (after the outcome above)
+
+The protocol's entry of the same name states it. Part 1's 678 held-out pairs that differed under
+no class, or under a rule whose cause was fixed, were read. They held one more defect of this
+engine, three more things the reference does that the specification does not, and three things
+the specification leaves open:
+
+- *This engine's*: `hasValue()` of several items answered for the first of them. FHIR's
+  definition is about "a single value"; of several it is now false. Fixed in fhirpath, with a
+  test.
+- *The reference's*: `toInteger()`, `toDecimal()`, `toBoolean()`, `toQuantity()`, `toDateTime()`
+  of a value read from the resource answer nothing, and their `convertsTo…()` false, even for
+  `Patient.active.toBoolean()` — it converts literals and computed values only. And a path
+  rooted at another type than the resource's (`DocumentReference.extension(…)` over a Patient:
+  the core package's own example search parameter, whose base is not its expression's type)
+  answers nothing where HL7's suite requires an error (`testSimpleWithWrongContext`); this was
+  the class the prediction expected to be the largest, and it is 412 pairs.
+- *Open*: FHIR's own invariant dom-3 calls `as()` on several items, which HL7's suite makes an
+  error — this engine follows the suite, the reference answers; `Resource.id` is a
+  System.String by its definition and an `id` to the reference, so `hasValue()`, `is string`
+  and `type().name` differ on it (and `hasValue()` of a computed Boolean is true there); a
+  step named `div` without backticks, which this harness wrote by joining an invariant's path to
+  its expression, is a syntax error here (as the grammar reads it) and read there.
+
+Part 1's pairs with every class (`reference/results/2026-11-23-fhirpath-second-classes.txt`;
+a description now, since all of it has been read):
+
+```
+class                                                                                        head       sample   held out
+resolve(): the reference, run as its command line runs it, raises                            reference  1696     7007
+toDate(): the reference does not know the function                                           reference  191      1068
+toTime(): the reference does not implement it                                                reference  177      1014
+hasExtension(): no function of the specification; this engine has it, the reference does not open       355      0
+single() of nothing: the reference raises                                                    reference  83       496
+convertsTo…() of nothing: the reference answers false                                        reference  664      3968
+convertsToString() of a complex value: the reference answers true                            reference  39       270
+division: the reference keeps too few digits                                                 reference  94       513
+type().name of a FHIR primitive: the reference capitalises it                                reference  55       223
+type().name of a nested element: this engine answered its own name for the type              ours       0        0
+a path rooted at another type than the resource's: an error here, as HL7's suite requires; nothing there reference  0        412
+a step named div without backticks (this harness's own joining of an invariant's path): a syntax error here, read there open       0        2
+as() of several items (FHIR's own dom-3 calls it so): an error here, as HL7's suite requires; an answer there open       0        38
+toInteger(), toDecimal() … of a value read from the resource: the reference answers nothing  reference  0        46
+convertsToInteger() … of a value read from the resource that converts: the reference answers false reference  0        78
+hasValue() of several items: this engine answered for the first                              ours       0        0
+hasValue() of a value that is no FHIR primitive (Resource.id, a computed Boolean): false here, true there open       0        50
+Resource.id: a System.String here, as its definition says; an id there                       open       0        44
+toString() of a complex value: this engine raised                                            ours       0        0
+children(): this engine's order was a hash walk's                                            ours       0        0
+comparing values no order is defined for: an error here, nothing there                       open       78       540
+a UTC dateTime as text: Z here, +00:00 there                                                 open       24       24
+unclassified                                                                                 -          0        0
+
+sample: 26303 pairs, 3456 differ — the reference's departure 2999, this engine's 0, open 457, in no class 0
+  the same answer, or a difference that is the reference's departure: 25846 of 26303 (98.3%)
+held-out: 145371 pairs, 15793 differ — the reference's departure 15095, this engine's 0, open 698, in no class 0 (read in the second pass)
+  the same answer, or a difference that is the reference's departure: 144673 of 145371 (99.5%)
+all: 171674 pairs, 19249 differ — the reference's departure 18094, this engine's 0, open 1155, in no class 0
+  the same answer, or a difference that is the reference's departure: 170519 of 171674 (99.3%)
+```
+
+**The fresh set**: the same rules over IPS 2.0.1's and mCODE 4.0.0's examples, search
+parameters and profiles — 142,488 pairs no part of this programme had seen, evaluated once by
+both engines, none of them read. "Before" is this engine at part 1's outcome (fhirpath 36f52ff),
+"after" with the `hasValue()` fix. IPS:
+
+```
+this engine's answer is the reference's:
+  group      part      pairs    agree
+  search     sample    112      109 (97.3%)
+  search     held-out  773      750 (97.0%)
+  invariant  sample    84       84 (100.0%)
+  invariant  held-out  357      357 (100.0%)
+  probe      sample    8120     7153 (88.1%)
+  probe      held-out  51852    46393 (89.5%)
+  all but the suite sample    8316     7346 (88.3%)
+  all but the suite held-out  52982    47500 (89.7%)
+
+after:
+  group      part      pairs    agree
+  search     sample    112      109 (97.3%)
+  search     held-out  773      750 (97.0%)
+  invariant  sample    84       84 (100.0%)
+  invariant  held-out  357      357 (100.0%)
+  probe      sample    8120     7153 (88.1%)
+  probe      held-out  51852    46393 (89.5%)
+  all but the suite sample    8316     7346 (88.3%)
+  all but the suite held-out  52982    47500 (89.7%)
+```
+
+```
+all: 61298 pairs, 6452 differ — the reference's departure 6156, this engine's 0, open 230, in no class 66
+  the same answer, or a difference that is the reference's departure: 61002 of 61298 (99.5%)
+```
+
+mCODE:
+
+```
+this engine's answer is the reference's:
+  group      part      pairs    agree
+  search     sample    595      584 (98.2%)
+  search     held-out  4247     4100 (96.5%)
+  invariant  sample    370      370 (100.0%)
+  invariant  held-out  1854     1854 (100.0%)
+  probe      sample    10904    9860 (90.4%)
+  probe      held-out  63220    56179 (88.9%)
+  all but the suite sample    11869    10814 (91.1%)
+  all but the suite held-out  69321    62133 (89.6%)
+
+after:
+  group      part      pairs    agree
+  search     sample    595      584 (98.2%)
+  search     held-out  4247     4100 (96.5%)
+  invariant  sample    370      370 (100.0%)
+  invariant  held-out  1854     1854 (100.0%)
+  probe      sample    10904    9860 (90.4%)
+  probe      held-out  63220    56181 (88.9%)
+  all but the suite sample    11869    10814 (91.1%)
+  all but the suite held-out  69321    62135 (89.6%)
+```
+
+```
+all: 81190 pairs, 8241 differ — the reference's departure 7883, this engine's 0, open 358, in no class 0
+  the same answer, or a difference that is the reference's departure: 80832 of 81190 (99.6%)
+```
+
+(The sample and held-out rows of these tables are the same split by expression as before and
+mean nothing here: nothing of the fresh set is read. The class tables are in
+`…-fresh-ips-classes.txt` and `…-fresh-mcode-classes.txt`.)
+
+**Reading.** On 142,488 fresh pairs the two engines give the same answer on 127,795 (89.7%);
+with the reference's departures set aside, on 141,834 (99.5%); 588 differ under a class that is
+open; none under a class that is this engine's; and 66 (0.05%, all in IPS) under no class at
+all — the prediction said under 1%. So the classes read from a fifth of US Core's expressions,
+then from the rest, describe what happens on two other guides almost completely: what there
+was to find about this engine by this method, on this function list, the two passes found
+(four defects), and what remains between the two engines is a list a user can read. The 66
+are unread and are the next thing to open if this is taken further.
+
+What the method cost: the reference answers 172,527 pairs in eleven seconds and this engine in
+twelve, so the whole comparison — pairs, both engines, classes — runs in under a minute, and
+the module's test now holds the live engine to all three kept sets.

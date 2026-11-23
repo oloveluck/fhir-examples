@@ -397,8 +397,15 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   class rules matched nothing for one run. The jar's packages are not HAPI's published ones
   (`org.hl7.fhir.services.fhirpath.FHIRPathEngine`, `…elementmodel.Element.getChildList`):
   find a class with `javap -cp validator_cli.jar`, and set `JAVA_TOOL_OPTIONS=` to quiet the
-  JVM. Next, each with its own entry first: the held-out pairs opened (a second pass), then
-  the mapping language, SQL on FHIR, FSH.
+  JVM. **Second pass** (the protocol's entry of that name, stated first): part 1's 678 unread
+  held-out pairs opened (`read-opened`) — one more defect of this engine (hasValue() of several
+  items), three more departures of the reference (conversions of a value read from the
+  resource answer nothing; a path rooted at another type is no error), three things left open —
+  and a FRESH set under the same rules (`fresh-pairs DIR ips|mcode`: `current-guide`,
+  `current-fresh?`), 142,488 pairs nobody read: the same answer on 89.7%, 99.5% with the
+  reference's departures aside, 66 (0.05%) under no class, none under a class that is this
+  engine's (`classes … fresh`). The test holds the live engine to all three kept sets (40 s).
+  Next, each with its own entry first: the mapping language, SQL on FHIR, FSH.
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.

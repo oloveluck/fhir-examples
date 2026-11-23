@@ -20,19 +20,30 @@
          (only-in fhir/spec-package spec-package-path)
          (only-in "../verify/profile-cases.rkt" profiles cases change-kind))
 
-(provide (struct-out fp-pair) all-pairs write-materials! continuations continued sample-expression? pair->jsexpr jsexpr->pair)
+(provide (struct-out fp-pair) all-pairs write-materials! continuations continued sample-expression? pair->jsexpr jsexpr->pair
+         current-guide current-fresh? fresh-guide)
 
 (struct fp-pair (id group type base expr file sample?) #:transparent)
 
 (define guide-package (spec-package-path "hl7.fhir.us.core.tgz"))
 (define core-package (spec-package-path "hl7.fhir.r4.core.tgz"))
+;; The guide whose examples and definitions the pairs are made from (US Core for part 1), and
+;; whether the set is a fresh one: another guide under the same rules, with no changed copies and
+;; no suite (the second pass).
+(define current-guide (make-parameter guide-package))
+(define current-fresh? (make-parameter #f))
+;; fresh-guide : string -> path
+(define (fresh-guide name)
+  (spec-package-path (cond [(equal? name "ips") "hl7.fhir.uv.ips.tgz"]
+                           [(equal? name "mcode") "hl7.fhir.us.mcode-4.0.0.tgz"]
+                           [else (raise-user-error 'fhirpath-cases "no fresh guide ~a (ips, mcode)" name)])))
 (define suite-xml (build-path (collection-path "fhirpath") "tests" "vendor" "tests-fhir-r4.xml"))
 (define suite-inputs (build-path (collection-path "fhirpath") "tests" "inputs-r4"))
 
 ;; ---- the packages, unpacked once into the work directory -----------------------------------------
 ;; unpacked! : dir -> void   guide/ and core/ under dir hold the two packages' files
 (define (unpacked! dir)
-  (for ([name '("guide" "core")] [tgz (list guide-package core-package)])
+  (for ([name '("guide" "core")] [tgz (list (current-guide) core-package)])
     (define d (build-path dir name))
     (unless (directory-exists? d)
       (make-directory* d)
@@ -197,10 +208,11 @@
 (define (write-materials! dir)
   (make-directory* dir)
   (unpacked! dir)
-  (void (changed-copies dir))
-  (make-directory* (build-path dir "suite"))
-  (for ([f (in-list (directory-list suite-inputs))] #:when (regexp-match? #rx"[.]json$" (path->string f)))
-    (copy-file (build-path suite-inputs f) (build-path dir "suite" f) #t)))
+  (unless (current-fresh?)
+    (void (changed-copies dir))
+    (make-directory* (build-path dir "suite"))
+    (for ([f (in-list (directory-list suite-inputs))] #:when (regexp-match? #rx"[.]json$" (path->string f)))
+      (copy-file (build-path suite-inputs f) (build-path dir "suite" f) #t))))
 
 ;; all-pairs : dir -> (listof Pair)   every pair, in a fixed order (write-materials! first)
 (define (all-pairs dir)
@@ -209,7 +221,7 @@
   (define defs (definitions dir))
   (define search (sort (search-expressions defs types) (lambda (a b) (string<? (format "~a ~a" (car a) (cadr a)) (format "~a ~a" (car b) (cadr b))))))
   (define invariant (sort (invariant-expressions defs types) (lambda (a b) (string<? (format "~a ~a" (car a) (cadr a)) (format "~a ~a" (car b) (cadr b))))))
-  (define changed (changed-copies dir))
+  (define changed (if (current-fresh?) '() (changed-copies dir)))
   (define (over group published files-of)
     (for*/list ([p (in-list published)] [f (in-list (files-of (car p)))])
       (list group (car p) (cadr p) (cadr p) f (sample-expression? (car p) (cadr p)))))
@@ -224,8 +236,10 @@
                  [t (in-list continuations)])
        (list 'probe (car p) (cadr p) (continued t (cadr p)) f (sample-expression? (car p) (cadr p))))
      (over 'changed (append search invariant) changed-of)
-     (for/list ([t (in-list (suite-tests))])
-       (list 'suite (car t) (cadr t) (cadr t) (path->string (build-path "suite" (car t))) #t))))
+     (if (current-fresh?)
+         '()
+         (for/list ([t (in-list (suite-tests))])
+           (list 'suite (car t) (cadr t) (cadr t) (path->string (build-path "suite" (car t))) #t)))))
   (for/list ([r (in-list rows)] [i (in-naturals)])
     (apply fp-pair (number->string i) r)))
 

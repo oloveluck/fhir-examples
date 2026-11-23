@@ -1,0 +1,31 @@
+class                                                                                        head       sample   held out
+resolve(): the reference, run as its command line runs it, raises                            reference  348      1170
+toDate(): the reference does not know the function                                           reference  70       444
+toTime(): the reference does not implement it                                                reference  67       434
+hasExtension(): no function of the specification; this engine has it, the reference does not open       0        0
+single() of nothing: the reference raises                                                    reference  37       287
+convertsTo…() of nothing: the reference answers false                                        reference  296      2296
+convertsToString() of a complex value: the reference answers true                            reference  14       91
+division: the reference keeps too few digits                                                 reference  30       145
+type().name of a FHIR primitive: the reference capitalises it                                reference  14       51
+type().name of a nested element: this engine answered its own name for the type              ours       0        0
+a path rooted at another type than the resource's: an error here, as HL7's suite requires; nothing there reference  0        339
+a step named div without backticks (this harness's own joining of an invariant's path): a syntax error here, read there open       0        0
+as() of several items (FHIR's own dom-3 calls it so): an error here, as HL7's suite requires; an answer there open       0        0
+toInteger(), toDecimal() … of a value read from the resource: the reference answers nothing  reference  1        9
+convertsToInteger() … of a value read from the resource that converts: the reference answers false reference  1        12
+hasValue() of several items: this engine answered for the first                              ours       0        0
+hasValue() of a value that is no FHIR primitive (Resource.id, a computed Boolean): false here, true there open       0        6
+Resource.id: a System.String here, as its definition says; an id there                       open       0        0
+toString() of a complex value: this engine raised                                            ours       0        0
+children(): this engine's order was a hash walk's                                            ours       0        0
+comparing values no order is defined for: an error here, nothing there                       open       32       182
+a UTC dateTime as text: Z here, +00:00 there                                                 open       0        10
+unclassified                                                                                 -          60       6
+
+sample: 8316 pairs, 970 differ — the reference's departure 878, this engine's 0, open 32, in no class 60
+  the same answer, or a difference that is the reference's departure: 8224 of 8316 (98.9%)
+held-out: 52982 pairs, 5482 differ — the reference's departure 5278, this engine's 0, open 198, in no class 6 (no pair of this set is read)
+  the same answer, or a difference that is the reference's departure: 52778 of 52982 (99.6%)
+all: 61298 pairs, 6452 differ — the reference's departure 6156, this engine's 0, open 230, in no class 66
+  the same answer, or a difference that is the reference's departure: 61002 of 61298 (99.5%)

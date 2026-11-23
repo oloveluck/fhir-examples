@@ -5,6 +5,7 @@
 ;;; engine's answer brought to one form, the comparison, the classes, the report.
 ;;;
 ;;;   racket fhirpath-reference.rkt pairs DIR            the materials and DIR/pairs.jsonl
+;;;   racket fhirpath-reference.rkt fresh-pairs DIR ips|mcode   the same for another guide (the second pass's fresh set)
 ;;;   racket fhirpath-reference.rkt ask DIR JAR          HL7's engine over them (the Java bridge): DIR/answers.jsonl
 ;;;   racket fhirpath-reference.rkt keep DIR FILE.gz     the reference's answers, in the compared form
 ;;;   racket fhirpath-reference.rkt ours DIR FILE.gz     this engine's answers, in the compared form
@@ -39,6 +40,8 @@
 
 (define-runtime-path bridge "FhirPathReference.java")
 (define-runtime-path kept-reference "answers/fhirpath-reference.jsonl.gz")
+(define-runtime-path kept-ips "answers/fhirpath-fresh-ips-reference.jsonl.gz")
+(define-runtime-path kept-mcode "answers/fhirpath-fresh-mcode-reference.jsonl.gz")
 
 ;; ---- the compared form ---------------------------------------------------------------------------
 (define string-types '("string" "code" "uri" "url" "canonical" "id" "oid" "uuid" "markdown" "base64Binary" "xhtml"))
@@ -297,6 +300,33 @@
    (list "type().name of a nested element: this engine answered its own name for the type" 'ours
          (lambda (r) (and (regexp-match? #rx"[.]type\\(\\)[.]name$" (expr-of r)) (member (one "string" (cadr r)) '("BackboneElement" "Element"))
                           (one "string" (caddr r)))))
+   ;; ---- read in the second pass, from part 1's held-out pairs once they were opened ----
+   (list "a path rooted at another type than the resource's: an error here, as HL7's suite requires; nothing there" 'reference
+         (lambda (r) (and (equal? (caddr r) "error") (not (equal? (cadr r) "error"))
+                          (let ([m (regexp-match #px"^[(]*([A-Z][A-Za-z]+)[.]" (fp-pair-base (car r)))])
+                            (and m (not (regexp-match? #rx"[|]" (fp-pair-base (car r))))
+                                 (not (member (cadr m) (list (fp-pair-type (car r)) "Resource" "DomainResource"))))))))
+   (list "a step named div without backticks (this harness's own joining of an invariant's path): a syntax error here, read there" 'open
+         (lambda (r) (and (equal? (caddr r) "error") (not (equal? (cadr r) "error")) (regexp-match? #rx"[.]div[.]select[(]" (expr-of r)))))
+   (list "as() of several items (FHIR's own dom-3 calls it so): an error here, as HL7's suite requires; an answer there" 'open
+         (lambda (r) (and (equal? (caddr r) "error") (not (equal? (cadr r) "error"))
+                          (regexp-match? #rx"[.]as[(]" (expr-of r)) (not (regexp-match? #rx"[tT]oString[(][)]" (expr-of r))))))
+   (list "toInteger(), toDecimal() … of a value read from the resource: the reference answers nothing" 'reference
+         (lambda (r) (and (regexp-match? #rx"[.]to(Integer|Decimal|Boolean|Quantity|DateTime)[(][)]$" (expr-of r)) (null? (cadr r))
+                          (pair? (caddr r)) (null? (cdr (caddr r))))))
+   (list "convertsToInteger() … of a value read from the resource that converts: the reference answers false" 'reference
+         (lambda (r) (and (regexp-match? #rx"[.]convertsTo(Integer|Decimal|Boolean|Quantity|Date|DateTime|Time)[(][)]$" (expr-of r))
+                          (equal? (one "boolean" (cadr r)) "false") (equal? (one "boolean" (caddr r)) "true"))))
+   (list "hasValue() of several items: this engine answered for the first" 'ours
+         (lambda (r) (and (regexp-match? #rx"[.]hasValue[(][)]$" (expr-of r)) (not (regexp-match? #rx"[.]first[(][)][.]hasValue[(][)]$" (expr-of r)))
+                          (equal? (one "boolean" (cadr r)) "false") (equal? (one "boolean" (caddr r)) "true"))))
+   (list "hasValue() of a value that is no FHIR primitive (Resource.id, a computed Boolean): false here, true there" 'open
+         (lambda (r) (and (regexp-match? #rx"[.]hasValue[(][)]$" (expr-of r))
+                          (equal? (one "boolean" (cadr r)) "true") (equal? (one "boolean" (caddr r)) "false"))))
+   (list "Resource.id: a System.String here, as its definition says; an id there" 'open
+         (lambda (r) (and (regexp-match? #rx"(^|[.])id$" (fp-pair-base (car r)))
+                          (or (and (regexp-match? #rx"[.]type[(][)][.]name$" (expr-of r)) (equal? (one "string" (cadr r)) "Id") (equal? (one "string" (caddr r)) "String"))
+                              (and (regexp-match? #rx" is string$" (expr-of r)) (equal? (one "boolean" (cadr r)) "true") (equal? (one "boolean" (caddr r)) "false"))))))
    (list "toString() of a complex value: this engine raised" 'ours
          (lambda (r) (and (regexp-match? #rx"[tT]oString\\(\\)" (expr-of r)) (equal? (caddr r) "error") (not (equal? (cadr r) "error")))))
    (list "children(): this engine's order was a hash walk's" 'ours
@@ -339,8 +369,8 @@
 
 ;; print-sample : dir (listof Row) (or/c string #f) -> void   the sample's disagreements: counted by
 ;; class, group, continuation and the shapes of the two answers, with the first few of each
-(define (print-sample dir rows only)
-  (define wrong (filter (lambda (r) (and (fp-pair-sample? (car r)) (not (agree? r)))) rows))
+(define (print-sample dir rows only [all? #f])
+  (define wrong (filter (lambda (r) (and (or all? (fp-pair-sample? (car r))) (not (agree? r)))) rows))
   (define groups (group-by (lambda (r) (list (class-of r) (fp-pair-group (car r)) (template-of (car r)) (shape (cadr r)) (shape (caddr r)))) wrong))
   (for ([g (in-list (sort groups > #:key length))]
         #:when (or (not only) (equal? only (class-of (car g)))))
@@ -366,7 +396,7 @@
             (if (equal? (caddr r) "error") (short (string-append "error: " (our-error (car r))) 150) (short (show (caddr r)) 150)))))
 
 ;; print-classes : (listof Row) -> void   every disagreement by class: sample, held out
-(define (print-classes rows)
+(define (print-classes rows [held-out-note " (unread)"])
   (define wrong (filter (lambda (r) (and (not (agree? r)) (not (eq? (fp-pair-group (car r)) 'suite)))) rows))
   (define names (append (map car classes) '("unclassified")))
   (printf "~a ~a ~a ~a\n" (pad "class" 92) (pad "head" 10) (pad "sample" 8) "held out")
@@ -378,13 +408,14 @@
   ;; by head, and what the agreement is when the reference's own departures are set aside
   (define (head-of r) (cond [(assoc (class-of r) classes) => cadr] [else 'unread]))
   (newline)
-  (for ([part '(sample held-out)])
+  (for ([part '(sample held-out all)])
     (define sample? (eq? part 'sample))
-    (define all (filter (lambda (r) (and (not (eq? (fp-pair-group (car r)) 'suite)) (eq? (fp-pair-sample? (car r)) sample?))) rows))
-    (define mine (filter (lambda (r) (eq? (fp-pair-sample? (car r)) sample?)) wrong))
+    (define (in-part? r) (or (eq? part 'all) (eq? (fp-pair-sample? (car r)) sample?)))
+    (define all (filter (lambda (r) (and (not (eq? (fp-pair-group (car r)) 'suite)) (in-part? r))) rows))
+    (define mine (filter in-part? wrong))
     (define (n head) (count (lambda (r) (eq? (head-of r) head)) mine))
     (printf "~a: ~a pairs, ~a differ — the reference's departure ~a, this engine's ~a, open ~a, in no class ~a~a\n"
-            part (length all) (length mine) (n 'reference) (n 'ours) (n 'open) (n 'unread) (if sample? "" " (unread)"))
+            part (length all) (length mine) (n 'reference) (n 'ours) (n 'open) (n 'unread) (if (eq? part 'held-out) held-out-note ""))
     (printf "  the same answer, or a difference that is the reference's departure: ~a of ~a (~a)\n"
             (+ (- (length all) (length mine)) (n 'reference)) (length all)
             (percent (+ (- (length all) (length mine)) (n 'reference)) (length all)))))
@@ -395,6 +426,10 @@
   (cond
     [(and (= (length args) 2) (equal? (car args) "pairs"))
      (printf "~a pairs\n" (write-pairs! (cadr args)))]
+    ;; the second pass's fresh set: another guide's examples under the same rules, no changed copies, no suite
+    [(and (= (length args) 3) (equal? (car args) "fresh-pairs"))
+     (parameterize ([current-guide (fresh-guide (caddr args))] [current-fresh? #t])
+       (printf "~a pairs\n" (write-pairs! (cadr args))))]
     [(and (= (length args) 3) (equal? (car args) "ask")) (ask-reference! (cadr args) (caddr args))]
     [(and (= (length args) 3) (equal? (car args) "keep")) (keep-reference! (cadr args) (caddr args))]
     [(and (= (length args) 3) (equal? (car args) "ours")) (keep-ours! (cadr args) (caddr args))]
@@ -405,10 +440,17 @@
        (print-agreement "after:" (rows-of (cadr args) (caddr args) (list-ref args 4))))]
     [(and (>= (length args) 4) (equal? (car args) "read"))
      (print-sample (cadr args) (rows-of (cadr args) (caddr args) (cadddr args)) (and (= (length args) 5) (list-ref args 4)))]
+    ;; the second pass (PROTOCOL.md): part 1's held-out pairs, opened
+    [(and (>= (length args) 4) (equal? (car args) "read-opened"))
+     (print-sample (cadr args) (rows-of (cadr args) (caddr args) (cadddr args)) (and (= (length args) 5) (list-ref args 4)) #t)]
     [(and (= (length args) 4) (equal? (car args) "suite"))
      (print-suite (rows-of (cadr args) (caddr args) (cadddr args)))]
     [(and (= (length args) 4) (equal? (car args) "classes"))
      (print-classes (rows-of (cadr args) (caddr args) (cadddr args)))]
+    ;; the same once part 1's held-out pairs have been opened, or for a set none of which is read
+    [(and (= (length args) 5) (equal? (car args) "classes") (member (list-ref args 4) '("opened" "fresh")))
+     (print-classes (rows-of (cadr args) (caddr args) (cadddr args))
+                    (if (equal? (list-ref args 4) "opened") " (read in the second pass)" " (no pair of this set is read)"))]
     [else (eprintf "usage: fhirpath-reference.rkt pairs DIR | ask DIR JAR | keep DIR FILE | ours DIR FILE | report DIR REF OURS [AFTER] | read DIR REF OURS [CLASS] | classes DIR REF OURS\n")
           (exit 2)]))
 
@@ -448,6 +490,19 @@
                                              (eq? 'ours (cond [(assoc (class-of r) classes) => cadr] [else #f]))))
                             rows)
                      0))
+     (lambda () (delete-directory/files dir))))
+  ;; the second pass's fresh sets (IPS, mCODE): how many pairs agree, how many differ under no
+  ;; class, and none under a class that is this engine's
+  (for ([fresh (in-list (list (list "ips" kept-ips 61298 54846 66) (list "mcode" kept-mcode 81190 72949 0)))])
+    (define dir (make-temporary-file "fhirpath-fresh-~a" 'directory))
+    (dynamic-wind
+     void
+     (lambda ()
+       (define rows (parameterize ([current-guide (fresh-guide (car fresh))] [current-fresh? #t]) (live-rows dir (cadr fresh))))
+       (check-equal? (length rows) (caddr fresh))
+       (check-true (>= (count agree? rows) (cadddr fresh)) (car fresh))
+       (check-true (<= (count (lambda (r) (and (not (agree? r)) (equal? (class-of r) "unclassified"))) rows) (list-ref fresh 4)) (car fresh))
+       (check-equal? (count (lambda (r) (and (not (agree? r)) (eq? 'ours (cond [(assoc (class-of r) classes) => cadr] [else #f])))) rows) 0))
      (lambda () (delete-directory/files dir))))
   (check-equal? (number-text "1.0") "1")
   (check-equal? (number-text "0.10") "1/10")

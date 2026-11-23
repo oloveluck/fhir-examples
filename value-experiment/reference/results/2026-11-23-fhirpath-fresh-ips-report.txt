@@ -1,0 +1,21 @@
+this engine's answer is the reference's:
+  group      part      pairs    agree
+  search     sample    112      109 (97.3%)
+  search     held-out  773      750 (97.0%)
+  invariant  sample    84       84 (100.0%)
+  invariant  held-out  357      357 (100.0%)
+  probe      sample    8120     7153 (88.1%)
+  probe      held-out  51852    46393 (89.5%)
+  all but the suite sample    8316     7346 (88.3%)
+  all but the suite held-out  52982    47500 (89.7%)
+
+after:
+  group      part      pairs    agree
+  search     sample    112      109 (97.3%)
+  search     held-out  773      750 (97.0%)
+  invariant  sample    84       84 (100.0%)
+  invariant  held-out  357      357 (100.0%)
+  probe      sample    8120     7153 (88.1%)
+  probe      held-out  51852    46393 (89.5%)
+  all but the suite sample    8316     7346 (88.3%)
+  all but the suite held-out  52982    47500 (89.7%)
