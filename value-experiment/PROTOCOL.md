@@ -693,3 +693,56 @@ of what there is to find the two passes found.
 
 **A prediction.** The unread 618 are mostly one or two more departures of the reference and a
 handful of this engine's; on the fresh set, fewer than 1% of pairs differ under no class.
+
+### 2026-11-23, H part 2: the mapping language held to the validator's StructureMap engine
+
+Stated before any comparison. Tried first, nothing compared: the validator jar's mapping engine
+runs as a library with no terminology server (its command line demands one) — one tutorial map
+over its source gave the published result.
+
+**The question**, as in part 1: how often does this toolkit's mapping engine (fml) give the
+reference's result, on published maps over published sources and on both changed in one small
+way; and where they differ, which the specification bears out.
+
+**The reference.** `validator_cli.jar` as a library, FHIR 5.0.0, the core package, no terminology
+server: a map's text parsed by its own parser, the source read against the map's source
+structure, `transform`, the result written as JSON — what `java -jar validator_cli.jar transform`
+does once it has a terminology server. A bridge (`reference/MapReference.java`) loads a step's
+logical models, parses each map it is given, runs each (map, source) pair and prints the result
+or that the engine raised; it compares nothing.
+
+**The pairs** (`reference/map-cases.rkt`), over the FHIR mapping tutorial as ahdis/matchbox
+ships it (fml's vendored corpus: 13 steps, each with its logical models, maps and sources —
+the corpus fml was built on, so the published pairs are a calibration and the changed ones
+are the test):
+
+- *published*: every map of a step over every source of the step.
+- *changed source*: every source with one change — a key removed, a string replaced by
+  another, a number raised by one, a list's first entry given twice, a list reversed — over
+  the step's maps.
+- *changed map*: every map with one change to one rule, from a fixed catalogue — the rule
+  removed; a list mode (`first`, `last`, `not_first`, `not_last`, `only_one`) put on a source
+  that has none, or replaced by another; a `where` added to a source (`(true)`, `(false)`, a
+  test of the variable); the value a target is given replaced by a transform of it (`copy`,
+  `truncate`, `append`, `cast` to string and to integer, `evaluate`, a FHIRPath expression in
+  parentheses) — over the step's sources. A changed map gets a url of its own.
+
+**What is compared**, in Racket (`reference/map-reference.rkt`): `error` when the engine raised or
+did not read the map; else the result as JSON with its keys in order of name and numbers by
+value. Two answers agree when they are equal.
+
+**Sample and held out.** A map belongs to the sample when the first byte of the SHA-1 of
+`<step>/<map file>` is divisible by three; with it every pair made from it. The rest is held
+out: counted, not read.
+
+**The procedure and the outcome** are part 1's: both engines over every pair as committed (fml
+db1ae85, fhirpath d24cd50, fhir a1d8c56); the sample's disagreements read and put under *ours*,
+*the reference's* or *open*, each with the specification's sentence (the FHIR Mapping Language
+page and its transform table, as shipped in the R5 core package) or the tutorial's own expected
+result; fixes with tests; the same pairs again; classes as rules, counted over the held-out
+pairs, which are not read. Gates: fml's corpus floors (`raco fml --tck`), every package's tests.
+
+**A prediction.** Published pairs agree on more than 90% (this engine passes the tutorial's 37
+expected results; the reference is what produced them, with two stale files); changed sources
+on more than 85%; changed maps on fewer than 75%, the largest class being what each engine does
+with a value that does not fit its target (a string truncated or cast into an integer element).
