@@ -405,7 +405,19 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   `current-fresh?`), 142,488 pairs nobody read: the same answer on 89.7%, 99.5% with the
   reference's departures aside, 66 (0.05%) under no class, none under a class that is this
   engine's (`classes … fresh`). The test holds the live engine to all three kept sets (40 s).
-  Next, each with its own entry first: the mapping language, SQL on FHIR, FSH.
+  **Part 2, the mapping language** (the protocol's "H part 2"): `map-cases.rkt` (`map-pair`: the
+  tutorial's 25 maps over its 18 sources; `source-changes`, `map-changes` — a rule removed, a
+  list mode, a `where`, a transform, each a text change to one rule line; a changed map gets its
+  own url; `sample-map?`: a third of the maps), `MapReference.java` (one validator engine per
+  step: its logical models loaded, each map parsed by the engine's own parser and cached, then
+  `transform`), `map-reference.rkt` (the same commands as part 1's; an Answer is `error` or the
+  result as canonical JSON; the report says how many agreements are both engines raising). 887
+  pairs: held-out agreement 88.0% -> 89.8%, the sample 92.5% -> 96.4%; three defects of fml
+  fixed (a text that is no number written into a number's element; an implicit copy where the
+  target names a variable; `check` after the list mode), one of the reference's (a FHIRPath
+  variable with an underscore). 52 held-out pairs differ under no class, unread: eight sample
+  maps did not cover seventeen. Next, each with its own entry first: the mapping part's second
+  pass, SQL on FHIR, FSH.
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.

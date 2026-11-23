@@ -1,0 +1,14 @@
+class                                                                                                head       sample   held out
+a FHIRPath expression that names a variable with an underscore: the reference does not read the map  reference  9        7
+a text that is no number put into a number's element: this engine wrote it as it stood               ours       0        1
+check and the list mode: this engine picked by the list mode first, the reference checks every element ours       0        0
+a target that names a variable, with nothing after it: this engine copied the source value into it   ours       0        2
+a value that is no integer, put into an integer element and then replaced: an error here, the last value there open       1        0
+unclassified                                                                                         -          0        52
+
+sample: 281 pairs, 10 differ — the reference's departure 9, this engine's 0, open 1, in no class 0
+  the same answer, or a difference that is the reference's departure: 280 of 281 (99.6%)
+held-out: 606 pairs, 62 differ — the reference's departure 7, this engine's 3, open 0, in no class 52 (unread)
+  the same answer, or a difference that is the reference's departure: 551 of 606 (90.9%)
+all: 887 pairs, 72 differ — the reference's departure 16, this engine's 3, open 1, in no class 52
+  the same answer, or a difference that is the reference's departure: 831 of 887 (93.7%)

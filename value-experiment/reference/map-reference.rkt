@@ -154,15 +154,31 @@
   (for* ([g '(published changed-source changed-map all)] [part '(sample held-out)])
     (define mine (filter (lambda (r) (and (or (eq? g 'all) (eq? (map-pair-group (car r)) g)) (eq? (map-pair-sample? (car r)) (eq? part 'sample)))) rows))
     (unless (null? mine)
-      (printf "  ~a ~a ~a ~a (~a)\n" (pad g 15) (pad part 9) (pad (length mine) 7) (count agree? mine) (percent (count agree? mine) (length mine))))))
+      (printf "  ~a ~a ~a ~a (~a)\n" (pad g 15) (pad part 9) (pad (length mine) 7) (count agree? mine) (percent (count agree? mine) (length mine)))))
+  ;; an agreement may be both engines refusing: how many are
+  (printf "  of the ~a pairs that agree, both engines raise on ~a; the reference raises on ~a of the ~a pairs\n"
+          (count agree? rows) (count (lambda (r) (and (agree? r) (equal? (cadr r) "error"))) rows)
+          (count (lambda (r) (equal? (cadr r) "error")) rows) (length rows)))
 
 ;; ---- the classes of disagreement -----------------------------------------------------------------
 ;; A Class is (list name head rule): head 'ours | 'reference | 'open; rule : Row -> boolean, read from
 ;; the sample's disagreements alone. The first class whose rule holds is the row's.
 (define (change-of r) (map-pair-change (car r)))
 (define (said r rx) (regexp-match? rx (cadddr r)))
+(define (result? a) (not (equal? a "error")))
 (define classes
-  (list))
+  (list
+   (list "a FHIRPath expression that names a variable with an underscore: the reference does not read the map" 'reference
+         (lambda (r) (and (equal? (cadr r) "error") (said r #rx"expecting a token name"))))
+   (list "a text that is no number put into a number's element: this engine wrote it as it stood" 'ours
+         (lambda (r) (and (equal? (cadr r) "error") (said r #rx"NumberFormatException") (result? (caddr r)))))
+   (list "check and the list mode: this engine picked by the list mode first, the reference checks every element" 'ours
+         (lambda (r) (and (equal? (cadr r) "error") (said r #rx"Check condition failed") (result? (caddr r)))))
+   (list "a target that names a variable, with nothing after it: this engine copied the source value into it" 'ours
+         (lambda (r) (and (equal? (change-of r) "rule removed") (result? (cadr r)) (result? (caddr r)))))
+   (list "a value that is no integer, put into an integer element and then replaced: an error here, the last value there" 'open
+         (lambda (r) (and (eq? (map-pair-group (car r)) 'changed-source) (equal? (change-of r) "source string")
+                          (result? (cadr r)) (equal? (caddr r) "error"))))))
 (define (class-of r) (or (for/first ([c (in-list classes)] #:when ((caddr c) r)) (car c)) "unclassified"))
 (define (head-of r) (cond [(assoc (class-of r) classes) => cadr] [else 'unread]))
 
@@ -221,6 +237,25 @@
 
 (module+ test
   (require rackunit)
+  ;; the engine as it is now, over every pair made afresh, held to the reference's kept answers:
+  ;; the write-up's agreement as floors, and nothing of the sample left that is this engine's or
+  ;; in no class
+  (let ([dir (make-temporary-file "map-reference-~a" 'directory)])
+    (dynamic-wind
+     void
+     (lambda ()
+       (write-map-materials! dir)
+       (define ps (all-map-pairs dir))
+       (define ref (read-answers kept-reference))
+       (define errors (read-errors kept-reference))
+       (define rows (for/list ([p (in-list ps)])
+                      (list p (hash-ref ref (map-pair-id p) 'missing) (our-map-answer dir p) (hash-ref errors (map-pair-id p) ""))))
+       (check-equal? (length rows) 887)
+       (check-false (ormap (lambda (r) (eq? (cadr r) 'missing)) rows))
+       (check-true (>= (count agree? (filter (lambda (r) (map-pair-sample? (car r))) rows)) 271))
+       (check-true (>= (count agree? (filter (lambda (r) (not (map-pair-sample? (car r)))) rows)) 544))
+       (check-equal? (count (lambda (r) (and (map-pair-sample? (car r)) (not (agree? r)) (memq (head-of r) '(ours unread)))) rows) 0))
+     (lambda () (delete-directory/files dir))))
   (check-equal? (canonical (hasheq 'b 1.0 'a (list "x" #t))) "{\"a\":[\"x\",true],\"b\":1}")
   (check-equal? (reference-answer (hasheq 'id "1" 'error "x")) "error")
   (check-equal? (reference-answer (hasheq 'id "1" 'result "{\"resourceType\":\"TRight\",\"a\":\"x\"}")) "{\"a\":\"x\",\"resourceType\":\"TRight\"}"))

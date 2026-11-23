@@ -945,3 +945,122 @@ are unread and are the next thing to open if this is taken further.
 What the method cost: the reference answers 172,527 pairs in eleven seconds and this engine in
 twelve, so the whole comparison — pairs, both engines, classes — runs in under a minute, and
 the module's test now holds the live engine to all three kept sets.
+
+## H, part 2. The mapping language held to the validator's StructureMap engine (2026-11-23)
+
+The protocol's entry "H part 2" states it. This toolkit's mapping engine (fml) and the engine
+inside HL7's validator (as a library, FHIR 5.0.0, no terminology server, through
+`reference/MapReference.java`) were given the same 887 pairs of a map and a source
+(`reference/map-cases.rkt`): the FHIR mapping tutorial's 25 maps over its 18 sources (40
+published pairs), the sources changed in one way (133), and the maps changed in one way — a
+rule removed, a list mode put on a source, a `where` added, a target's value replaced by a
+transform of it (714). A third of the maps (8) were the sample; the other 17 held out.
+
+**Agreement, before and after** (`reference/results/2026-11-23-map-report.txt`; "before" is fml
+db1ae85):
+
+```
+this engine's result is the reference's:
+  group           part      pairs   agree
+  published       sample    14      14 (100.0%)
+  published       held-out  26      24 (92.3%)
+  changed-source  sample    44      41 (93.2%)
+  changed-source  held-out  89      81 (91.0%)
+  changed-map     sample    223     205 (91.9%)
+  changed-map     held-out  491     428 (87.2%)
+  all             sample    281     260 (92.5%)
+  all             held-out  606     533 (88.0%)
+  of the 793 pairs that agree, both engines raise on 80; the reference raises on 149 of the 887 pairs
+
+after:
+  group           part      pairs   agree
+  published       sample    14      14 (100.0%)
+  published       held-out  26      24 (92.3%)
+  changed-source  sample    44      43 (97.7%)
+  changed-source  held-out  89      85 (95.5%)
+  changed-map     sample    223     214 (96.0%)
+  changed-map     held-out  491     435 (88.6%)
+  all             sample    281     271 (96.4%)
+  all             held-out  606     544 (89.8%)
+  of the 815 pairs that agree, both engines raise on 100; the reference raises on 149 of the 887 pairs
+```
+
+**The sample's 21 disagreements, read and sorted** (`…-map-classes-before.txt`,
+`…-map-classes-after.txt`). Before:
+
+```
+class                                                                                                head       sample   held out
+a FHIRPath expression that names a variable with an underscore: the reference does not read the map  reference  9        7
+a text that is no number put into a number's element: this engine wrote it as it stood               ours       8        9
+check and the list mode: this engine picked by the list mode first, the reference checks every element ours       2        2
+a target that names a variable, with nothing after it: this engine copied the source value into it   ours       2        3
+a value that is no integer, put into an integer element and then replaced: an error here, the last value there open       0        0
+unclassified                                                                                         -          0        52
+
+sample: 281 pairs, 21 differ — the reference's departure 9, this engine's 12, open 0, in no class 0
+  the same answer, or a difference that is the reference's departure: 269 of 281 (95.7%)
+held-out: 606 pairs, 73 differ — the reference's departure 7, this engine's 14, open 0, in no class 52 (unread)
+  the same answer, or a difference that is the reference's departure: 540 of 606 (89.1%)
+all: 887 pairs, 94 differ — the reference's departure 16, this engine's 26, open 0, in no class 52
+  the same answer, or a difference that is the reference's departure: 809 of 887 (91.2%)
+```
+
+After:
+
+```
+class                                                                                                head       sample   held out
+a FHIRPath expression that names a variable with an underscore: the reference does not read the map  reference  9        7
+a text that is no number put into a number's element: this engine wrote it as it stood               ours       0        1
+check and the list mode: this engine picked by the list mode first, the reference checks every element ours       0        0
+a target that names a variable, with nothing after it: this engine copied the source value into it   ours       0        2
+a value that is no integer, put into an integer element and then replaced: an error here, the last value there open       1        0
+unclassified                                                                                         -          0        52
+
+sample: 281 pairs, 10 differ — the reference's departure 9, this engine's 0, open 1, in no class 0
+  the same answer, or a difference that is the reference's departure: 280 of 281 (99.6%)
+held-out: 606 pairs, 62 differ — the reference's departure 7, this engine's 3, open 0, in no class 52 (unread)
+  the same answer, or a difference that is the reference's departure: 551 of 606 (90.9%)
+all: 887 pairs, 72 differ — the reference's departure 16, this engine's 3, open 1, in no class 52
+  the same answer, or a difference that is the reference's departure: 831 of 887 (93.7%)
+```
+
+**What was this engine's** (three defects, fixed in fml with every corpus floor held):
+
+- A text that is no number, put into a number's element, was written as it stood:
+  `tgt.a21 = append(a, 'x')` gave an integer element the string `"12345x"`, and a source value
+  `"changed"` copied into an integer element stayed a string. The tutorial's own step 4 says
+  this is an error; it is one now, at the rule.
+- A target that names a variable and has nothing after it (`src.e as s -> tgt.e as t then { }`)
+  copied the source value into the element. The implicit copy belongs to the simple form
+  `src.x -> tgt.x`, with no variables; a target with a variable creates its element and no
+  more.
+- `check` was tested after the list mode had picked among the elements; the reference tests it
+  on every element the source selects. The specification does not state an order, and nothing
+  in fml's corpus depended on it, so the reference's is followed.
+
+**What is the reference's**: it does not read a map whose FHIRPath expression names a variable
+with an underscore (`where (s_e.exists())`: "Found s_e expecting a token name"), though the
+mapping language's own rule names it without complaint and FHIRPath's grammar allows the
+character. **Open**: a value that is no integer, put into an integer element and replaced by a
+later one, is an error here at its rule and the last value there — the reference's error comes
+only when the result is written out.
+
+**Reading.**
+
+- Held out, the two engines agreed on 88.0% of pairs before and 89.8% after; on the sample
+  92.5% and 96.4% (99.6% with the reference's one departure aside). The prediction was wrong
+  about the changed maps: they agreed on 87% to 92% before any fix, not under 75%. It was right
+  about what the largest class of this engine's would be: a value that does not fit its
+  target.
+- Unlike FHIRPath, the sample did not cover the rest: 52 of the 606 held-out pairs (8.6%)
+  differ under no class. Eight maps are too few to stand for seventeen that each teach a
+  different feature of the language — the tutorial is built that way. Those pairs are unread;
+  a second pass is the next entry.
+- Three more defects nobody knew of, in an engine that passes every expected result of the
+  corpus it was built on. The published pairs alone showed nothing (they are that corpus); the
+  changed ones did.
+
+Limits: one reference, the tutorial's small logical models (strings and integers, little of
+FHIR's own types), a catalogue of changes written by this harness, 887 pairs. Files:
+`reference/answers/map-*`, `reference/results/2026-11-23-map-*`; the module's test holds the
+live engine to the reference's kept answers.
