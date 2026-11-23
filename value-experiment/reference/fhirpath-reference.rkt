@@ -76,8 +76,8 @@
 
 (define (reference-item i)
   (define t (hash-ref i 't))
-  (cond [(hash-has-key? i 'v)
-         (define v (hash-ref i 'v))
+  (cond [(or (hash-has-key? i 'v) (not (hash-has-key? i 'leaves)))   ; a primitive (one with no value is written without its `v`)
+         (define v (hash-ref i 'v #f))
          (valued (kind-of-type t) (if (string? v) v ""))]
         [(member t quantity-types)
          (define (leaf name) (for/first ([l (in-list (hash-ref i 'leaves))] #:when (equal? (car l) name)) (caddr l)))

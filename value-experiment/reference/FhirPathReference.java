@@ -46,7 +46,7 @@ public class FhirPathReference {
   static void leaves(Base x, String path, JsonArray out, int depth) {
     if (depth > 40) return;
     if (x instanceof Element) {
-      for (Element c : ((Element) x).getChildren()) leaf(c, path.isEmpty() ? c.getName() : path + "." + c.getName(), out, depth);
+      for (Element c : ((Element) x).getChildList()) leaf(c, path.isEmpty() ? c.getName() : path + "." + c.getName(), out, depth);
     } else {
       for (Property p : x.getChildren())
         for (Base v : p.getValues()) leaf(v, path.isEmpty() ? p.getName() : path + "." + p.getName(), out, depth);
