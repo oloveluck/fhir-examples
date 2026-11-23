@@ -26,6 +26,7 @@
          first-difference difference-paths as-compared)
 
 (define-runtime-path bridge "SushiReference.js")
+(define-runtime-path kept-reference "answers/fsh-reference.jsonl.gz")
 
 ;; ---- the compared form ---------------------------------------------------------------------------
 ;; canonical : jsexpr -> string   JSON with an object's keys in order of name and numbers by value
@@ -270,7 +271,59 @@
 ;; ---- the classes of disagreement -------------------------------------------------------------------
 ;; A Class is (list name head rule): head 'ours | 'reference | 'open; rule : Row -> boolean, read from
 ;; the sample's disagreements alone. The first class whose rule holds is the row's.
-(define classes (list))
+;; without-units : jsexpr -> jsexpr   every Quantity's `unit` left out
+(define (without-units j)
+  (cond [(hash? j) (for/hasheq ([(k v) (in-hash j)] #:unless (eq? k 'unit)) (values k (without-units v)))]
+        [(list? j) (map without-units j)]
+        [else j]))
+(define (results? r) (and (not (error? (ref-of r))) (not (error? (ours-of r)))))
+;; unit-only? : Row -> boolean   two answers of resources that differ in nothing but a `unit`
+(define (unit-only? r)
+  (and (results? r) (equal? (without-units (string->jsexpr (ref-of r))) (without-units (string->jsexpr (ours-of r))))))
+;; written-paths : the places where what this compiler wrote for an entity that states little, or
+;; for a flag, differed from SUSHI's (each fixed in this pass)
+(define written-paths
+  '("StructureDefinition.differential.element(only the reference)" "StructureDefinition.differential.element(only this compiler)"
+    "StructureDefinition.differential.element.extension" "ValueSet.compose" "CodeSystem.concept"))
+(define (reference-alone r rx) (and (error? (ref-of r)) (not (error? (ours-of r))) (regexp-match? rx (ref-message r))))
+(define classes
+  (list
+   (list "a quantity's unit: this compiler writes the UCUM code as the `unit` too, SUSHI writes a unit only for a display (decided earlier and said in fsh's manual; left)" 'open
+         unit-only?)
+   (list "a unit with its display and no number (`'[lb_av]' \"lb\"`): this compiler wrote the unit as the value and the display as the code" 'ours
+         (lambda (r) (and (results? r) (regexp-match? #rx"Quantity\":\\{[^}]*\"value\":\"" (ours-of r)))))
+   (list "what is written for an entity that states little, or for a flag: a bare root element, no empty compose, the standards status of TU/N/D, a concept named twice, an extension's scaffold" 'ours
+         (lambda (r) (and (results? r) (let ([ps (difference-paths (ref-of r) (without-units-answer (ours-of r) (ref-of r)))])
+                                         (and (pair? ps) (andmap (lambda (p) (member p written-paths)) ps))))))
+   (list "a Ratio assigned in a profile: this compiler raised" 'ours
+         (lambda (r) (and (error? (ours-of r)) (not (error? (ref-of r))) (regexp-match? #rx"^raised: " (our-message r)))))
+   (list "an instance without an element its type requires: an error of SUSHI's compile; here `raco fsh check` says it (compiling does not validate)" 'open
+         (lambda (r) (reference-alone r #rx"has minimum cardinality .* but occurs")))
+   (list "a value set or a code's system named by a name nothing defines (\"is not a valid URI\"): written as the name here" 'ours
+         (lambda (r) (reference-alone r #rx"is not a valid URI")))
+   (list "an id that is no FHIR id" 'ours
+         (lambda (r) (reference-alone r #rx"does not represent a valid FHIR id")))
+   (list "`contains` on an element nothing says how to slice" 'ours
+         (lambda (r) (reference-alone r #rx"No slicing found")))
+   (list "a cardinality that does not fit within the base's" 'ours
+         (lambda (r) (reference-alone r #rx"Cannot constrain cardinality")))
+   (list "an extension slice with no Extension behind it, in a profile" 'ours
+         (lambda (r) (reference-alone r #rx"Inline extensions should only be defined in Extensions")))
+   (list "a Parent nothing defines, for an Extension or a Logical model" 'ours
+         (lambda (r) (reference-alone r #rx"^Parent .* not found")))
+   (list "an invariant no Invariant defines" 'ours
+         (lambda (r) (reference-alone r #rx"because it was never defined")))
+   (list "a path whose later step is no element, or an index in a profile's path: only a path's first step is checked here (named, not fixed)" 'ours
+         (lambda (r) (reference-alone r #rx"No element found at path|The element or path you referenced does not exist")))
+   (list "a name that is defined nowhere: a RuleSet inserted in a value set or code system, a Mapping's Source, an instance to embed, a concept's ancestor (named, not fixed)" 'ours
+         (lambda (r) (reference-alone r #rx"Unable to find definition for RuleSet|Unable to find source|Could not find a resource named|Could not find .* in concept hierarchy")))
+   (list "a value that does not fit its element: its type, a value the Parent already fixed, a code of one of FHIR's own required sets (named, not fixed)" 'ours
+         (lambda (r) (reference-alone r #rx"Value does not match element type|does not match any of the allowed types|is already assigned|Missing required value|Invalid value: ")))))
+;; without-units-answer : Answer Answer -> Answer   this compiler's answer without the units the
+;; reference did not write (so that a difference in units does not hide the others)
+(define (without-units-answer ours ref)
+  (if (equal? (without-units (string->jsexpr ours)) (string->jsexpr ours)) ours
+      (resources-answer (for/list ([o (in-list (string->jsexpr ours))] [r (in-list (string->jsexpr ref))]) (if (equal? (without-units o) (without-units r)) r (without-units o))))))
 (define (class-of r) (or (for/first ([c (in-list classes)] #:when ((caddr c) r)) (car c)) "unclassified"))
 (define (head-of r) (cond [(assoc (class-of r) classes) => cadr] [else 'unread]))
 
@@ -351,6 +404,30 @@
   (let-values ([(path detail) (first-difference (sd (hasheq 'id "Patient.name" 'min 1)) (sd (hasheq 'id "Patient.gender" 'min 1)))])
     (check-equal? path "StructureDefinition.differential.element(entry)")
     (check-regexp-match #rx"only the reference" detail))
+  ;; the compiler as it is now over every text, held to SUSHI's kept answers: the write-up's
+  ;; agreement as floors, and nothing of the sample left in no class
+  (let ([dir (make-temporary-file "fsh-reference-~a" 'directory)])
+    (dynamic-wind
+     void
+     (lambda ()
+       (write-fsh-materials! dir)
+       (define ref (read-answers kept-reference))
+       (define ref-errors (read-errors kept-reference))
+       (define rows
+         (for/list ([p (in-list (all-fsh-pairs dir))])
+           (define-values (a m) (our-answer+message (file->string (build-path dir (fsh-pair-file p)))))
+           (define r (hash-ref ref (fsh-pair-id p) 'missing))
+           (list p r (as-compared r a) (hash-ref ref-errors (fsh-pair-id p) "") (or m ""))))
+       (define (part sample?) (filter (lambda (r) (eq? (fsh-pair-sample? (car r)) sample?)) rows))
+       (check-equal? (length rows) 2802)
+       (check-false (ormap (lambda (r) (eq? (ref-of r) 'missing)) rows))
+       (check-true (>= (count agree? (part #t)) 715))
+       (check-true (>= (count agree? (part #f)) 1640))
+       (check-true (>= (count same-verdict? rows) 2453))
+       ;; this compiler alone reports an error on no text
+       (check-equal? (count (lambda (r) (and (error? (ours-of r)) (not (error? (ref-of r))))) rows) 0)
+       (check-equal? (count (lambda (r) (and (fsh-pair-sample? (car r)) (not (agree? r)) (eq? (head-of r) 'unread))) rows) 0))
+     (lambda () (delete-directory/files dir))))
   ;; this compiler on a small text: a profile and an instance of it, no error
   (let-values ([(a m) (our-answer+message "Profile: MyPatient\nParent: Patient\n* name 1..* MS\n\nInstance: Ann\nInstanceOf: MyPatient\n* name.family = \"Lee\"\n")])
     (check-false m)

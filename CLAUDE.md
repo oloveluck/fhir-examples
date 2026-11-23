@@ -439,7 +439,28 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   (`suite-pairs DIR`, `current-fresh-maps?` `'suite`): HL7's own structure-mapping tests, 199
   pairs, 183 the same before and after, 14 of the 16 differences the `conformsTo()` rule. The
   lesson: for maps a third of the MAPS is the wrong sample (a map is one feature); read by
-  cause. Next, each with its own entry first: SQL on FHIR, FSH.
+  cause.
+  **Part 3, the FSH compiler held to SUSHI** (the protocol's "H part 3" and "after its first
+  read"): `SushiReference.js` (SUSHI 3.21.1 from npm as a library: what its own
+  `sushiClient.fshToFhir` runs — the tank, the duplicate check, the exporter — with the
+  definitions loaded once; `check N` gives N texts to that client too and counts the outputs
+  that differ: 0 of 50), `fsh-cases.rkt` (`fsh-pair`: whole texts — SUSHI's 515 importer test
+  inputs, the golden texts, the guide's blocks; `text-changes`: one rule line removed, or its
+  cardinality, flag, binding strength, `(exactly)` or assigned value changed; `sample-text?`: a
+  third of the published texts), `fsh-reference.rkt` (`pairs`, `ask DIR NODE_MODULES [N]`,
+  `keep`, `ours` — `compile-project` over a one-file project with a config of the same facts —,
+  `report` (same answer, same verdict), `read`/`read-opened` (disagreements BY CAUSE: the
+  reference's message with what it quotes left out, or every path at which two answers differ:
+  `difference-paths`), `classes`; an Answer is `error` or the resources as one JSON text, each
+  beside its first error's message; `as-compared`: this compiler's `status` left out where
+  SUSHI's client wrote none; its test runs the live compiler over all 2,802 texts against
+  SUSHI's kept answers, with the write-up's agreement as floors and no text on which this
+  compiler alone errs). 2,802 texts: the same answer on 57.6% -> 84.0%, the same verdict on
+  75.5% -> 87.5%; ten causes of the sample fixed in fsh, three named, two open; 183 of the
+  1,985 unread texts differ under no class. SUSHI is installed with `npm install
+  fsh-sushi@3.21.1` into a scratch directory (83 MB; it reads ~/.fhir/packages) and takes 3.5
+  min for the texts. Next, each with its own entry first: the unread FSH texts opened, SQL on
+  FHIR.
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.

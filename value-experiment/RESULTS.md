@@ -1294,3 +1294,112 @@ and the map, which group 108 pairs into four) covers a set in one sitting. What 
 unexplained after four passes: two pairs of HL7's tests; the named gap of a `types` group for a
 primitive type (ten of the tutorial's pairs); and, on both sides, behaviour neither
 specification text decides (the three-argument `qty`, a complex value cast to a string).
+
+## H, part 3. The FSH compiler held to SUSHI (2026-11-23)
+
+Protocol: the entries "H part 3: the FSH compiler held to SUSHI" (stated before any output of
+the two compilers was compared) and "H part 3 after its first read". Everything that decides a
+result is `reference/fsh-reference.rkt` and `reference/fsh-cases.rkt`; `reference/
+SushiReference.js` calls SUSHI and prints.
+
+```
+racket fsh-reference.rkt pairs DIR                    # the 2,802 texts
+racket fsh-reference.rkt ask DIR NODE_MODULES 50      # SUSHI 3.21.1; fifty texts also given to its own client
+racket fsh-reference.rkt keep DIR answers/fsh-reference.jsonl.gz
+racket fsh-reference.rkt ours DIR answers/fsh-ours-before.jsonl.gz
+racket fsh-reference.rkt report DIR answers/fsh-reference.jsonl.gz answers/fsh-ours-before.jsonl.gz answers/fsh-ours-after.jsonl.gz
+racket fsh-reference.rkt read DIR REF OURS            # the sample's disagreements, by cause
+racket fsh-reference.rkt classes DIR REF OURS
+```
+
+**The reference** is SUSHI 3.21.1 run as a library: the bridge does what SUSHI's own
+`sushiClient.fshToFhir` does with SUSHI's own functions, its definitions loaded once (2,802
+texts in three and a half minutes); on the fifty texts also given to that client the two
+outputs are the same JSON. **The texts**: 539 published (SUSHI's 515 importer test inputs,
+fsh's 22 golden texts, the guide's two blocks) and 2,263 changed in one rule line. A third of
+the published texts, with what was changed from them, are the sample (817 texts); the other
+1,985 were not read.
+
+**As first measured, and after the fixes** (the compared form of the entry "after its first
+read": a resource's `status` left out where SUSHI's client wrote none):
+
+```
+this compiler's answer is the reference's:
+  group       part      texts  same answer     same verdict
+  published   sample    172    110 (64.0%)     126 (73.3%)
+  published   held-out  367    237 (64.6%)     274 (74.7%)
+  changed     sample    645    337 (52.2%)     493 (76.4%)
+  changed     held-out  1618   931 (57.5%)     1223 (75.6%)
+  all         sample    817    447 (54.7%)     619 (75.8%)
+  all         held-out  1985   1168 (58.8%)    1497 (75.4%)
+  an error from the reference on 1639 of the 2802 texts, from this compiler on 997, from both on 975
+
+after:
+  group       part      texts  same answer     same verdict
+  published   sample    172    153 (89.0%)     157 (91.3%)
+  published   held-out  367    321 (87.5%)     336 (91.6%)
+  changed     sample    645    562 (87.1%)     595 (92.2%)
+  changed     held-out  1618   1319 (81.5%)    1365 (84.4%)
+  all         sample    817    715 (87.5%)     752 (92.0%)
+  all         held-out  1985   1640 (82.6%)    1701 (85.7%)
+  an error from the reference on 1639 of the 2802 texts, from this compiler on 1290, from both on 1290
+```
+
+Under the first compared form, before the `status` rule, the same answer was 1,074 of 2,802
+(`results/2026-11-23-fsh-before-first-form.txt`).
+
+**What the sample showed** (its 370 disagreements, 49 causes; none is SUSHI departing from the
+FSH specification):
+
+| what | whose | sample texts |
+|---|---|---|
+| a value set, or a code's system, named by a name nothing defines (`from CategoryValueSet`, `foo#bar`, `* ZOO#bear`): SUSHI refuses it ("is not a valid URI"); this compiler warned of the binding and wrote the name as the system | **ours, fixed** | 51 |
+| what is written for an entity that states little, or for a flag: a profile with no rule (SUSHI: its root element as the differential; here none), a value set that includes nothing (`compose: {}` here), an Extension with no rule (a bare root and `extension 0..0` here), a concept named a second time (its display dropped here), the flags TU, N and D (the standards-status extension; read and dropped here) | **ours, fixed** | 137 |
+| an id that is no FHIR id (`Instance: 2000-10-31T00:01:02.000+00:00`) | **ours, fixed** | 20 |
+| `contains` on an element nothing says how to slice | **ours, fixed** | 15 |
+| a cardinality that does not fit within the base type's (`1..*` on `value[x]`) | **ours, fixed** | 12 |
+| an extension slice with no Extension behind it, in a profile | **ours, fixed** | 12 |
+| a Parent nothing defines, for an Extension or a Logical model (a Profile's was already an error) | **ours, fixed** | 9 |
+| a Ratio assigned in a profile: this compiler raised | **ours, fixed** | 8 |
+| an invariant no Invariant defines | **ours, fixed** | 5 |
+| a unit with its display and no number (`'[lb_av]' "lb"`): the unit written as the value | **ours, fixed** | 2 |
+| a path whose later step is no element, or an index in a profile's path; a RuleSet, a Mapping's Source, an instance to embed or a concept's ancestor that nothing defines; a value that does not fit its element (its type, a value the Parent fixed, a code of FHIR's own required sets) | **ours, named, not fixed** | 38 (37 after the fixes) |
+| an instance without an element its type requires: an error of SUSHI's compile; here `raco fsh check` says it, compiling does not validate | open | 28 |
+| a quantity's `unit`: this compiler writes the UCUM code as the unit too, SUSHI only a display's (decided earlier, in fsh's manual) | open | 37 after the fixes (33 before: the status rule and other differences hid some) |
+
+And one thing about the reference's two faces: SUSHI's client writes no `status`; its command
+line, for a configuration without one, writes `draft`. This compiler wrote `active`; it writes
+`draft` now for such a configuration.
+
+**Counted by those rules** (`results/2026-11-23-fsh-classes-before.txt`, `-after.txt`):
+
+```
+before
+sample: 817 texts, 370 differ — the reference's departure 0, this compiler's 309, open 61, in no class 0
+held-out: 1985 texts, 817 differ — the reference's departure 0, this compiler's 564, open 70, in no class 183 (unread)
+after
+sample: 817 texts, 102 differ — the reference's departure 0, this compiler's 37, open 65, in no class 0
+held-out: 1985 texts, 345 differ — the reference's departure 0, this compiler's 78, open 84, in no class 183 (unread)
+```
+
+**Gates.** fsh's corpus floors are where they were (IPS 108/111, mCODE 339/348, Plan-Net
+104/105, HRex 46/46, Genomics 134/137, GoFSH 117 and 348, importer 514/515, golden 22/22):
+none of the published guides writes what the new errors refuse. Every package's tests pass.
+
+**Reading.** The prediction was wrong on its numbers (85% of verdicts and 55 to 70% of answers
+predicted; 75.5% and 57.6% measured, 38% before the `status` rule) and right on its shape: the
+largest part of the disagreement was errors SUSHI reports that this compiler did not — on 664
+texts it wrote resources where the language's reference implementation says the text is wrong.
+That is the finding that matters for what the toolkit claims: a checker's silence is read as
+"correct", by a person and more so by a model, and here the silence was wrong on a quarter of
+the texts SUSHI's own authors wrote to exercise the language. After the fixes it is wrong on
+349 (12.5%), of which the named-not-fixed classes and the open one (required elements, which
+`raco fsh check` reports) cover the sample's; this compiler alone reports an error on none.
+Seven held-out texts still fall under classes fixed in the sample (four of what is written,
+three of a cardinality): the fixes do not reach every form of those causes.
+Unlike parts 1 and 2, no difference read was the reference departing from its specification:
+for FSH the reference implementation IS what the language's authors assert, and every
+difference was this compiler's or a decision. The held-out texts say the classes are
+incomplete: 183 differences (9.2% of the held-out texts) fall under no class, the same number
+before and after — causes the sample did not hold. They are the next thing to open, with the
+37 named.

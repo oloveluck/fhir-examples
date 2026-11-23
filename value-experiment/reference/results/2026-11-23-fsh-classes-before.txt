@@ -1,0 +1,24 @@
+class                                                                                                head       sample   held out
+a quantity's unit: this compiler writes the UCUM code as the `unit` too, SUSHI writes a unit only for a display (decided earlier and said in fsh's manual; left) open       33       19
+a unit with its display and no number (`'[lb_av]' "lb"`): this compiler wrote the unit as the value and the display as the code ours       2        0
+what is written for an entity that states little, or for a flag: a bare root element, no empty compose, the standards status of TU/N/D, a concept named twice, an extension's scaffold ours       137      286
+a Ratio assigned in a profile: this compiler raised                                                  ours       8        14
+an instance without an element its type requires: an error of SUSHI's compile; here `raco fsh check` says it (compiling does not validate) open       28       51
+a value set or a code's system named by a name nothing defines ("is not a valid URI"): written as the name here ours       51       120
+an id that is no FHIR id                                                                             ours       20       0
+`contains` on an element nothing says how to slice                                                   ours       15       27
+a cardinality that does not fit within the base's                                                    ours       12       27
+an extension slice with no Extension behind it, in a profile                                         ours       12       1
+a Parent nothing defines, for an Extension or a Logical model                                        ours       9        6
+an invariant no Invariant defines                                                                    ours       5        12
+a path whose later step is no element, or an index in a profile's path: only a path's first step is checked here (named, not fixed) ours       17       37
+a name that is defined nowhere: a RuleSet inserted in a value set or code system, a Mapping's Source, an instance to embed, a concept's ancestor (named, not fixed) ours       9        17
+a value that does not fit its element: its type, a value the Parent already fixed, a code of one of FHIR's own required sets (named, not fixed) ours       12       17
+unclassified                                                                                         -          0        183
+
+sample: 817 texts, 370 differ — the reference's departure 0, this compiler's 309, open 61, in no class 0
+  the same answer, or a difference that is the reference's departure: 447 of 817 (54.7%)
+held-out: 1985 texts, 817 differ — the reference's departure 0, this compiler's 564, open 70, in no class 183 (unread)
+  the same answer, or a difference that is the reference's departure: 1168 of 1985 (58.8%)
+all: 2802 texts, 1187 differ — the reference's departure 0, this compiler's 873, open 131, in no class 183
+  the same answer, or a difference that is the reference's departure: 1615 of 2802 (57.6%)
