@@ -893,3 +893,22 @@ that this compiler does not: a path whose later step is no element, a value of t
 for its element, a cardinality wider than the base's. Among the texts both compile, most
 differences are in what a differential states (SUSHI writes only what changes) rather than in
 instances. At least five causes are this compiler's.
+
+### 2026-11-23, H part 3 after its first read
+
+The baseline is kept as measured (90092e6: the same answer on 1,074 of 2,802 texts, the same
+verdict on 2,116). The prediction was wrong on both counts (85% and 55 to 70% predicted).
+Reading the sample showed one thing about the comparison itself, stated here before any class
+is counted:
+
+- **`status`.** SUSHI's client gives its configuration no status, so every resource it writes
+  has none; SUSHI's command line, given a `sushi-config.yaml` without one, writes `draft` (run
+  here on a three-entity project). The bridge mirrors the client. So where the reference wrote
+  no `status` on a resource, this compiler's is left out of the compared form; what this
+  compiler writes for a configuration without a status is held to the command line's `draft`
+  by a test instead. The first report is kept as `results/2026-11-23-fsh-before-first-form.txt`.
+- **Numbers** in the compared form are written so that JSON reads them back (`1.5`, where the
+  first kept files wrote the exact `3/2`): the reader parses an answer to say where two differ.
+  Equality is as it was; both kept files are written again in this form.
+- **Reading by cause** needs more than the first difference of two answers (a difference in
+  `status` hid 166 others): the reader lists every path at which two answers differ.

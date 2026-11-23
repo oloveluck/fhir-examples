@@ -23,7 +23,7 @@
          "fsh-cases.rkt")
 
 (provide canonical resources-answer our-answer read-answers read-errors fsh-rows classes class-of head-of agree? same-verdict?
-         first-difference)
+         first-difference difference-paths as-compared)
 
 (define-runtime-path bridge "SushiReference.js")
 
@@ -33,8 +33,10 @@
   (cond [(hash? j) (string-append "{" (string-join (for/list ([k (in-list (sort (hash-keys j) symbol<?))])
                                                      (format "~s:~a" (symbol->string k) (canonical (hash-ref j k)))) ",") "}")]
         [(list? j) (string-append "[" (string-join (map canonical j) ",") "]")]
+        ;; a number by its value, in a form JSON reads back: 1.0 and 1 are "1", 1.50 and 1.5 are "1.5"
         [(and (real? j) (not (boolean? j)))
-         (number->string (or (string->number (number->string j) 10 'number-or-false 'decimal-as-exact) j))]
+         (let ([x (or (string->number (number->string j) 10 'number-or-false 'decimal-as-exact) j)])
+           (if (and (exact? x) (integer? x)) (number->string x) (number->string (exact->inexact x))))]
         [else (jsexpr->string j)]))
 
 ;; resource-key : jsexpr -> string   what a resource is, for order and for pairing: its type and id
@@ -136,12 +138,26 @@
   (write-answers! file rows))
 
 ;; ---- the comparison --------------------------------------------------------------------------------
-;; A Row is (list FshPair reference-answer our-answer reference-message our-message): a message is
-;; the first error's, or "".
+;; as-compared : Answer Answer -> Answer   this compiler's answer as it is compared with the
+;; reference's: without the `status` of a resource on which the reference wrote none (SUSHI's
+;; client gives its configuration no status; its command line writes `draft` — the protocol's
+;; entry "H part 3 after its first read")
+(define (as-compared ref ours)
+  (cond
+    [(or (not (string? ref)) (not (string? ours)) (equal? ref "error") (equal? ours "error") (equal? ref ours)) ours]
+    [else
+     (define without-status
+       (for/hash ([r (in-list (string->jsexpr ref))] #:unless (hash-has-key? r 'status)) (values (resource-key r) #t)))
+     (resources-answer (for/list ([r (in-list (string->jsexpr ours))])
+                         (if (hash-ref without-status (resource-key r) #f) (hash-remove r 'status) r)))]))
+
+;; A Row is (list FshPair reference-answer our-answer reference-message our-message): our answer
+;; as it is compared; a message is the first error's, or "".
 (define (fsh-rows ps ref ours [ref-errors (hash)] [our-errors (hash)])
   (for/list ([p (in-list ps)])
     (define id (fsh-pair-id p))
-    (list p (hash-ref ref id 'missing) (hash-ref ours id 'missing) (hash-ref ref-errors id "") (hash-ref our-errors id ""))))
+    (define r (hash-ref ref id 'missing))
+    (list p r (as-compared r (hash-ref ours id 'missing)) (hash-ref ref-errors id "") (hash-ref our-errors id ""))))
 (define (ref-of r) (cadr r))
 (define (ours-of r) (caddr r))
 (define (ref-message r) (cadddr r))
@@ -206,6 +222,42 @@
           [else (for/or ([x (in-list a)] [y (in-list b)]) (diff (hash-ref x 'resourceType "?") x y))]))
   (if found (values (car found) (cdr found)) (values "(none)" "")))
 
+;; difference-paths : Answer Answer -> (listof string)   every place two answers of resources
+;; differ, each a path with its indexes left out, in order of name: the top-level elements of
+;; each resource that are not equal, a differential's elements taken one level further
+(define (difference-paths ref ours)
+  (define a (string->jsexpr ref))
+  (define b (string->jsexpr ours))
+  (define (keys l) (map resource-key l))
+  (define (by-key l k) (findf (lambda (r) (equal? (resource-key r) k)) l))
+  (define (element-paths x y)   ; two differentials: what differs among their elements
+    (define (els d) (if (hash? d) (hash-ref d 'element '()) '()))
+    (define (ids l) (map (lambda (e) (hash-ref e 'id #f)) l))
+    (define ex (els x))
+    (define ey (els y))
+    (append
+     (if (for/or ([id (in-list (ids ex))]) (not (member id (ids ey)))) '("differential.element(only the reference)") '())
+     (if (for/or ([id (in-list (ids ey))]) (not (member id (ids ex)))) '("differential.element(only this compiler)") '())
+     (for*/list ([e (in-list ex)] [f (in-value (findf (lambda (f) (equal? (hash-ref f 'id #f) (hash-ref e 'id #f))) ey))] #:when f
+                 [k (in-list (remove-duplicates (append (hash-keys e) (hash-keys f))))]
+                 #:unless (equal? (hash-ref e k 'none) (hash-ref f k 'none)))
+       (format "differential.element.~a" k))
+     (if (and (equal? (sort (filter values (ids ex)) string<?) (sort (filter values (ids ey)) string<?)) (not (equal? (ids ex) (ids ey))))
+         '("differential.element(order)") '())))
+  (sort
+   (remove-duplicates
+    (append
+     (for/list ([k (in-list (keys a))] #:unless (member k (keys b))) "(a resource only the reference wrote)")
+     (for/list ([k (in-list (keys b))] #:unless (member k (keys a))) "(a resource only this compiler wrote)")
+     (for*/list ([x (in-list a)] [y (in-value (by-key b (resource-key x)))] #:when y
+                 [k (in-list (remove-duplicates (append (hash-keys x) (hash-keys y))))]
+                 #:unless (equal? (hash-ref x k 'none) (hash-ref y k 'none))
+                 [p (in-list (if (eq? k 'differential)
+                                 (element-paths (hash-ref x k #f) (hash-ref y k #f))
+                                 (list (symbol->string k))))])
+       (format "~a.~a" (hash-ref x 'resourceType "?") p))))
+   string<?))
+
 ;; cause : Row -> string   what a disagreement is about, for grouping: the reference's message or
 ;; this compiler's with what they quote left out, or the path of the first difference
 (define (cause r)
@@ -213,7 +265,7 @@
                       (if (> (string-length s) 100) (substring s 0 100) s)))
   (cond [(and (error? (ref-of r)) (not (error? (ours-of r)))) (string-append "the reference alone errs: " (plain (ref-message r)))]
         [(and (error? (ours-of r)) (not (error? (ref-of r)))) (string-append "this compiler alone errs: " (plain (our-message r)))]
-        [else (let-values ([(path _d) (first-difference (ref-of r) (ours-of r))]) (string-append "differs at " path))]))
+        [else (string-append "differ at " (string-join (difference-paths (ref-of r) (ours-of r)) ", "))]))
 
 ;; ---- the classes of disagreement -------------------------------------------------------------------
 ;; A Class is (list name head rule): head 'ours | 'reference | 'open; rule : Row -> boolean, read from
