@@ -1,0 +1,11 @@
+this engine's result is the reference's:
+  group           part      pairs   agree
+  published       sample    1       0 (0%)
+  published       held-out  5       5 (100.0%)
+  changed-source  sample    13      0 (0%)
+  changed-source  held-out  65      63 (96.9%)
+  changed-map     sample    1       1 (100.0%)
+  changed-map     held-out  114     114 (100.0%)
+  all             sample    15      1 (6.7%)
+  all             held-out  184     182 (98.9%)
+  of the 183 pairs that agree, both engines raise on 0; the reference raises on 14 of the 199 pairs

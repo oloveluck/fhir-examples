@@ -3,7 +3,8 @@
 ;;; map-reference.rkt — this toolkit's mapping engine beside the validator's StructureMap engine
 ;;; (value-experiment/PROTOCOL.md, H part 2). Everything that decides a result is here.
 ;;;
-;;;   racket map-reference.rkt pairs DIR            the materials and DIR/pairs.jsonl
+;;;   racket map-reference.rkt pairs DIR            the materials and DIR/pairs.jsonl (fresh-pairs DIR: matchbox's
+;;;                                                 own maps; suite-pairs DIR: HL7's structure-mapping tests)
 ;;;   racket map-reference.rkt ask DIR JAR [4.0.1]  the reference over them (the Java bridge): DIR/answers.jsonl
 ;;;   racket map-reference.rkt keep DIR FILE.gz     the reference's answers, in the compared form
 ;;;   racket map-reference.rkt ours DIR FILE.gz [4.0.1]   this engine's answers, in the compared form
@@ -284,6 +285,9 @@
     ;; the second pass's fresh set: matchbox's top-level maps under the same rules
     [(and (= (length args) 2) (equal? (car args) "fresh-pairs"))
      (parameterize ([current-fresh-maps? #t]) (printf "~a pairs\n" (write-pairs! (cadr args))))]
+    ;; the fourth pass's fresh set: HL7's own structure-mapping test cases
+    [(and (= (length args) 2) (equal? (car args) "suite-pairs"))
+     (parameterize ([current-fresh-maps? 'suite]) (printf "~a pairs\n" (write-pairs! (cadr args))))]
     [(and (<= 3 (length args) 4) (equal? (car args) "ask")) (ask-reference! (cadr args) (caddr args) (if (= (length args) 4) (cadddr args) "5.0.0"))]
     [(and (= (length args) 3) (equal? (car args) "keep")) (keep-reference! (cadr args) (caddr args))]
     [(and (<= 3 (length args) 4) (equal? (car args) "ours"))

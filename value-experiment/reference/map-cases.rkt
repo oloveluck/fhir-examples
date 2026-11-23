@@ -17,7 +17,7 @@
 ;;;   sample? whether its disagreements may be read
 ;;; A Change is (cons label text): what was done, and the changed text (or a changed jsexpr).
 
-(require racket/file racket/list racket/string racket/path json file/sha1
+(require racket/file racket/list racket/string racket/path json file/sha1 xml
          (only-in fml/tests/matchbox-harness smoke-pairs))
 
 (provide (struct-out map-pair) all-map-pairs write-map-materials! sample-map? map-url source-changes map-changes
@@ -27,9 +27,21 @@
 
 (define matchbox (build-path (collection-path "fml") "tests" "vendor" "matchbox"))
 (define tutorial (build-path matchbox "tutorial"))
-;; The second pass's fresh set: matchbox's own top-level maps, each over the source fml's corpus
-;; test pairs it with, instead of the tutorial.
+;; Which maps: #f the tutorial's; #t the second pass's fresh set — matchbox's own top-level maps,
+;; each over the source fml's corpus test pairs it with; 'suite the fourth pass's — HL7's own
+;; structure-mapping test cases (fhir-test-cases r5/structure-mapping, vendored by fml): the
+;; manifest's tests whose map is the mapping language's text and whose expected result is JSON.
 (define current-fresh-maps? (make-parameter #f))
+(define structure-mapping (build-path (collection-path "fml") "tests" "vendor" "structure-mapping"))
+
+;; suite-pairs : -> (listof (list map-file source-file))   the manifest's tests, in its order
+(define (suite-pairs)
+  (define doc (call-with-input-file (build-path structure-mapping "manifest.xml") read-xml))
+  (for*/list ([e (in-list (element-content (document-element doc)))]
+              #:when (and (element? e) (eq? (element-name e) 'test))
+              [attr (in-value (lambda (n) (for/first ([a (in-list (element-attributes e))] #:when (eq? (attribute-name a) n)) (attribute-value a))))]
+              #:when (and (regexp-match? #rx"[.]map$" (attr 'map)) (regexp-match? #rx"[.]json$" (attr 'output))))
+    (list (attr 'map) (attr 'source))))
 
 ;; steps : -> (listof string)   the tutorial's steps, in number order
 (define (steps)
@@ -146,12 +158,14 @@
       (make-directory* (path-only f))
       (call-with-output-file f #:exists 'truncate (lambda (o) (if (string? content) (write-string content o) (write-json content o)))))
     (path->string rel))
-  (if (current-fresh-maps?) (fresh-made dir write? put!) (tutorial-made dir write? put!)))
+  (case (current-fresh-maps?)
+    [(#f) (tutorial-made dir write? put!)]
+    [(suite) (fresh-made dir write? put! "structure-mapping" structure-mapping (suite-pairs))]
+    [else (fresh-made dir write? put!)]))
 
-;; fresh-made : the fresh set — each top-level map over its one source; the source changed (every
+;; fresh-made : a fresh set — each map of a corpus over its one source; the source changed (every
 ;; single change down to three levels: it is a whole resource); the map changed
-(define (fresh-made dir write? put!)
-  (define step "matchbox")
+(define (fresh-made dir write? put! [step "matchbox"] [matchbox matchbox] [smoke-pairs smoke-pairs])
   (when write? (make-directory* (build-path dir step "logical")))
   (append*
    (for/list ([pr (in-list smoke-pairs)])
