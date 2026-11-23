@@ -559,3 +559,93 @@ library does not); SQL on FHIR has a reference implementation in JavaScript; FSH
 The outcome is not an agent comparison: it is how often each engine gives the reference's
 answer, before and after, on inputs nobody tuned it on — a number a user of the toolkit can
 rely on, and the thing V showed an oracle's worth to be.
+
+### 2026-11-23, H begins: FHIRPath held to HL7's Java engine
+
+The owner's word on the proposal above: "Continue with your recommendation." H is run one engine
+at a time, each part stated here before its first comparison is made. This entry is the first
+part. Before it was written one thing was tried and nothing compared: that HL7's validator jar
+(validator_cli, the one V-profile's truth came from) can be driven as a library, in one process,
+to evaluate FHIRPath as its own `fhirpath` command does — it can (seven seconds to start, then
+milliseconds a pair).
+
+**The question.** How often does this toolkit's FHIRPath engine give the answer HL7's Java engine
+gives, on published expressions over published resources and on both changed in one small way —
+and, where the two differ, which of them the specification bears out?
+
+**The reference.** `validator_cli.jar` as a library: the validator's own FHIRPath engine over its
+element model of the resource, FHIR 4.0.1, the core package alone, no terminology server — what
+`java -jar validator_cli.jar fhirpath` does. A bridge in Java
+(`value-experiment/reference/FhirPathReference.java`) reads a list of (resource file, expression)
+pairs and writes, for each, the items of the result or that the engine raised: an item's FHIR
+type and its value when it is primitive, else its primitive leaves by path. The bridge calls the
+engine and prints; it compares nothing and decides nothing. The reference's answers are
+committed, so the comparison runs again without Java.
+
+**The pairs**, each a resource and an expression, in four groups (the rules are code in
+`value-experiment/reference/fhirpath-cases.rkt`, committed with this entry's harness before
+any answer of the reference is read):
+
+- *search*: every SearchParameter of the R4 core package and of US Core 9.0.0 that has an
+  expression, for each of its base types of which US Core publishes an example — the expression
+  whole, as published — over every US Core example of that type.
+- *invariant*: every constraint, other than ele-1 and ext-1, in the snapshot of each such type's
+  core StructureDefinition and of each US Core profile of it, at an element whose path names no
+  choice (`[x]`) — the expression as published for a constraint on the resource, and
+  `<path>.select(<expression>)` for one on an element — over every US Core example of the type.
+- *probe*: a search expression E changed in one way: `(E)` followed by one of a fixed catalogue
+  of continuations that between them call the functions and operators of the specification
+  (existence, filtering, subsetting, combining, conversion, strings, math, tree navigation, types,
+  equality, comparison, collections, boolean logic) — over the first three examples of the type
+  in id order. Nothing that reads the clock.
+- *changed*: the search and invariant expressions over V-profile's changed copies of the
+  examples of its six profiles, of the three kinds that leave well-formed FHIR JSON (an element
+  removed, a code or its system replaced, a list's first entry given twice). What an engine does
+  with JSON that is not FHIR is not a question about FHIRPath.
+
+Apart from these, and reported apart: the expressions of HL7's own FHIRPath suite for R4 over
+its own input resources, by both engines. This toolkit passes that suite's expected outputs on
+932 of 934; where the reference differs from it there, the suite says which is right.
+
+**What is compared.** Each engine's answer is brought to one form, in Racket
+(`fhirpath-reference.rkt`): `error` when the engine raised (messages are not compared); else the
+list of items in order, each a kind and a value. The kinds: string (string, code, uri, id and
+the other string-shaped primitives), integer, decimal, boolean, date, dateTime (with instant),
+time, quantity, complex. A primitive's value is its text; two numbers are the same value when
+they are numerically equal (`1.0` and `1`: precision is not compared); a complex item is the
+sorted list of its primitive leaves, each with the path of element names that leads to it. Two
+answers agree when they are the same list. This toolkit's engine is called as `raco fhirpath`
+calls it (its static check on).
+
+**Sample and held out.** A published expression (with its resource type) belongs to the sample
+when the first byte of the SHA-1 of `<type> <expression>` is divisible by five — about a fifth —
+and with it all its probes and every resource it runs over; the rest is held out. The suite
+group is all sample: the engine was built on it.
+
+**The procedure.** (1) Both engines over every pair, as committed (fhirpath 11e9b4b, fhir
+1ba094c); the agreement counted, by group, sample and held out. (2) The sample's disagreements,
+and only those, are read and sorted into classes; each class is put under one of three heads,
+with its evidence: *ours* — this engine departs from the specification (FHIRPath N1 and FHIR's
+additions; then HL7's suite): fixed, with a test that fails without the fix; *the reference's* —
+the Java engine departs from the specification or from HL7's suite: kept, named, with the
+sentence or the suite test that says so; *open* — the specification does not decide: named, and
+the reference followed only where no test of this repository says otherwise. (3) The same pairs
+again. A class is written down as a rule over a pair's expression and the two answers, read from
+the sample alone; the held-out disagreements are counted by those rules and are not read.
+
+**The outcome**, all from committed Racket: agreement before and after, by group, sample and
+held out; the classes, with how many pairs of each part fall under each; the held-out
+disagreements after that no class covers (a number, unread). Every gate of the family holds
+throughout (the suites' floors: R5 1044/1044, R4 932/934; the 26 search parameters refused; the
+validator's gates; every package's tests).
+
+**What would count as what.** There is no bar and no agent here. The finding is the list: what
+this engine got wrong that nobody knew (as the validator's 61 verdicts were), what HL7's own
+engine gets wrong (a user who moves an expression between the two will meet it), and what is
+left unread. A prediction, to be held to: the published expressions agree on more than 95% of
+pairs before any fix; the probes on fewer than 90%; the largest class is this engine raising an
+error — its static check — where the reference answers nothing.
+
+**Then**, each with an entry of its own before it starts: the mapping language against the same
+jar's StructureMap engine; SQL on FHIR against its JavaScript reference implementation; FSH
+against SUSHI.
