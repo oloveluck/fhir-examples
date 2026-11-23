@@ -808,3 +808,35 @@ sample is a tie: 289 of its 325 pairs agree as R5 and as R4. The held-out maps a
 342 as R5 and 234 as R4; the reference raises on 137 pairs as R5 and 105 as R4. The rule above
 does not decide a tie, so it is decided here: R4, the version the maps were written for. The
 prediction's first part is already wrong (fewer than 40 raised, more than 85% agreeing).
+
+### 2026-11-23, H part 2, fourth pass: the eleven held-out maps opened, and HL7's own mapping tests as the next fresh set
+
+Stated before any pair of the eleven held-out maps is read. The third pass's outcome stands as
+counted (results/2026-11-23-map-fresh-r4-classes-after.txt): the sample's 36 differences are two
+causes, neither this engine's result (a `qty` of three arguments, which the specification does
+not have and the reference refuses; `conformsTo()`, which the reference cannot evaluate as its
+engine runs a transform); of the held-out maps' 108 differences, 98 are under no class. Six maps
+did not stand for seventeen, and the third pass's prediction was wrong in every part.
+
+**Opened.** The 108 held-out differences of matchbox's eleven other maps are read, as R4, put
+under *ours*, *the reference's* or *open* with the specification's sentence; what is this
+engine's is fixed in fml with a test that fails without it. After this pass every pair of the
+matchbox set has been read: its agreement is a description.
+
+**The next fresh set**: HL7's own structure-mapping test cases (fhir-test-cases
+r5/structure-mapping, which fml vendors): the manifest's tests whose map is the mapping language's
+text and whose expected result is JSON — six maps over one QuestionnaireResponse — under the same
+change catalogues (a source changed in every single way down to three levels; a map with a rule
+removed, a list mode, a `where`, a transform). Both engines as R5, which those tests are written
+for; this engine as it is before this pass's fixes and after. No pair of it is read. The split
+is kept for a later pass (a map is in the sample when the first byte of the SHA-1 of
+`structure-mapping/<map file>` is divisible by three).
+
+**Gates** as in the third pass.
+
+**A prediction.** The 98 are few causes in few maps: maps the reference does not read or cannot
+run without a terminology server (`translate`, `memberOf`), and one or two shapes of FHIR's own
+types this engine writes differently (a narrative's xhtml, a Bundle's entries, a resource
+resolved from a reference). At least two are this engine's. On the fresh set the engines agree
+on more than 80% of the pairs: its maps are near kin of matchbox's QuestionnaireResponse maps,
+and they are the reference's own tests.

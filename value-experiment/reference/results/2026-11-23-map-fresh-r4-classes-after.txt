@@ -1,0 +1,23 @@
+class                                                                                                head       sample   held out
+a FHIRPath expression that names a variable with an underscore: the reference does not read the map  reference  0        0
+a text that is no number put into a number's element: this engine wrote it as it stood               ours       0        1
+check and the list mode: this engine picked by the list mode first, the reference checks every element ours       0        0
+a target that names a variable, with nothing after it: this engine copied the source value into it   ours       0        2
+a FHIRPath function that does not exist: the reference does not read the map; this engine runs it, the expression giving nothing (its check now warns) open       0        0
+a types group written for a primitive type (string to string): this engine copies the value and does not run the group ours       0        0
+append() or truncate() of a complex value: this engine joined its printed form, or handed it on      ours       0        0
+cast(x, 'integer'): the reference keeps the text as it stood (a leading zero stays; a text that is no integer passes) reference  0        0
+a complex value cast to string: nothing there, the value itself here                                 open       0        1
+toString() of a complex value in a where: nothing here, as FHIRPath says; a text there               reference  0        2
+a complex value given to a target beside a types group for its types (`tgt.aa = a`): this engine runs the group, the reference copies it whole open       0        0
+a value that is no integer, put into an integer element and then replaced: an error here, the last value there open       0        0
+qty with three arguments (value, unit, system): no form of the specification's; the reference refuses the rule, this engine writes the system without a code (its check now warns) open       32       0
+conformsTo() in a map: the reference, as its engine runs a transform, has no validator configured and raises reference  4        4
+unclassified                                                                                         -          0        98
+
+sample: 325 pairs, 36 differ — the reference's departure 4, this engine's 0, open 32, in no class 0
+  the same answer, or a difference that is the reference's departure: 293 of 325 (90.2%)
+held-out: 342 pairs, 108 differ — the reference's departure 6, this engine's 3, open 1, in no class 98 (no pair of this set is read)
+  the same answer, or a difference that is the reference's departure: 240 of 342 (70.2%)
+all: 667 pairs, 144 differ — the reference's departure 10, this engine's 3, open 33, in no class 98
+  the same answer, or a difference that is the reference's departure: 533 of 667 (79.9%)

@@ -233,7 +233,12 @@
                           (eq? (map-pair-group (car r)) 'changed-map) (result? (cadr r)) (result? (caddr r)))))
    (list "a value that is no integer, put into an integer element and then replaced: an error here, the last value there" 'open
          (lambda (r) (and (eq? (map-pair-group (car r)) 'changed-source) (equal? (change-of r) "source string")
-                          (result? (cadr r)) (equal? (caddr r) "error"))))))
+                          (result? (cadr r)) (equal? (caddr r) "error"))))
+   ;; ---- read in the third pass, from the fresh set's sample (six of matchbox's maps, as R4) ----
+   (list "qty with three arguments (value, unit, system): no form of the specification's; the reference refuses the rule, this engine writes the system without a code (its check now warns)" 'open
+         (lambda (r) (and (equal? (cadr r) "error") (said r #rx"Transform qty requires 1, 2, or 4 parameters") (result? (caddr r)))))
+   (list "conformsTo() in a map: the reference, as its engine runs a transform, has no validator configured and raises" 'reference
+         (lambda (r) (and (equal? (cadr r) "error") (said r #rx"No validator configured") (result? (caddr r)))))))
 (define (class-of r) (or (for/first ([c (in-list classes)] #:when ((caddr c) r)) (car c)) "unclassified"))
 (define (head-of r) (cond [(assoc (class-of r) classes) => cadr] [else 'unread]))
 

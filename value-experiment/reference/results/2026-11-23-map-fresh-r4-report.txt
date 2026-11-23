@@ -1,0 +1,23 @@
+this engine's result is the reference's:
+  group           part      pairs   agree
+  published       sample    6       4 (66.7%)
+  published       held-out  11      7 (63.6%)
+  changed-source  sample    159     143 (89.9%)
+  changed-source  held-out  129     88 (68.2%)
+  changed-map     sample    160     142 (88.8%)
+  changed-map     held-out  202     139 (68.8%)
+  all             sample    325     289 (88.9%)
+  all             held-out  342     234 (68.4%)
+  of the 523 pairs that agree, both engines raise on 3; the reference raises on 105 of the 667 pairs
+
+after:
+  group           part      pairs   agree
+  published       sample    6       4 (66.7%)
+  published       held-out  11      7 (63.6%)
+  changed-source  sample    159     143 (89.9%)
+  changed-source  held-out  129     88 (68.2%)
+  changed-map     sample    160     142 (88.8%)
+  changed-map     held-out  202     139 (68.8%)
+  all             sample    325     289 (88.9%)
+  all             held-out  342     234 (68.4%)
+  of the 523 pairs that agree, both engines raise on 3; the reference raises on 105 of the 667 pairs
