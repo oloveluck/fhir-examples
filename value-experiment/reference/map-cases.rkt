@@ -17,14 +17,19 @@
 ;;;   sample? whether its disagreements may be read
 ;;; A Change is (cons label text): what was done, and the changed text (or a changed jsexpr).
 
-(require racket/file racket/list racket/string racket/path json file/sha1)
+(require racket/file racket/list racket/string racket/path json file/sha1
+         (only-in fml/tests/matchbox-harness smoke-pairs))
 
 (provide (struct-out map-pair) all-map-pairs write-map-materials! sample-map? map-url source-changes map-changes
-         pair->jsexpr jsexpr->pair)
+         pair->jsexpr jsexpr->pair current-fresh-maps?)
 
 (struct map-pair (id group step base change map url source sample?) #:transparent)
 
-(define tutorial (build-path (collection-path "fml") "tests" "vendor" "matchbox" "tutorial"))
+(define matchbox (build-path (collection-path "fml") "tests" "vendor" "matchbox"))
+(define tutorial (build-path matchbox "tutorial"))
+;; The second pass's fresh set: matchbox's own top-level maps, each over the source fml's corpus
+;; test pairs it with, instead of the tutorial.
+(define current-fresh-maps? (make-parameter #f))
 
 ;; steps : -> (listof string)   the tutorial's steps, in number order
 (define (steps)
@@ -52,13 +57,14 @@
 
 ;; ---- one change to a source ------------------------------------------------------------------------
 ;; places : jsexpr -> (listof (cons path value))   every value, with the keys and indexes that lead to it
-(define (places j [path '()])
-  (cond [(hash? j) (append* (for/list ([k (in-list (sort (hash-keys j) symbol<?))] #:unless (eq? k 'resourceType))
+(define (places j [path '()] [depth #f])
+  (cond [(and depth (>= (length path) depth)) '()]
+        [(hash? j) (append* (for/list ([k (in-list (sort (hash-keys j) symbol<?))] #:unless (eq? k 'resourceType))
                               (define p (append path (list k)))
-                              (cons (cons p (hash-ref j k)) (places (hash-ref j k) p))))]
+                              (cons (cons p (hash-ref j k)) (places (hash-ref j k) p depth))))]
         [(list? j) (append* (for/list ([x (in-list j)] [i (in-naturals)])
                               (define p (append path (list i)))
-                              (cons (cons p x) (places x p))))]
+                              (cons (cons p x) (places x p depth))))]
         [else '()]))
 (define (replaced j path f)
   (cond [(null? path) (f j)]
@@ -67,8 +73,8 @@
 
 ;; source-changes : jsexpr -> (listof Change)   every single change of the catalogue: a key removed, a
 ;; string replaced by another, a number raised by one, a list's first entry given twice, a list reversed
-(define (source-changes j)
-  (define here (places j))
+(define (source-changes j [depth #f])
+  (define here (places j '() depth))
   (append
    (for/list ([pl (in-list here)] #:when (symbol? (last (car pl))))
      (cons "source remove" (replaced j (drop-right (car pl) 1) (lambda (o) (hash-remove o (last (car pl)))))))
@@ -140,6 +146,34 @@
       (make-directory* (path-only f))
       (call-with-output-file f #:exists 'truncate (lambda (o) (if (string? content) (write-string content o) (write-json content o)))))
     (path->string rel))
+  (if (current-fresh-maps?) (fresh-made dir write? put!) (tutorial-made dir write? put!)))
+
+;; fresh-made : the fresh set — each top-level map over its one source; the source changed (every
+;; single change down to three levels: it is a whole resource); the map changed
+(define (fresh-made dir write? put!)
+  (define step "matchbox")
+  (when write? (make-directory* (build-path dir step "logical")))
+  (append*
+   (for/list ([pr (in-list smoke-pairs)])
+     (define text (file->string (build-path matchbox (car pr))))
+     (define base (format "~a/~a" step (car pr)))
+     (define url (or (map-url text) ""))
+     (define map-file (put! (build-path step "map" (car pr)) text))
+     (define j (call-with-input-file (build-path matchbox (cadr pr)) read-json))
+     (define source-file (put! (build-path step "source" (cadr pr)) j))
+     (append
+      (list (list 'published step base "" map-file url source-file))
+      (for/list ([c (in-list (source-changes j 3))])
+        (list 'changed-source step base (car c) map-file url
+              (put! (build-path step "source" (format "~a~~~a.json" (regexp-replace #rx"[.]json$" (cadr pr) "") (equal-hash-code* (cdr c)))) (cdr c))))
+      (for/list ([c (in-list (map-changes text))])
+        (define tag (equal-hash-code* (cdr c)))
+        (define curl (format "~a-c~a" url tag))
+        (list 'changed-map step base (car c)
+              (put! (build-path step "map" (format "~a~~~a.map" (regexp-replace #rx"[.]map$" (car pr) "") tag)) (with-url (cdr c) curl))
+              curl source-file))))))
+
+(define (tutorial-made dir write? put!)
   (append*
    (for/list ([step (in-list (steps))])
      (when write?

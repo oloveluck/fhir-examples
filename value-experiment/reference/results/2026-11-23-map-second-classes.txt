@@ -1,0 +1,21 @@
+class                                                                                                head       sample   held out
+a FHIRPath expression that names a variable with an underscore: the reference does not read the map  reference  9        7
+a text that is no number put into a number's element: this engine wrote it as it stood               ours       0        1
+check and the list mode: this engine picked by the list mode first, the reference checks every element ours       0        0
+a target that names a variable, with nothing after it: this engine copied the source value into it   ours       0        2
+a FHIRPath function that does not exist: the reference does not read the map; this engine runs it, the expression giving nothing (its check now warns) open       0        30
+a types group written for a primitive type (string to string): this engine copies the value and does not run the group ours       0        7
+append() or truncate() of a complex value: this engine joined its printed form, or handed it on      ours       0        0
+cast(x, 'integer'): the reference keeps the text as it stood (a leading zero stays; a text that is no integer passes) reference  0        4
+a complex value cast to string: nothing there, the value itself here                                 open       0        1
+toString() of a complex value in a where: nothing here, as FHIRPath says; a text there               reference  0        1
+a complex value given to a target beside a types group for its types (`tgt.aa = a`): this engine runs the group, the reference copies it whole open       0        7
+a value that is no integer, put into an integer element and then replaced: an error here, the last value there open       1        0
+unclassified                                                                                         -          0        0
+
+sample: 281 pairs, 10 differ — the reference's departure 9, this engine's 0, open 1, in no class 0
+  the same answer, or a difference that is the reference's departure: 280 of 281 (99.6%)
+held-out: 606 pairs, 60 differ — the reference's departure 12, this engine's 10, open 38, in no class 0 (read in the second pass)
+  the same answer, or a difference that is the reference's departure: 558 of 606 (92.1%)
+all: 887 pairs, 70 differ — the reference's departure 21, this engine's 10, open 39, in no class 0
+  the same answer, or a difference that is the reference's departure: 838 of 887 (94.5%)

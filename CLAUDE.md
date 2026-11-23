@@ -415,9 +415,16 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   pairs: held-out agreement 88.0% -> 89.8%, the sample 92.5% -> 96.4%; three defects of fml
   fixed (a text that is no number written into a number's element; an implicit copy where the
   target names a variable; `check` after the list mode), one of the reference's (a FHIRPath
-  variable with an underscore). 52 held-out pairs differ under no class, unread: eight sample
-  maps did not cover seventeen. Next, each with its own entry first: the mapping part's second
-  pass, SQL on FHIR, FSH.
+  variable with an underscore). 52 held-out pairs differed under no class: eight sample maps
+  did not cover seventeen. **Its second pass** opened them (two more fixes in fml: `append` and
+  `truncate` of a complex value; the check warns of a FHIRPath function that does not exist;
+  one gap named, not fixed: a `types` group for a primitive type is never run) and ran a fresh
+  set (`fresh-pairs DIR`, `current-fresh-maps?`: matchbox's seventeen top-level maps over FHIR
+  resources, 667 pairs, none read): the same result on 74.1%, 168 of 173 differences under no
+  class — the mapping engine is not covered yet, and that set is the next to open (with the
+  reference run as R4). `keep-ours!` in both modules refuses to write answers when the engine
+  raised on every pair (a stale compiled engine does, and `error` is an answer). Next, each with
+  its own entry first: the fresh mapping set opened, SQL on FHIR, FSH.
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.

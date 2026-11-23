@@ -235,10 +235,13 @@
 ;; keep-ours! : dir path -> void   this engine over every pair
 (define (keep-ours! dir file)
   (define ps (read-pairs dir))
-  (write-answers! file
-                  (for/list ([p (in-list ps)] [n (in-naturals 1)])
-                    (when (zero? (modulo n 50000)) (eprintf "~a pairs\n" n))
-                    (cons (fp-pair-id p) (our-answer (fp-pair-file p) (fp-pair-expr p))))))
+  (define rows (for/list ([p (in-list ps)] [n (in-naturals 1)])
+                 (when (zero? (modulo n 50000)) (eprintf "~a pairs\n" n))
+                 (cons (fp-pair-id p) (our-answer (fp-pair-file p) (fp-pair-expr p)))))
+  ;; an engine that does not load raises on every pair, and "error" is an answer: say so instead
+  (when (and (pair? rows) (andmap (lambda (r) (equal? (cdr r) "error")) rows))
+    (raise-user-error 'fhirpath-reference "this engine raised on every pair: ~a" (our-error (car ps))))
+  (write-answers! file rows))
 
 ;; ---- the comparison ------------------------------------------------------------------------------
 ;; A Row is (list Pair reference-answer our-answer message): the message of the reference's error, or "".

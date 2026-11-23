@@ -1064,3 +1064,85 @@ Limits: one reference, the tutorial's small logical models (strings and integers
 FHIR's own types), a catalogue of changes written by this harness, 887 pairs. Files:
 `reference/answers/map-*`, `reference/results/2026-11-23-map-*`; the module's test holds the
 live engine to the reference's kept answers.
+
+### Second pass: the held-out mapping pairs opened, and a fresh set (after the outcome above)
+
+The protocol's entry of the same name states it. The 55 unread held-out pairs were read. What
+they held:
+
+- *This engine's, fixed in fml with a test each*: `append()` of a complex value joined the
+  value's printed form (`"#hasheq((ab . test))x"` was written into the result) and `truncate()`
+  of one handed it on unchanged — both are an error at the rule now. And a FHIRPath expression
+  that calls a function that does not exist (`a.isInteger()`, in the tutorial's own step 4b)
+  gives nothing wherever it is evaluated, silently, so its rule never fires: fml's check now
+  says so, as a warning at the clause. (HL7's engine refuses to read that map at all; whether a
+  run should refuse is left open, because a corpus map this engine is held to runs that way.)
+- *This engine's, named and not fixed*: a `types` group written for a primitive type
+  (`group string(source src : string, target tgt : string) <<type+>>`) is not run — the engine
+  copies the primitive itself — so a change to that group has no effect (10 pairs). Running it
+  takes the group dispatch for primitive values and `.value` read and written on a primitive.
+- *The reference's*: `cast(x, 'integer')` keeps the text as it stood — a leading zero survives
+  (`"0123456789"`), and a text that is no integer passes when the target is a string.
+- *Open*: beside a `types` group for a complex value's types, an explicit `tgt.aa = a` runs the
+  group here and copies the value whole there; a complex value cast to string is nothing there
+  and the value itself here.
+
+Part 2's pairs with every class (a description: all of it has been read):
+
+```
+class                                                                                                head       sample   held out
+a FHIRPath expression that names a variable with an underscore: the reference does not read the map  reference  9        7
+a text that is no number put into a number's element: this engine wrote it as it stood               ours       0        1
+check and the list mode: this engine picked by the list mode first, the reference checks every element ours       0        0
+a target that names a variable, with nothing after it: this engine copied the source value into it   ours       0        2
+a FHIRPath function that does not exist: the reference does not read the map; this engine runs it, the expression giving nothing (its check now warns) open       0        30
+a types group written for a primitive type (string to string): this engine copies the value and does not run the group ours       0        7
+append() or truncate() of a complex value: this engine joined its printed form, or handed it on      ours       0        0
+cast(x, 'integer'): the reference keeps the text as it stood (a leading zero stays; a text that is no integer passes) reference  0        4
+a complex value cast to string: nothing there, the value itself here                                 open       0        1
+toString() of a complex value in a where: nothing here, as FHIRPath says; a text there               reference  0        1
+a complex value given to a target beside a types group for its types (`tgt.aa = a`): this engine runs the group, the reference copies it whole open       0        7
+a value that is no integer, put into an integer element and then replaced: an error here, the last value there open       1        0
+unclassified                                                                                         -          0        0
+
+sample: 281 pairs, 10 differ — the reference's departure 9, this engine's 0, open 1, in no class 0
+  the same answer, or a difference that is the reference's departure: 280 of 281 (99.6%)
+held-out: 606 pairs, 60 differ — the reference's departure 12, this engine's 10, open 38, in no class 0 (read in the second pass)
+  the same answer, or a difference that is the reference's departure: 558 of 606 (92.1%)
+all: 887 pairs, 70 differ — the reference's departure 21, this engine's 10, open 39, in no class 0
+  the same answer, or a difference that is the reference's departure: 838 of 887 (94.5%)
+```
+
+**The fresh set**: ahdis/matchbox's seventeen top-level maps — over FHIR resources, where the
+tutorial's are over small logical models — each with the source fml's corpus test gives it,
+the source changed in every single way down to three levels, the map changed by the same
+catalogue: 667 pairs, run once by both engines, none read. This engine's answers are the same
+before and after this pass.
+
+```
+this engine's result is the reference's:
+  group           part      pairs   agree
+  published       sample    6       4 (66.7%)
+  published       held-out  11      7 (63.6%)
+  changed-source  sample    159     143 (89.9%)
+  changed-source  held-out  129     74 (57.4%)
+  changed-map     sample    160     142 (88.8%)
+  changed-map     held-out  202     124 (61.4%)
+  all             sample    325     289 (88.9%)
+  all             held-out  342     205 (59.9%)
+  of the 494 pairs that agree, both engines raise on 3; the reference raises on 137 of the 667 pairs
+```
+
+```
+all: 667 pairs, 173 differ — the reference's departure 2, this engine's 2, open 1, in no class 168
+  the same answer, or a difference that is the reference's departure: 496 of 667 (74.4%)
+```
+
+**Reading.** The prediction held, and it is the finding: on maps over FHIR's own types the two
+engines agree on 494 of 667 pairs (74.1%), and 168 of the 173 differences fall under no class
+read so far. The reference raises on 137 of these pairs where this engine answers — these maps
+were written for R4 and the reference reads them as R5, so some of that is the setup rather
+than either engine — but that cannot be told without reading them. So, unlike FHIRPath, the
+mapping engine has not been covered: two passes over the tutorial found five defects and one
+gap, and the first set of maps over real resources is mostly unexplained. That set is the next
+thing to open, with the reference run as R4 beside it.

@@ -27,6 +27,7 @@
 
 (define-runtime-path bridge "MapReference.java")
 (define-runtime-path kept-reference "answers/map-reference.jsonl.gz")
+(define-runtime-path kept-fresh "answers/map-fresh-reference.jsonl.gz")
 
 ;; ---- the compared form ---------------------------------------------------------------------------
 ;; canonical : jsexpr -> string   JSON with an object's keys in order of name and numbers by value
@@ -138,7 +139,11 @@
                               (values (string->symbol (hash-ref j 'id)) (hash-ref j 'error)))
                             o))))
 (define (keep-ours! dir file)
-  (write-answers! file (for/list ([p (in-list (read-pairs dir))]) (cons (map-pair-id p) (our-map-answer dir p)))))
+  (define rows (for/list ([p (in-list (read-pairs dir))]) (cons (map-pair-id p) (our-map-answer dir p))))
+  ;; an engine that does not load raises on every pair, and "error" is an answer: say so instead
+  (when (and (pair? rows) (andmap (lambda (r) (equal? (cdr r) "error")) rows))
+    (raise-user-error 'map-reference "this engine raised on every pair: ~a" (our-error dir (car (read-pairs dir)))))
+  (write-answers! file rows))
 
 ;; ---- the comparison ------------------------------------------------------------------------------
 ;; A Row is (list MapPair reference-answer our-answer message).
@@ -166,6 +171,34 @@
 (define (change-of r) (map-pair-change (car r)))
 (define (said r rx) (regexp-match? rx (cadddr r)))
 (define (result? a) (not (equal? a "error")))
+;; published-text : string -> (or/c string #f)   the published map a pair's base names
+(define published-text
+  (let ([cache (make-hash)])
+    (lambda (base)
+      (hash-ref! cache base
+                 (lambda ()
+                   (define parts (regexp-match #rx"^([^/]+)/(.*)$" base))
+                   (define f (and parts (if (equal? (cadr parts) "matchbox")
+                                            (build-path (collection-path "fml") "tests" "vendor" "matchbox" (caddr parts))
+                                            (build-path (collection-path "fml") "tests" "vendor" "matchbox" "tutorial" (cadr parts) "map" (caddr parts)))))
+                   (and f (file-exists? f) (file->string f)))))))
+;; types-group-map? : string -> boolean   does the published map declare a group for a pair of types?
+(define (types-group-map? base)
+  (let ([t (published-text base)]) (and t (regexp-match? #rx"<<types?[+]?>>" t))))
+
+;; primitive-types-group? : string -> boolean   does the published map hold a group whose source
+;; parameter is a primitive type (`group string(source src : string, …) <<type+>>`)?
+(define primitive-types-group?
+  (let ([cache (make-hash)])
+    (lambda (base)
+      (hash-ref! cache base
+                 (lambda ()
+                   (define parts (regexp-match #rx"^([^/]+)/(.*)$" base))
+                   (define f (and parts (if (equal? (cadr parts) "matchbox")
+                                            (build-path (collection-path "fml") "tests" "vendor" "matchbox" (caddr parts))
+                                            (build-path (collection-path "fml") "tests" "vendor" "matchbox" "tutorial" (cadr parts) "map" (caddr parts)))))
+                   (and f (file-exists? f)
+                        (regexp-match? #px"group\\s+\\w+\\s*\\(\\s*source\\s+\\w+\\s*:\\s*(string|integer|decimal|boolean|code|uri|date|dateTime)\\b" (file->string f))))))))
 (define classes
   (list
    (list "a FHIRPath expression that names a variable with an underscore: the reference does not read the map" 'reference
@@ -176,6 +209,22 @@
          (lambda (r) (and (equal? (cadr r) "error") (said r #rx"Check condition failed") (result? (caddr r)))))
    (list "a target that names a variable, with nothing after it: this engine copied the source value into it" 'ours
          (lambda (r) (and (equal? (change-of r) "rule removed") (result? (cadr r)) (result? (caddr r)))))
+   ;; ---- read in the second pass, from part 2's held-out pairs once they were opened ----
+   (list "a FHIRPath function that does not exist: the reference does not read the map; this engine runs it, the expression giving nothing (its check now warns)" 'open
+         (lambda (r) (and (equal? (cadr r) "error") (said r #rx"is not a known function name") (result? (caddr r)))))
+   (list "a types group written for a primitive type (string to string): this engine copies the value and does not run the group" 'ours
+         (lambda (r) (and (primitive-types-group? (map-pair-base (car r))) (result? (caddr r)) (not (said r #rx"NumberFormatException")))))
+   (list "append() or truncate() of a complex value: this engine joined its printed form, or handed it on" 'ours
+         (lambda (r) (and (equal? (cadr r) "error") (said r #rx"Cannot invoke \"String.length\\(\\)\"") (result? (caddr r)))))
+   (list "cast(x, 'integer'): the reference keeps the text as it stood (a leading zero stays; a text that is no integer passes)" 'reference
+         (lambda (r) (and (equal? (change-of r) "transform cast integer") (result? (cadr r)))))
+   (list "a complex value cast to string: nothing there, the value itself here" 'open
+         (lambda (r) (and (equal? (change-of r) "transform cast string") (result? (cadr r)) (result? (caddr r)))))
+   (list "toString() of a complex value in a where: nothing here, as FHIRPath says; a text there" 'reference
+         (lambda (r) (and (equal? (change-of r) "where length") (result? (cadr r)) (result? (caddr r)))))
+   (list "a complex value given to a target beside a types group for its types (`tgt.aa = a`): this engine runs the group, the reference copies it whole" 'open
+         (lambda (r) (and (types-group-map? (map-pair-base (car r))) (not (primitive-types-group? (map-pair-base (car r))))
+                          (eq? (map-pair-group (car r)) 'changed-map) (result? (cadr r)) (result? (caddr r)))))
    (list "a value that is no integer, put into an integer element and then replaced: an error here, the last value there" 'open
          (lambda (r) (and (eq? (map-pair-group (car r)) 'changed-source) (equal? (change-of r) "source string")
                           (result? (cadr r)) (equal? (caddr r) "error"))))))
@@ -221,6 +270,9 @@
   (define (rows-of dir ref ours) (map-rows (read-pairs dir) (read-answers ref) (read-answers ours) (read-errors ref)))
   (cond
     [(and (= (length args) 2) (equal? (car args) "pairs")) (printf "~a pairs\n" (write-pairs! (cadr args)))]
+    ;; the second pass's fresh set: matchbox's top-level maps under the same rules
+    [(and (= (length args) 2) (equal? (car args) "fresh-pairs"))
+     (parameterize ([current-fresh-maps? #t]) (printf "~a pairs\n" (write-pairs! (cadr args))))]
     [(and (= (length args) 3) (equal? (car args) "ask")) (ask-reference! (cadr args) (caddr args))]
     [(and (= (length args) 3) (equal? (car args) "keep")) (keep-reference! (cadr args) (caddr args))]
     [(and (= (length args) 3) (equal? (car args) "ours")) (keep-ours! (cadr args) (caddr args))]
@@ -230,8 +282,9 @@
     [(and (>= (length args) 4) (member (car args) '("read" "read-opened")))
      (print-sample (cadr args) (rows-of (cadr args) (caddr args) (cadddr args)) (and (= (length args) 5) (list-ref args 4)) (equal? (car args) "read-opened"))]
     [(and (= (length args) 4) (equal? (car args) "classes")) (print-classes (rows-of (cadr args) (caddr args) (cadddr args)))]
-    [(and (= (length args) 5) (equal? (car args) "classes") (equal? (list-ref args 4) "opened"))
-     (print-classes (rows-of (cadr args) (caddr args) (cadddr args)) " (read in the second pass)")]
+    [(and (= (length args) 5) (equal? (car args) "classes") (member (list-ref args 4) '("opened" "fresh")))
+     (print-classes (rows-of (cadr args) (caddr args) (cadddr args))
+                    (if (equal? (list-ref args 4) "opened") " (read in the second pass)" " (no pair of this set is read)"))]
     [else (eprintf "usage: map-reference.rkt pairs DIR | ask DIR JAR | keep DIR FILE | ours DIR FILE | report DIR REF OURS [AFTER] | read DIR REF OURS [CLASS] | classes DIR REF OURS\n")
           (exit 2)]))
 
@@ -255,6 +308,18 @@
        (check-true (>= (count agree? (filter (lambda (r) (map-pair-sample? (car r))) rows)) 271))
        (check-true (>= (count agree? (filter (lambda (r) (not (map-pair-sample? (car r)))) rows)) 544))
        (check-equal? (count (lambda (r) (and (map-pair-sample? (car r)) (not (agree? r)) (memq (head-of r) '(ours unread)))) rows) 0))
+     (lambda () (delete-directory/files dir))))
+  ;; the second pass's fresh set (matchbox's top-level maps): how many pairs agree
+  (let ([dir (make-temporary-file "map-fresh-~a" 'directory)])
+    (dynamic-wind
+     void
+     (lambda ()
+       (parameterize ([current-fresh-maps? #t])
+         (write-map-materials! dir)
+         (define ps (all-map-pairs dir))
+         (define ref (read-answers kept-fresh))
+         (check-equal? (length ps) 667)
+         (check-true (>= (for/sum ([p (in-list ps)]) (if (equal? (hash-ref ref (map-pair-id p) 'missing) (our-map-answer dir p)) 1 0)) 494))))
      (lambda () (delete-directory/files dir))))
   (check-equal? (canonical (hasheq 'b 1.0 'a (list "x" #t))) "{\"a\":[\"x\",true],\"b\":1}")
   (check-equal? (reference-answer (hasheq 'id "1" 'error "x")) "error")

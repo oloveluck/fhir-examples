@@ -48,7 +48,8 @@ public class MapReference {
           String d = pair.get("dir").getAsString();
           if (!d.equals(dir)) {
             engine = new ValidationEngine.ValidationEngineBuilder().withVersion("5.0.0").withNoTerminologyServer().fromSource("hl7.fhir.r5.core#5.0.0");
-            engine.getIgLoader().loadIg(engine.getIgs(), engine.getBinaries(), d, false);
+            String[] models = new java.io.File(d).list();
+            if (models != null && models.length > 0) engine.getIgLoader().loadIg(engine.getIgs(), engine.getBinaries(), d, false);
             dir = d;
             maps.clear();
           }
