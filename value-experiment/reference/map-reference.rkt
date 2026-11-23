@@ -19,6 +19,8 @@
 
 (require racket/file racket/list racket/string racket/port racket/system racket/runtime-path racket/path json file/gzip file/gunzip
          (only-in fhir/data-source current-data-source resources->data-source)
+         (only-in fhir/sd/sd-index current-sd-packages)
+         (only-in fhir/spec-package spec-package-path)
          (only-in fhir/serialize/from-json from-json)
          (only-in fhir/result/result ok? ok-value)
          (only-in fml/parser/parse parse-fml)
@@ -31,10 +33,15 @@
 (define-runtime-path bridge "MapReference.java")
 (define-runtime-path kept-reference "answers/map-reference.jsonl.gz")
 (define-runtime-path kept-fresh "answers/map-fresh-reference.jsonl.gz")
+(define-runtime-path kept-suite "answers/map-suite-reference.jsonl.gz")
 
-;; load-version! : string -> void   the FHIR types this process reads resources by: R5's, or R4's
-;; for "4.0.1". Called once, before any map is run.
-(define (load-version! v) (void (dynamic-require (if (equal? v "4.0.1") 'fhir/r4/schemas 'fhir/r5/schemas) #f)))
+;; load-version! : string -> void   the FHIR version this process runs maps in: its types (R5's, or
+;; R4's for "4.0.1") and its core package as the definitions in context (what the reference is
+;; built with: a value set a map asks about is that version's). Called once, before any map is run.
+(define (load-version! v)
+  (define r4? (equal? v "4.0.1"))
+  (dynamic-require (if r4? 'fhir/r4/schemas 'fhir/r5/schemas) #f)
+  (current-sd-packages (list (spec-package-path (if r4? "hl7.fhir.r4.core.tgz" "hl7.fhir.r5.core.tgz")))))
 
 ;; ---- the compared form ---------------------------------------------------------------------------
 ;; canonical : jsexpr -> string   JSON with an object's keys in order of name and numbers by value
@@ -239,7 +246,20 @@
    (list "qty with three arguments (value, unit, system): no form of the specification's; the reference refuses the rule, this engine writes the system without a code (its check now warns)" 'open
          (lambda (r) (and (equal? (cadr r) "error") (said r #rx"Transform qty requires 1, 2, or 4 parameters") (result? (caddr r)))))
    (list "conformsTo() in a map: the reference, as its engine runs a transform, has no validator configured and raises" 'reference
-         (lambda (r) (and (equal? (cadr r) "error") (said r #rx"No validator configured") (result? (caddr r)))))))
+         (lambda (r) (and (equal? (cadr r) "error") (said r #rx"No validator configured") (result? (caddr r)))))
+   ;; ---- read in the fourth pass, from matchbox's eleven other maps (as R4) ----
+   (list "resolve() of a reference to another entry of the Bundle: nothing in the reference, so the variable it should fill has no value and the rule raises" 'reference
+         (lambda (r) (and (equal? (cadr r) "error") (said r #rx"INPUT variable .* has no value") (result? (caddr r)))))
+   (list "a text that is no boolean put into a boolean's element (the value appended to, cut or upper-cased): an error here, as for a number; the reference writes false" 'reference
+         (lambda (r) (and (member (change-of r) '("transform append" "transform truncate" "transform expression"))
+                          (result? (cadr r)) (equal? (caddr r) "error") (regexp-match? #rx"\"active\":false" (cadr r)))))
+   (list "translate() into a choice element: this engine wrote the bare name (`location`), not the type's key (`locationCodeableConcept`)" 'ours
+         (lambda (r) (and (result? (cadr r)) (result? (caddr r)) (regexp-match? #rx"\"locationCodeableConcept\"" (cadr r)) (regexp-match? #rx"\"location\":" (caddr r)))))
+   (list "a literal given to copy(), cast() or truncate(): this engine looked it up as a variable's name and wrote nothing" 'ours
+         (lambda (r) (and (member (change-of r) '("transform copy" "transform cast string" "transform cast integer" "transform truncate"))
+                          (regexp-match? #rx"copyaliasingbug" (map-pair-base (car r))) (result? (caddr r)))))
+   (list "memberOf() in a where: not implemented in this engine's FHIRPath, so the where never held" 'ours
+         (lambda (r) (and (regexp-match? #rx"memberof" (map-pair-base (car r))) (result? (cadr r)) (result? (caddr r)))))))
 (define (class-of r) (or (for/first ([c (in-list classes)] #:when ((caddr c) r)) (car c)) "unclassified"))
 (define (head-of r) (cond [(assoc (class-of r) classes) => cadr] [else 'unread]))
 
@@ -258,6 +278,20 @@
       (printf "  ~a over ~a\n    reference: ~a\n    ours:      ~a\n" (map-pair-map (car r)) (map-pair-source (car r))
               (if (equal? (cadr r) "error") (short (string-append "error: " (cadddr r)) 260) (short (cadr r) 260))
               (if (equal? (caddr r) "error") (short (string-append "error: " (our-error dir (car r))) 260) (short (caddr r) 260))))))
+
+;; print-by-map : dir (listof Row) -> void   every disagreement, grouped by the published map it
+;; comes from, its class, the reference's message (its first words) and the answers' shapes
+(define (print-by-map dir rows)
+  (define wrong (filter (lambda (r) (not (agree? r))) rows))
+  (define (key r) (list (map-pair-base (car r)) (class-of r) (shape (cadr r)) (shape (caddr r))
+                        (if (equal? (cadr r) "error") (short (regexp-replace* #rx"[0-9a-f]{10}" (cadddr r) "…") 70) "")))
+  (for ([g (in-list (sort (group-by key wrong) > #:key length))])
+    (define r (car g))
+    (printf "\n~a pairs — ~a [~a] ~a\n  changes: ~a\n" (length g) (map-pair-base (car r)) (short (class-of r) 50) (if (map-pair-sample? (car r)) "sample" "held out")
+            (string-join (remove-duplicates (map change-of g)) ", "))
+    (printf "  ~a over ~a (~a)\n    reference: ~a\n    ours:      ~a\n" (map-pair-map (car r)) (map-pair-source (car r)) (change-of r)
+            (if (equal? (cadr r) "error") (short (string-append "error: " (cadddr r)) 400) (short (cadr r) 700))
+            (if (equal? (caddr r) "error") (short (string-append "error: " (our-error dir (car r))) 400) (short (caddr r) 700)))))
 
 (define (print-classes rows [held-out-note " (unread)"])
   (define wrong (filter (lambda (r) (not (agree? r))) rows))
@@ -296,13 +330,18 @@
     [(and (>= (length args) 4) (equal? (car args) "report"))
      (print-agreement "this engine's result is the reference's:" (rows-of (cadr args) (caddr args) (cadddr args)))
      (when (= (length args) 5) (newline) (print-agreement "after:" (rows-of (cadr args) (caddr args) (list-ref args 4))))]
-    [(and (>= (length args) 4) (member (car args) '("read" "read-opened" "read-r4")))
-     (load-version! (if (equal? (car args) "read-r4") "4.0.1" "5.0.0"))
-     (print-sample (cadr args) (rows-of (cadr args) (caddr args) (cadddr args)) (and (= (length args) 5) (list-ref args 4)) (equal? (car args) "read-opened"))]
+    [(and (>= (length args) 4) (member (car args) '("read" "read-opened" "read-r4" "read-opened-r4")))
+     (load-version! (if (member (car args) '("read-r4" "read-opened-r4")) "4.0.1" "5.0.0"))
+     (print-sample (cadr args) (rows-of (cadr args) (caddr args) (cadddr args)) (and (= (length args) 5) (list-ref args 4))
+                   (and (member (car args) '("read-opened" "read-opened-r4")) #t))]
+    ;; by-map DIR REF OURS [4.0.1]: every disagreement by its published map, class and the two answers' shapes
+    [(and (>= (length args) 4) (equal? (car args) "by-map"))
+     (load-version! (if (= (length args) 5) (list-ref args 4) "5.0.0"))
+     (print-by-map (cadr args) (rows-of (cadr args) (caddr args) (cadddr args)))]
     [(and (= (length args) 4) (equal? (car args) "classes")) (print-classes (rows-of (cadr args) (caddr args) (cadddr args)))]
     [(and (= (length args) 5) (equal? (car args) "classes") (member (list-ref args 4) '("opened" "fresh")))
      (print-classes (rows-of (cadr args) (caddr args) (cadddr args))
-                    (if (equal? (list-ref args 4) "opened") " (read in the second pass)" " (no pair of this set is read)"))]
+                    (if (equal? (list-ref args 4) "opened") " (opened and read)" " (no pair of this set is read)"))]
     [else (eprintf "usage: map-reference.rkt pairs DIR | ask DIR JAR | keep DIR FILE | ours DIR FILE | report DIR REF OURS [AFTER] | read DIR REF OURS [CLASS] | classes DIR REF OURS\n")
           (exit 2)]))
 
@@ -338,7 +377,19 @@
          (define ps (all-map-pairs dir))
          (define ref (read-answers kept-fresh))
          (check-equal? (length ps) 667)
-         (check-true (>= (for/sum ([p (in-list ps)]) (if (equal? (hash-ref ref (map-pair-id p) 'missing) (our-map-answer dir p)) 1 0)) 494))))
+         (check-true (>= (for/sum ([p (in-list ps)]) (if (equal? (hash-ref ref (map-pair-id p) 'missing) (our-map-answer dir p)) 1 0)) 529))))
+     (lambda () (delete-directory/files dir))))
+  ;; the fourth pass's fresh set (HL7's own structure-mapping tests): how many pairs agree
+  (let ([dir (make-temporary-file "map-suite-~a" 'directory)])
+    (dynamic-wind
+     void
+     (lambda ()
+       (parameterize ([current-fresh-maps? 'suite])
+         (write-map-materials! dir)
+         (define ps (all-map-pairs dir))
+         (define ref (read-answers kept-suite))
+         (check-equal? (length ps) 199)
+         (check-true (>= (for/sum ([p (in-list ps)]) (if (equal? (hash-ref ref (map-pair-id p) 'missing) (our-map-answer dir p)) 1 0)) 183))))
      (lambda () (delete-directory/files dir))))
   (check-equal? (canonical (hasheq 'b 1.0 'a (list "x" #t))) "{\"a\":[\"x\",true],\"b\":1}")
   (check-equal? (reference-answer (hasheq 'id "1" 'error "x")) "error")

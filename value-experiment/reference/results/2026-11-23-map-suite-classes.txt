@@ -1,0 +1,28 @@
+class                                                                                                head       sample   held out
+a FHIRPath expression that names a variable with an underscore: the reference does not read the map  reference  0        0
+a text that is no number put into a number's element: this engine wrote it as it stood               ours       0        0
+check and the list mode: this engine picked by the list mode first, the reference checks every element ours       0        0
+a target that names a variable, with nothing after it: this engine copied the source value into it   ours       0        0
+a FHIRPath function that does not exist: the reference does not read the map; this engine runs it, the expression giving nothing (its check now warns) open       0        0
+a types group written for a primitive type (string to string): this engine copies the value and does not run the group ours       0        0
+append() or truncate() of a complex value: this engine joined its printed form, or handed it on      ours       0        0
+cast(x, 'integer'): the reference keeps the text as it stood (a leading zero stays; a text that is no integer passes) reference  0        0
+a complex value cast to string: nothing there, the value itself here                                 open       0        0
+toString() of a complex value in a where: nothing here, as FHIRPath says; a text there               reference  0        0
+a complex value given to a target beside a types group for its types (`tgt.aa = a`): this engine runs the group, the reference copies it whole open       0        0
+a value that is no integer, put into an integer element and then replaced: an error here, the last value there open       0        0
+qty with three arguments (value, unit, system): no form of the specification's; the reference refuses the rule, this engine writes the system without a code (its check now warns) open       0        0
+conformsTo() in a map: the reference, as its engine runs a transform, has no validator configured and raises reference  14       0
+resolve() of a reference to another entry of the Bundle: nothing in the reference, so the variable it should fill has no value and the rule raises reference  0        0
+a text that is no boolean put into a boolean's element (the value appended to, cut or upper-cased): an error here, as for a number; the reference writes false reference  0        0
+translate() into a choice element: this engine wrote the bare name (`location`), not the type's key (`locationCodeableConcept`) ours       0        0
+a literal given to copy(), cast() or truncate(): this engine looked it up as a variable's name and wrote nothing ours       0        0
+memberOf() in a where: not implemented in this engine's FHIRPath, so the where never held            ours       0        0
+unclassified                                                                                         -          0        2
+
+sample: 15 pairs, 14 differ — the reference's departure 14, this engine's 0, open 0, in no class 0
+  the same answer, or a difference that is the reference's departure: 15 of 15 (100.0%)
+held-out: 184 pairs, 2 differ — the reference's departure 0, this engine's 0, open 0, in no class 2 (no pair of this set is read)
+  the same answer, or a difference that is the reference's departure: 182 of 184 (98.9%)
+all: 199 pairs, 16 differ — the reference's departure 14, this engine's 0, open 0, in no class 2
+  the same answer, or a difference that is the reference's departure: 197 of 199 (99.0%)

@@ -423,8 +423,23 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   resources, 667 pairs, none read): the same result on 74.1%, 168 of 173 differences under no
   class — the mapping engine is not covered yet, and that set is the next to open (with the
   reference run as R4). `keep-ours!` in both modules refuses to write answers when the engine
-  raised on every pair (a stale compiled engine does, and `error` is an answer). Next, each with
-  its own entry first: the fresh mapping set opened, SQL on FHIR, FSH.
+  raised on every pair (a stale compiled engine does, and `error` is an answer).
+  **Third and fourth passes** (the protocol's entries of those names): both engines as R4 over
+  the matchbox set (`ask DIR JAR 4.0.1`, `ours DIR FILE 4.0.1`, `read-r4`; `load-version!`: a
+  process holds one FHIR version, and the version's core package is this engine's context as it
+  is the reference's; `MapReference.java` takes the version). The sample (six maps) tied as R4
+  and R5 and held two causes, neither a wrong result here (`qty` of three arguments — fml's
+  check warns now; `conformsTo()` without a validator in the reference); 98 of the other
+  eleven maps' 108 differences were under no class. Opened (`by-map DIR REF OURS [4.0.1]`: every
+  disagreement by its map, class and the reference's message): four causes, three this
+  engine's and fixed in fml and fhirpath (`translate` into a choice element; a literal given to
+  copy/cast/truncate; `memberOf()`), one the reference's (`resolve()` inside a Bundle: 61
+  pairs). After: 561 of 667 the same as R4 (523), 529 as R5 (494), no difference left that is
+  this engine's (`map-reference-r4-test.rkt`, a process of its own). The next unread set
+  (`suite-pairs DIR`, `current-fresh-maps?` `'suite`): HL7's own structure-mapping tests, 199
+  pairs, 183 the same before and after, 14 of the 16 differences the `conformsTo()` rule. The
+  lesson: for maps a third of the MAPS is the wrong sample (a map is one feature); read by
+  cause. Next, each with its own entry first: SQL on FHIR, FSH.
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.

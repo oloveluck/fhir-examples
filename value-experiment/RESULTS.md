@@ -1146,3 +1146,151 @@ than either engine — but that cannot be told without reading them. So, unlike 
 mapping engine has not been covered: two passes over the tutorial found five defects and one
 gap, and the first set of maps over real resources is mostly unexplained. That set is the next
 thing to open, with the reference run as R4 beside it.
+
+### Third pass: the fresh mapping set opened by its sample, both engines also as R4
+
+Stated in the protocol before any pair of the set was read. Commands, as for the other passes
+(`reference/map-reference.rkt`; `ask DIR JAR 4.0.1` and `ours DIR FILE 4.0.1` run an engine as
+R4, a process holding one FHIR version); the kept answers are `reference/answers/map-fresh-r4-*`.
+
+**Both engines as R4, nothing read** (`results/2026-11-23-map-fresh-r4-before.txt`). As R5 the
+two agreed on 494 of the 667 pairs and the reference raised on 137; as R4, the version matchbox
+wrote these maps for:
+
+```
+this engine's result is the reference's:
+  group           part      pairs   agree
+  published       sample    6       4 (66.7%)
+  published       held-out  11      7 (63.6%)
+  changed-source  sample    159     143 (89.9%)
+  changed-source  held-out  129     88 (68.2%)
+  changed-map     sample    160     142 (88.8%)
+  changed-map     held-out  202     139 (68.8%)
+  all             sample    325     289 (88.9%)
+  all             held-out  342     234 (68.4%)
+  of the 523 pairs that agree, both engines raise on 3; the reference raises on 105 of the 667 pairs
+```
+
+The sample is the same either way (289 of 325); the held-out maps gain 29 pairs. The version
+was not the explanation: the reference still raises on 105 pairs. The tie on the sample was
+decided for R4 in the protocol, before reading.
+
+**The sample read** (six maps, 36 differences): two causes, and neither is a wrong result of
+this engine.
+
+| what | whose | pairs |
+|---|---|---|
+| `qty(value, 'kg', 'http://unit.org')`: three arguments. The specification's table gives `qty` "(text) or (value, unit, [system, code])" — a system comes with its code. The reference refuses the rule ("Transform qty requires 1, 2, or 4 parameters"); this engine writes the system without a code. Read beyond the specification, and now said: fml's check warns at the rule | open | 32 |
+| `conformsTo()` in a `where`: the reference, as its engine runs a transform, has no validator configured and raises (only its own test class configures one) | the reference's | 4 |
+
+**Counted over the held-out maps by those rules** (`results/2026-11-23-map-fresh-r4-classes-after.txt`):
+
+```
+sample: 325 pairs, 36 differ — the reference's departure 4, this engine's 0, open 32, in no class 0
+  the same answer, or a difference that is the reference's departure: 293 of 325 (90.2%)
+held-out: 342 pairs, 108 differ — the reference's departure 6, this engine's 3, open 1, in no class 98 (no pair of this set is read)
+  the same answer, or a difference that is the reference's departure: 240 of 342 (70.2%)
+```
+
+**Reading.** The prediction was wrong in every part: as R4 the reference raises on 105 pairs,
+not fewer than 40; the engines agree on 78%, not 85%; none of the sample's differences is this
+engine's result. And the sample did not stand for the rest: 98 of the eleven other maps' 108
+differences fall under no class. Seventeen maps that each exercise another feature are not a
+population a third of which predicts the others.
+
+### Fourth pass: the eleven other maps opened, and HL7's own mapping tests as the next unread set
+
+Stated in the protocol before any of those pairs was read, and with the next unread set made
+and run by both engines first (`results/2026-11-23-map-suite-before.txt`).
+
+**The 108 differences, read** (as R4; `map-reference.rkt by-map` groups them by map):
+
+| what | whose | pairs |
+|---|---|---|
+| `resolve()` of a reference to another entry of the same Bundle (bundle-resolve.map: `evaluate(result, resolve()) as observation`): nothing in the reference, so the variable has no value and the next rule raises; this engine resolves it, as FHIRPath's `resolve()` is defined | the reference's | 61 |
+| `item.location = translate(code, '#map', 'CodeableConcept')`: `location[x]` is a choice, and this engine wrote the bare name `location` — no element of ExplanationOfBenefit — where the type picks `locationCodeableConcept` | **ours, fixed** | 32 (+3 under older rules) |
+| `conformsTo()`, as in the sample | the reference's | 4 |
+| `memberOf()` in a `where`: not implemented in this toolkit's FHIRPath, so the `where` never held and nothing said so | **ours, fixed** (fhirpath) | 2 (+1) |
+| a literal as a transform's first argument (`copy(true)`, `cast(true, 'string')`, `cast(true, 'integer')`): looked up as a variable's name, it gave nothing and the element kept its old value | **ours, fixed** | 3 (under three rules) |
+| a text that is no boolean (`truex`, `TRUE`) put into a boolean element: an error here, as for a number; the reference writes `false`. This engine's message quoted Racket's form of the appended text (`#tx`): fixed | the reference's | 2; 3 after the fixes, when `truncate(true, 3)` cuts the text (`tru`) — it had agreed by accident, the literal giving nothing |
+| older classes (a complex value's `toString()` in a `where`) | the reference's | 2 |
+
+Fixed in fml and fhirpath, each with a test that fails without it (`fml/tests/reference-test.rkt`,
+`fhirpath/tests/memberof-test.rkt`): `translate`'s result type picks a choice element's key;
+copy, cast, truncate and translate read a literal or an expression as their first argument;
+`cast` answers a value of the type asked for or fails; `truncate` cuts a primitive's text;
+`append` joins a boolean as FHIR writes it; FHIR's `memberOf()` is a FHIRPath function answered
+by the terminology service, which fml gives it. With memberOf() the comparison's own setup
+changed too: run as R4, this engine has the R4 core package as its definitions in context, as
+the reference has.
+
+**The same pairs, before and after** (`results/2026-11-23-map-fresh-r4-fourth-*.txt`):
+
+```
+after:
+  group           part      pairs   agree
+  published       sample    6       4 (66.7%)
+  published       held-out  11      9 (81.8%)
+  changed-source  sample    159     143 (89.9%)
+  changed-source  held-out  129     102 (79.1%)
+  changed-map     sample    160     142 (88.8%)
+  changed-map     held-out  202     161 (79.7%)
+  all             sample    325     289 (88.9%)
+  all             held-out  342     272 (79.5%)
+  of the 561 pairs that agree, both engines raise on 4; the reference raises on 105 of the 667 pairs
+```
+
+```
+before the fixes
+all: 667 pairs, 144 differ — the reference's departure 73, this engine's 38, open 33, in no class 0
+  the same answer, or a difference that is the reference's departure: 596 of 667 (89.4%)
+after
+all: 667 pairs, 106 differ — the reference's departure 74, this engine's 0, open 32, in no class 0
+  the same answer, or a difference that is the reference's departure: 635 of 667 (95.2%)
+```
+
+Every pair of the matchbox set has now been read, so these are a description: the same result on
+561 of 667 pairs as R4 (523 before), 529 as R5 (494 before); of the 106 differences left, 74 are
+the reference not doing what the specification says or not being able to (resolve, conformsTo,
+a boolean's text) and 32 are the three-argument `qty`. The tutorial's 887 pairs are unchanged
+by the fixes (271 and 546).
+
+**The next unread set**: HL7's own structure-mapping tests (fhir-test-cases
+r5/structure-mapping): the six manifest tests whose map is text and whose expected result is
+JSON, over one QuestionnaireResponse, under the same change catalogues — 199 pairs, both engines
+as R5, this engine before and after the fixes. No pair is read
+(`results/2026-11-23-map-suite-report.txt`, `-classes.txt`):
+
+```
+after:
+  group           part      pairs   agree
+  published       sample    1       0 (0%)
+  published       held-out  5       5 (100.0%)
+  changed-source  sample    13      0 (0%)
+  changed-source  held-out  65      63 (96.9%)
+  changed-map     sample    1       1 (100.0%)
+  changed-map     held-out  114     114 (100.0%)
+  all             sample    15      1 (6.7%)
+  all             held-out  184     182 (98.9%)
+  of the 183 pairs that agree, both engines raise on 0; the reference raises on 14 of the 199 pairs
+```
+
+```
+all: 199 pairs, 16 differ — the reference's departure 14, this engine's 0, open 0, in no class 2
+  the same answer, or a difference that is the reference's departure: 197 of 199 (99.0%)
+```
+
+The same before and after: 183 of 199 (92.0%). Fourteen of the sixteen differences are the
+`conformsTo()` rule (one map of the six calls it), two are under no class.
+
+**Reading.** The fourth pass's prediction held in its first part and failed in its second: the
+98 were few causes in few maps (four), and the largest was the reference's, not a shape of a
+FHIR type — but three were this engine's, one of them (the choice element's key) a wrong
+element name in every result of a map that translates into a choice. On the unread set the
+engines agree on 92%, above the 80% predicted. What the two passes say about the method: for
+the mapping language a "sample of maps" is the wrong unit. A map is one feature, so a third of
+the maps leaves two thirds of the features unseen; reading by CAUSE (the reference's message
+and the map, which group 108 pairs into four) covers a set in one sitting. What is left
+unexplained after four passes: two pairs of HL7's tests; the named gap of a `types` group for a
+primitive type (ten of the tutorial's pairs); and, on both sides, behaviour neither
+specification text decides (the three-argument `qty`, a complex value cast to a string).
