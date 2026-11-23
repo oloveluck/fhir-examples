@@ -768,3 +768,37 @@ On the fresh set the engines agree less than on the tutorial (under 80%), becaus
 use FHIR's own types and the reference reads them as R5 where they were written for R4; more
 than 10% of its pairs differ under no class. If so, the fresh set says the method has not yet
 covered the mapping engine as it has FHIRPath, and that is the finding.
+
+### 2026-11-23, H part 2, third pass: the fresh mapping set opened by its sample, both engines also as R4
+
+Stated before any pair of the fresh mapping set is read. The second pass's outcome (dc03a89; fml
+7b358c5) stands as measured: 494 of 667 pairs the same, 168 of the 173 differences under no
+class, the reference raising on 137.
+
+**Why another pass.** The set has a split nobody used: a map is in the sample when the first
+byte of the SHA-1 of `matchbox/<map file>` is divisible by three (6 of the 17 maps, 325 pairs:
+289 the same; the other 11 maps, 342 pairs: 205 the same). And both engines read these maps
+as R5, where matchbox wrote them for R4.
+
+**First, with nothing read: both engines as R4.** The same 667 pairs, the reference built with
+FHIR 4.0.1 and its core package (the bridge takes the version as an argument), this engine with
+the R4 types registered in place of R5's (a process holds one version). Kept beside the R5
+answers. Reported: agreement of the like pairs (R5 with R5, R4 with R4), by group and part, and
+on how many pairs each engine raises in each version. The version in which the two agree on more
+of the SAMPLE is the one the rest of the pass is counted in; the other is reported as it stands.
+
+**Then the sample is read**, in that version: its disagreements (36 as R5) put under *ours*,
+*the reference's* or *open* with the specification's sentence, what is this engine's fixed in
+fml with a test that fails without it, the classes written as rules. The 11 held-out maps'
+pairs are not read: they are counted by the rules, before and after, and stay the measure of
+whether six maps stand for seventeen.
+
+**Gates**: fml's corpus floors (`raco fml --tck`), part 2's kept sets as floors (the tutorial's
+887 pairs: sample 271, held out 544; the fresh set as R5: 494), every package's tests.
+
+**A prediction.** As R4 the reference raises on fewer than 40 of the 667 pairs (as R5: 137), and
+the two engines agree on more than 85% in both parts, so R4 is the version counted in. Of the
+sample's differences that remain, more than half are this engine's, in at least two classes
+(what a FHIR type's own shape asks of a target: a choice element, a primitive with its
+extension, a resource created inside another). After the fixes the held-out maps agree on more
+than they did, but stay under the sample: more than 10% of their pairs differ under no class.
