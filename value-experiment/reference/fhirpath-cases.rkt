@@ -20,9 +20,9 @@
          (only-in fhir/spec-package spec-package-path)
          (only-in "../verify/profile-cases.rkt" profiles cases change-kind))
 
-(provide (struct-out pair) all-pairs write-materials! continuations sample-expression? pair->jsexpr jsexpr->pair)
+(provide (struct-out fp-pair) all-pairs write-materials! continuations continued sample-expression? pair->jsexpr jsexpr->pair)
 
-(struct pair (id group type base expr file sample?) #:transparent)
+(struct fp-pair (id group type base expr file sample?) #:transparent)
 
 (define guide-package (spec-package-path "hl7.fhir.us.core.tgz"))
 (define core-package (spec-package-path "hl7.fhir.r4.core.tgz"))
@@ -227,13 +227,13 @@
      (for/list ([t (in-list (suite-tests))])
        (list 'suite (car t) (cadr t) (cadr t) (path->string (build-path "suite" (car t))) #t))))
   (for/list ([r (in-list rows)] [i (in-naturals)])
-    (apply pair (number->string i) r)))
+    (apply fp-pair (number->string i) r)))
 
 (define (pair->jsexpr p)
-  (hasheq 'id (pair-id p) 'group (symbol->string (pair-group p)) 'type (pair-type p) 'base (pair-base p)
-          'expr (pair-expr p) 'file (pair-file p) 'sample (pair-sample? p)))
+  (hasheq 'id (fp-pair-id p) 'group (symbol->string (fp-pair-group p)) 'type (fp-pair-type p) 'base (fp-pair-base p)
+          'expr (fp-pair-expr p) 'file (fp-pair-file p) 'sample (fp-pair-sample? p)))
 (define (jsexpr->pair j)
-  (pair (hash-ref j 'id) (string->symbol (hash-ref j 'group)) (hash-ref j 'type) (hash-ref j 'base)
+  (fp-pair (hash-ref j 'id) (string->symbol (hash-ref j 'group)) (hash-ref j 'type) (hash-ref j 'base)
         (hash-ref j 'expr) (hash-ref j 'file) (hash-ref j 'sample)))
 
 (module+ test

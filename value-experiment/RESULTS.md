@@ -555,3 +555,250 @@ between programs written for different briefs. Files: `verify/results/2026-11-22
 (the scored run as one file; HL7's verdicts are `verify/truth/`; the toolkit's verdicts before
 the fixes are `2026-11-22-profile-toolkit-before.json`).
 
+
+## H, part 1. FHIRPath held to HL7's Java engine (2026-11-23)
+
+The protocol's entry "H begins" states it: no agents and no bar. This toolkit's FHIRPath engine
+and the engine inside HL7's validator (validator_cli.jar as a library, through
+`reference/FhirPathReference.java`, which calls it and prints what it returned) were each given
+the same 172,527 pairs of a resource and an expression, and the answers compared in one form
+(`reference/fhirpath-reference.rkt`). The pairs (`reference/fhirpath-cases.rkt`): 525 search
+expressions and 221 invariants of the R4 core package and US Core 9.0.0 over US Core's 230
+examples of 29 resource types; each search expression continued in 116 ways that between them
+call the specification's functions and operators, over three examples; the same search and
+invariant expressions over 483 of V-profile's changed copies; and, apart, the 853 expressions of
+HL7's own R4 suite that name an input. A fifth of the published expressions (by the SHA-1 of
+type and text) were the sample, whose disagreements were read; the rest were held out and only
+counted. The reference evaluated all of them in eleven seconds; so did this engine.
+
+**Agreement, before and after** (`reference/results/2026-11-23-fhirpath-report.txt`; "before" is
+fhirpath 11e9b4b):
+
+```
+this engine's answer is the reference's:
+  group      part      pairs    agree
+  search     sample    950      926 (97.5%)
+  search     held-out  6265     5909 (94.3%)
+  invariant  sample    417      417 (100.0%)
+  invariant  held-out  2688     2684 (99.9%)
+  probe      sample    22504    18389 (81.7%)
+  probe      held-out  124236   104070 (83.8%)
+  changed    sample    2432     2363 (97.2%)
+  changed    held-out  12182    11629 (95.5%)
+  suite      sample    853      833 (97.7%)
+  all but the suite sample    26303    22095 (84.0%)
+  all but the suite held-out  145371   124292 (85.5%)
+
+after:
+  group      part      pairs    agree
+  search     sample    950      926 (97.5%)
+  search     held-out  6265     5909 (94.3%)
+  invariant  sample    417      417 (100.0%)
+  invariant  held-out  2688     2684 (99.9%)
+  probe      sample    22504    19141 (85.1%)
+  probe      held-out  124236   109342 (88.0%)
+  changed    sample    2432     2363 (97.2%)
+  changed    held-out  12182    11629 (95.5%)
+  suite      sample    853      833 (97.7%)
+  all but the suite sample    26303    22847 (86.9%)
+  all but the suite held-out  145371   129564 (89.1%)
+```
+
+**The sample's disagreements, read and sorted** — each class a rule over the expression, the two
+answers and the reference's error message, written from the sample and then counted over the
+rest (`…-classes-before.txt`, `…-classes-after.txt`). Before:
+
+```
+class                                                                                        head       sample   held out
+resolve(): the reference, run as its command line runs it, raises                            reference  1696     7007
+toDate(): the reference does not know the function                                           reference  191      1068
+toTime(): the reference does not implement it                                                reference  177      1014
+hasExtension(): no function of the specification; this engine has it, the reference does not open       355      0
+single() of nothing: the reference raises                                                    reference  83       496
+convertsTo…() of nothing: the reference answers false                                        reference  664      3968
+convertsToString() of a complex value: the reference answers true                            reference  0        0
+division: the reference keeps too few digits                                                 reference  94       513
+type().name of a FHIR primitive: the reference capitalises it                                reference  55       223
+type().name of a nested element: this engine answered its own name for the type              ours       1        0
+toString() of a complex value: this engine raised                                            ours       780      5460
+children(): this engine's order was a hash walk's                                            ours       10       142
+comparing values no order is defined for: an error here, nothing there                       open       78       546
+a UTC dateTime as text: Z here, +00:00 there                                                 open       24       24
+unclassified                                                                                 -          0        618
+
+sample: 26303 pairs, 4208 differ — the reference's departure 2960, this engine's 791, open 457, in no class 0
+  the same answer, or a difference that is the reference's departure: 25055 of 26303 (95.3%)
+held-out: 145371 pairs, 21079 differ — the reference's departure 14289, this engine's 5602, open 570, in no class 618 (unread)
+  the same answer, or a difference that is the reference's departure: 138581 of 145371 (95.3%)
+```
+
+After:
+
+```
+class                                                                                        head       sample   held out
+resolve(): the reference, run as its command line runs it, raises                            reference  1696     7007
+toDate(): the reference does not know the function                                           reference  191      1068
+toTime(): the reference does not implement it                                                reference  177      1014
+hasExtension(): no function of the specification; this engine has it, the reference does not open       355      0
+single() of nothing: the reference raises                                                    reference  83       496
+convertsTo…() of nothing: the reference answers false                                        reference  664      3968
+convertsToString() of a complex value: the reference answers true                            reference  39       270
+division: the reference keeps too few digits                                                 reference  94       513
+type().name of a FHIR primitive: the reference capitalises it                                reference  55       223
+type().name of a nested element: this engine answered its own name for the type              ours       0        0
+toString() of a complex value: this engine raised                                            ours       0        60
+children(): this engine's order was a hash walk's                                            ours       0        0
+comparing values no order is defined for: an error here, nothing there                       open       78       546
+a UTC dateTime as text: Z here, +00:00 there                                                 open       24       24
+unclassified                                                                                 -          0        618
+
+sample: 26303 pairs, 3456 differ — the reference's departure 2999, this engine's 0, open 457, in no class 0
+  the same answer, or a difference that is the reference's departure: 25846 of 26303 (98.3%)
+held-out: 145371 pairs, 15807 differ — the reference's departure 14559, this engine's 60, open 570, in no class 618 (unread)
+  the same answer, or a difference that is the reference's departure: 144123 of 145371 (99.1%)
+```
+
+**What was this engine's** (three defects nobody knew of, fixed in fhirpath with a test each):
+
+- `toString()` of a complex value (a CodeableConcept, a Reference) raised an error, and so did
+  `convertsToString()`. The specification lists what converts and gives the rest no answer;
+  `toInteger()` already did that here. 6,240 of the 172,527 pairs.
+- `children()` and `descendants()` answered in the order of a hash walk, which can differ from
+  one run to the next. The specification leaves the order undefined; it is now the order of the
+  type's definition, which is also what the reference answers.
+- `type().name` of a nested element (`Location.position`) was `LocationPosition`, this toolkit's
+  own name for a generated type. It is `BackboneElement`.
+
+**What is the reference's**, with what says so. None of these is a matter of taste: the
+specification's text or HL7's own suite decides each.
+
+- `toDate()` does not exist there and `toTime()` is "not implemented"; both are functions of the
+  specification (5.5, Conversion).
+- `single()` of an empty collection raises; the specification: "If the input collection is empty
+  ({ }), the result is empty."
+- `convertsToInteger()` and its seven siblings answer `false` for an empty collection; the
+  specification, for each: "If the input collection is empty, the result is empty."
+- `convertsToString()` of a complex value answers `true`; the specification: "If the item is
+  not one of the above types, the result is false."
+- A division keeps the digits of its operands: `1 / 3` is `0.3` and `1.0 / 3` is `0.33`. The
+  specification's Decimal has a step of 10^-8.
+- `type().name` of a FHIR primitive is capitalised (`Code`, `String`, `DateTime`). HL7's suite
+  expects `Patient.active.type().name = 'boolean'` (below: the reference answers false).
+- `resolve()` raises ("Parent not set") in the engine as the validator's own `fhirpath` command
+  sets it up, so every search parameter written `.where(resolve() is Patient)` fails there:
+  8,703 pairs, the largest class. FHIR's definition: an item that does not resolve "is ignored
+  and nothing is added to the output collection".
+
+**Open** (the specification does not decide; left as they were): `<` and `>=` between two complex
+values is an error here and nothing there; a dateTime written with `Z` keeps it when it becomes
+text here and reads `+00:00` there; `hasExtension()` is no function of the specification, yet a
+published US Core search parameter (`QuestionnaireResponse.item-subject`) calls it — it exists
+here and not there.
+
+**HL7's own suite, by both engines** (`…-suite.txt`). This engine gives the suite's expected
+outcome on every one of these 20 (it fails two other tests of the suite, both named in its
+manual), so on each the suite says which engine is right:
+
+```
+HL7's FHIRPath suite for R4, 853 expressions over its own resources: the two engines differ on 20
+  name.given1
+    reference: []
+    ours:      error: fhirpath: no element HumanName.given1 (did you mean `given`?)
+  Encounter.name.given
+    reference: []
+    ours:      error: fhirpath: no element Patient.Encounter
+  Observation.valueQuantity.unit
+    reference: [["string","lbs"]]
+    ours:      error: fhirpath: direct access to choice element Observation.valueQuantity
+  (Observation.value as Period).unit
+    reference: []
+    ours:      error: fhirpath: no element Period.unit
+  Patient.children().skip(1)
+    reference: [["complex",["status=generated"]],["complex",["assigner.display=Acme Healthcare","period.start=2001-05-06","system=urn:oid:1.2.36.146.595.217.0.1","ty…
+    ours:      error: fhirpath: skip() on an unordered collection
+  Patient.name.select(given | family).distinct()
+    reference: [["string","Chalmers"],["string","Jim"],["string","Peter"],["string","James"],["string","Windsor"]]
+    ours:      [["string","Peter"],["string","James"],["string","Chalmers"],["string","Jim"],["string","Windsor"]]
+  iif('non boolean criteria', 'true-result', 'true-result')
+    reference: [["string","true-result"]]
+    ours:      error: fhirpath: expected Boolean
+  Appointment.identifier.startsWith('rand')
+    reference: []
+    ours:      error: fhirpath: startsWith() applied to a complex type Identifier
+  Appointment.identifier.endsWith('rand')
+    reference: []
+    ours:      error: fhirpath: endsWith() applied to a complex type Identifier
+  Appointment.identifier.contains('rand')
+    reference: []
+    ours:      error: fhirpath: contains() applied to a complex type Identifier
+  Patient.active.type().namespace = 'FHIR'
+    reference: [["boolean","false"]]
+    ours:      [["boolean","true"]]
+  Patient.active.type().name = 'boolean'
+    reference: [["boolean","false"]]
+    ours:      [["boolean","true"]]
+  Patient.active.is(Boolean).not()
+    reference: [["boolean","false"]]
+    ours:      [["boolean","true"]]
+  Patient.active.is(System.Boolean).not()
+    reference: [["boolean","false"]]
+    ours:      [["boolean","true"]]
+  Patient.type().namespace = 'FHIR'
+    reference: [["boolean","false"]]
+    ours:      [["boolean","true"]]
+  Patient.is(System.Patient).not()
+    reference: [["boolean","false"]]
+    ours:      [["boolean","true"]]
+  conformsTo('http://hl7.org/fhir/StructureDefinition/Patient')
+    reference: error: Error: No parent on root resource
+    ours:      [["boolean","true"]]
+  conformsTo('http://hl7.org/fhir/StructureDefinition/Person')
+    reference: error: Error: No parent on root resource
+    ours:      [["boolean","false"]]
+  Observation.valueQuantity.exists()
+    reference: [["boolean","true"]]
+    ours:      error: fhirpath: direct access to choice element Observation.valueQuantity
+  Patient.name.as(HumanName).use
+    reference: [["string","official"],["string","usual"],["string","maiden"]]
+    ours:      error: fhirpath: as() requires a singleton input
+```
+
+**Reading.**
+
+- Held out, the two engines gave the same answer on 85.5% of pairs before and 89.1% after. With
+  the reference's own departures set aside the figure is 95.3% before and 99.1% after: the
+  three fixes account for all but a fraction of a point of what was this engine's. 618 held-out
+  pairs differ under no class and 60 still raise under the `toString()` rule; they are unread,
+  as the protocol requires, and are the next thing to open (below).
+- The prediction was right about the probes (under 90%) and wrong twice: published search
+  expressions agreed on 94.3% held out, not above 95%, because of `resolve()`; and the largest
+  class was not this engine's static check — which never fired on a published expression — but
+  the reference failing to follow a reference.
+- Neither engine is a safe oracle for the other. Of 15,807 held-out differences after the
+  fixes, 14,559 are cases where HL7's engine departs from HL7's specification, in functions a
+  profile author can plausibly write (`single()`, `convertsTo…()`, a division, `toDate()`). This
+  is V's finding again from the other side: what an executable reference is worth is its own
+  agreement with the specification, and that has to be measured, not assumed — here it could
+  be, because there is a specification text and a suite to appeal to.
+- What a user of the toolkit can rely on: on published search parameters and invariants over
+  published resources, the answer is HL7's engine's except where that engine cannot follow a
+  reference; on the wider function library, the differences are listed, and the manual's Limits
+  now say them.
+
+**Three things about the harness, said because they were decided after the first read.**
+(1) The compared form gained one rule: a dateTime in UTC written `Z` is the one written
+`+00:00` (the reference prints the second for an element whose text is the first). The first
+report, made before it, is kept (`…-before-first-form.txt`: search 93.5% and 93.4%); the tables
+above use the final form for before and after alike. (2) The classes use the reference's error
+message as well as the two answers; the protocol said "the expression and the two answers". The
+messages are committed beside the answers. (3) Of this engine's own making: the first cut of the
+`children()` fix listed an element twice, and the comparison showed it before anything was
+committed — the harness doing for a fix what it does for the engine.
+
+Limits: one reference implementation and one version of it; FHIR R4 and one guide's examples;
+the continuations are a fixed list, so a function it does not call is not compared; an
+expression's static rejection is this engine's alone (the reference was not asked to check
+types), so the two differ there by construction and only the suite shows it. Files:
+`reference/answers/` (the reference's answers and messages, this engine's before and after),
+`reference/results/2026-11-23-fhirpath-*`; the module's test holds the live engine to the
+reference's kept answers, with the agreement above as floors.

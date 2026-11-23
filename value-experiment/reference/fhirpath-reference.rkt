@@ -11,6 +11,7 @@
 ;;;   racket fhirpath-reference.rkt report DIR REF.gz OURS.gz [OURS-AFTER.gz]
 ;;;   racket fhirpath-reference.rkt read DIR REF.gz OURS.gz [CLASS]   the SAMPLE's disagreements, by class
 ;;;   racket fhirpath-reference.rkt classes DIR REF.gz OURS.gz        every disagreement counted by class
+;;;   racket fhirpath-reference.rkt suite DIR REF.gz OURS.gz          HL7's own suite: where the engines differ
 ;;;
 ;;; Data definitions.
 ;;; An Answer is "error" | (listof Item): the engine raised, or its result in order.
@@ -34,9 +35,10 @@
          (only-in fhirpath/render item->text)
          "fhirpath-cases.rkt")
 
-(provide normal-reference our-answer read-answers agreement-rows classes class-of)
+(provide normal-reference our-answer read-answers read-errors agreement-rows classes class-of)
 
 (define-runtime-path bridge "FhirPathReference.java")
+(define-runtime-path kept-reference "answers/fhirpath-reference.jsonl.gz")
 
 ;; ---- the compared form ---------------------------------------------------------------------------
 (define string-types '("string" "code" "uri" "url" "canonical" "id" "oid" "uuid" "markdown" "base64Binary" "xhtml"))
@@ -58,9 +60,16 @@
          => number->string]
         [else s]))
 
-;; valued : kind string -> Item   a primitive item; numbers by value
+;; instant-text : string -> string   a dateTime in UTC written with Z is the one written with +00:00
+;; (the reference prints the second for an element whose text is the first)
+(define (instant-text s)
+  (if (regexp-match? #px"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z$" s) (regexp-replace #rx"Z$" s "+00:00") s))
+
+;; valued : kind string -> Item   a primitive item; numbers and instants by value
 (define (valued kind v)
-  (list kind (if (member kind '("integer" "decimal")) (number-text v) v)))
+  (list kind (cond [(member kind '("integer" "decimal")) (number-text v)]
+                   [(equal? kind "dateTime") (instant-text v)]
+                   [else v])))
 
 ;; quantity-item : string string -> Item
 (define (quantity-item value unit) (list "quantity" (format "~a ~a" (number-text value) unit)))
@@ -85,7 +94,7 @@
         [else
          (list "complex"
                (sort (for/list ([l (in-list (hash-ref i 'leaves))] #:unless (dropped-leaf? (car l)))
-                       (format "~a=~a" (car l) (if (member (cadr l) (cons "decimal" integer-types)) (number-text (caddr l)) (caddr l))))
+                       (format "~a=~a" (car l) (if (member (cadr l) (cons "decimal" integer-types)) (number-text (caddr l)) (instant-text (caddr l)))))
                      string<?))]))
 
 ;; ---- this engine's answers -----------------------------------------------------------------------
@@ -98,7 +107,7 @@
                     (json-leaves v (if (string=? path "") name (string-append path "." name)))))]
         [(list? j) (append* (for/list ([x (in-list j)]) (json-leaves x path)))]
         [(dropped-leaf? path) '()]
-        [(string? j) (list (format "~a=~a" path j))]
+        [(string? j) (list (format "~a=~a" path (instant-text j)))]
         [(boolean? j) (list (format "~a=~a" path (if j "true" "false")))]
         [(real? j) (list (format "~a=~a" path (number-text (number->string j))))]
         [else '()]))
@@ -149,7 +158,7 @@
   (call-with-output-file (pairs-file dir) #:exists 'truncate
     (lambda (o)
       (for ([p (in-list ps)])
-        (write-json (hash-set (pair->jsexpr p) 'file (path->string (simple-form-path (build-path dir (pair-file p))))) o)
+        (write-json (hash-set (pair->jsexpr p) 'file (path->string (simple-form-path (build-path dir (fp-pair-file p))))) o)
         (newline o))))
   (length ps))
 
@@ -198,7 +207,27 @@
                   (call-with-input-file (build-path dir "answers.jsonl")
                     (lambda (i) (for/list ([l (in-lines i)] #:unless (string=? l ""))
                                   (define j (string->jsexpr l))
-                                  (cons (hash-ref j 'id) (normal-reference j)))))))
+                                  (cons (hash-ref j 'id) (normal-reference j))))))
+  ;; and why it raised, where it did: a class of disagreement may be told by the message
+  (call-with-output-file (errors-file file) #:exists 'truncate
+    (lambda (o)
+      (write-json (call-with-input-file (build-path dir "answers.jsonl")
+                    (lambda (i) (for*/hasheq ([l (in-lines i)] #:unless (string=? l "")
+                                              [j (in-value (string->jsexpr l))] #:when (hash-ref j 'error #f))
+                                  (values (string->symbol (hash-ref j 'id)) (stable-message (hash-ref j 'error))))))
+                  o))))
+
+;; errors-file : path -> path   beside the reference's answers, the messages of its errors
+(define (errors-file file) (path-replace-extension (path-replace-extension file #"") #"-errors.json"))
+;; stable-message : string -> string   a message without where in the expression it arose
+(define (stable-message m)
+  (regexp-replace* #px" ?\\(@char [0-9]+\\)|@[0-9]+, [0-9]+:? ?" m ""))
+;; read-errors : path -> (hash id string)
+(define (read-errors file)
+  (define f (errors-file file))
+  (if (file-exists? f)
+      (for/hash ([(k v) (in-hash (call-with-input-file f read-json))]) (values (symbol->string k) v))
+      (hash)))
 
 ;; keep-ours! : dir path -> void   this engine over every pair
 (define (keep-ours! dir file)
@@ -206,14 +235,14 @@
   (write-answers! file
                   (for/list ([p (in-list ps)] [n (in-naturals 1)])
                     (when (zero? (modulo n 50000)) (eprintf "~a pairs\n" n))
-                    (cons (pair-id p) (our-answer (pair-file p) (pair-expr p))))))
+                    (cons (fp-pair-id p) (our-answer (fp-pair-file p) (fp-pair-expr p))))))
 
 ;; ---- the comparison ------------------------------------------------------------------------------
-;; A Row is (list Pair reference-answer our-answer).
-;; agreement-rows : (listof Pair) Answers Answers -> (listof Row)
-(define (agreement-rows ps ref ours)
+;; A Row is (list Pair reference-answer our-answer message): the message of the reference's error, or "".
+;; agreement-rows : (listof Pair) Answers Answers [(hash id string)] -> (listof Row)
+(define (agreement-rows ps ref ours [errors (hash)])
   (for/list ([p (in-list ps)])
-    (list p (hash-ref ref (pair-id p) 'missing) (hash-ref ours (pair-id p) 'missing))))
+    (list p (hash-ref ref (fp-pair-id p) 'missing) (hash-ref ours (fp-pair-id p) 'missing) (hash-ref errors (fp-pair-id p) ""))))
 (define (agree? r) (equal? (cadr r) (caddr r)))
 
 (define (percent a n) (if (zero? n) "-" (format "~a%" (/ (round (* 1000.0 (/ a n))) 10.0))))
@@ -224,19 +253,61 @@
   (printf "  ~a ~a ~a ~a\n" (pad "group" 10) (pad "part" 9) (pad "pairs" 8) "agree")
   (for* ([g '(search invariant probe changed suite)]
          [part '(sample held-out)])
-    (define mine (filter (lambda (r) (and (eq? (pair-group (car r)) g) (eq? (pair-sample? (car r)) (eq? part 'sample)))) rows))
+    (define mine (filter (lambda (r) (and (eq? (fp-pair-group (car r)) g) (eq? (fp-pair-sample? (car r)) (eq? part 'sample)))) rows))
     (unless (null? mine)
       (printf "  ~a ~a ~a ~a (~a)\n" (pad g 10) (pad part 9) (pad (length mine) 8) (count agree? mine) (percent (count agree? mine) (length mine)))))
   (for ([part '(sample held-out)])
-    (define mine (filter (lambda (r) (and (not (eq? (pair-group (car r)) 'suite)) (eq? (pair-sample? (car r)) (eq? part 'sample)))) rows))
+    (define mine (filter (lambda (r) (and (not (eq? (fp-pair-group (car r)) 'suite)) (eq? (fp-pair-sample? (car r)) (eq? part 'sample)))) rows))
     (printf "  ~a ~a ~a ~a (~a)\n" (pad "all but the suite" 10) (pad part 9) (pad (length mine) 8) (count agree? mine) (percent (count agree? mine) (length mine)))))
 (define (pad v n) (let ([s (format "~a" v)]) (string-append s (make-string (max 0 (- n (string-length s))) #\space))))
 
 ;; ---- the classes of disagreement -----------------------------------------------------------------
 ;; A Class is (list name head rule): head 'ours | 'reference | 'open; rule : Row -> boolean, read
 ;; from the sample's disagreements alone. The first class whose rule holds is the row's.
+(define (expr-of r) (fp-pair-expr (car r)))
+(define (said r rx) (regexp-match? rx (cadddr r)))
+(define (one kind a) (and (pair? a) (null? (cdr a)) (equal? (car (car a)) kind) (cadr (car a))))
+;; with-offsets : Answer -> Answer   every Z at the end of a UTC time written +00:00, in any text
+(define (with-offsets a)
+  (if (string? a) a
+      (for/list ([i (in-list a)])
+        (list (car i) (if (string? (cadr i)) (regexp-replace* #px"(?i:(T[0-9:.]+)Z)" (cadr i) "\\1+00:00") (cadr i))))))
+
 (define classes
-  (list))
+  (list
+   (list "resolve(): the reference, run as its command line runs it, raises" 'reference
+         (lambda (r) (and (equal? (cadr r) "error") (said r #rx"Parent not set"))))
+   (list "toDate(): the reference does not know the function" 'reference
+         (lambda (r) (and (equal? (cadr r) "error") (said r #rx"toDate is not a known function"))))
+   (list "toTime(): the reference does not implement it" 'reference
+         (lambda (r) (and (equal? (cadr r) "error") (said r #rx"toTime is not implemented"))))
+   (list "hasExtension(): no function of the specification; this engine has it, the reference does not" 'open
+         (lambda (r) (and (equal? (cadr r) "error") (said r #rx"hasExtension is not a known function"))))
+   (list "single() of nothing: the reference raises" 'reference
+         (lambda (r) (and (equal? (cadr r) "error") (said r #rx"single can only be used on a singleton value but found 0") (null? (caddr r)))))
+   (list "convertsTo…() of nothing: the reference answers false" 'reference
+         (lambda (r) (and (regexp-match? #rx"[.]convertsTo[A-Za-z]+\\(\\)$" (expr-of r)) (equal? (one "boolean" (cadr r)) "false") (null? (caddr r)))))
+   (list "convertsToString() of a complex value: the reference answers true" 'reference
+         (lambda (r) (and (regexp-match? #rx"[.]convertsToString\\(\\)$" (expr-of r)) (equal? (one "boolean" (cadr r)) "true") (equal? (one "boolean" (caddr r)) "false"))))
+   (list "division: the reference keeps too few digits" 'reference
+         (lambda (r) (and (regexp-match? #rx" / 3\\)[.]round\\(2\\)$" (expr-of r)) (one "decimal" (cadr r)) (one "decimal" (caddr r)))))
+   (list "type().name of a FHIR primitive: the reference capitalises it" 'reference
+         (lambda (r) (and (regexp-match? #rx"[.]type\\(\\)[.]name$" (expr-of r)) (one "string" (cadr r)) (one "string" (caddr r))
+                          (string-ci=? (one "string" (cadr r)) (one "string" (caddr r))))))
+   (list "type().name of a nested element: this engine answered its own name for the type" 'ours
+         (lambda (r) (and (regexp-match? #rx"[.]type\\(\\)[.]name$" (expr-of r)) (member (one "string" (cadr r)) '("BackboneElement" "Element"))
+                          (one "string" (caddr r)))))
+   (list "toString() of a complex value: this engine raised" 'ours
+         (lambda (r) (and (regexp-match? #rx"[tT]oString\\(\\)" (expr-of r)) (equal? (caddr r) "error") (not (equal? (cadr r) "error")))))
+   (list "children(): this engine's order was a hash walk's" 'ours
+         (lambda (r) (and (regexp-match? #rx"[.]children\\(\\)[.]first\\(\\)$" (expr-of r)) (pair? (cadr r)) (pair? (caddr r)))))
+   (list "comparing values no order is defined for: an error here, nothing there" 'open
+         (lambda (r) (and (regexp-match? #rx" (<|>=) " (expr-of r)) (null? (cadr r)) (equal? (caddr r) "error"))))
+   (list "a UTC dateTime as text: Z here, +00:00 there" 'open
+         (lambda (r) (and (regexp-match? #rx"toString\\(\\)" (expr-of r)) (pair? (cadr r)) (pair? (caddr r))
+                          (or (equal? (cadr r) (with-offsets (caddr r)))
+                              (and (regexp-match? #rx"[.](length\\(\\)|toChars\\(\\)[.]count\\(\\))$" (expr-of r))
+                                   (equal? (one "integer" (cadr r)) "25") (equal? (one "integer" (caddr r)) "20"))))))))
 
 ;; class-of : Row -> string
 (define (class-of r)
@@ -252,37 +323,75 @@
   (define s (if (string? a) a (jsexpr->string a)))
   (if (> (string-length s) 300) (string-append (substring s 0 300) "…") s))
 
-;; print-sample : (listof Row) (or/c string #f) -> void   the sample's disagreements: counted by
-;; class and by the shapes of the two answers, with the first few of each
-(define (print-sample rows only)
-  (define wrong (filter (lambda (r) (and (pair-sample? (car r)) (not (agree? r)))) rows))
-  (define groups (group-by (lambda (r) (list (class-of r) (shape (cadr r)) (shape (caddr r)))) wrong))
+;; template-of : Pair -> string   the continuation a probe was made with ("" for the other groups)
+(define (template-of p)
+  (or (and (eq? (fp-pair-group p) 'probe)
+           (for/first ([t (in-list continuations)] #:when (equal? (continued t (fp-pair-base p)) (fp-pair-expr p))) t))
+      ""))
+
+;; our-error : Pair -> string   this engine's message for a pair it raised on
+(define (our-error p)
+  (with-handlers ([exn:fail? (lambda (e) (car (string-split (exn-message e) "\n")))])
+    (eval-fhirpath (parse-fhirpath (fp-pair-expr p)) (or (resource-node (fp-pair-file p)) (error "resource not read")))
+    "(no error)"))
+
+(define (short s n) (if (> (string-length s) n) (string-append (substring s 0 n) "…") s))
+
+;; print-sample : dir (listof Row) (or/c string #f) -> void   the sample's disagreements: counted by
+;; class, group, continuation and the shapes of the two answers, with the first few of each
+(define (print-sample dir rows only)
+  (define wrong (filter (lambda (r) (and (fp-pair-sample? (car r)) (not (agree? r)))) rows))
+  (define groups (group-by (lambda (r) (list (class-of r) (fp-pair-group (car r)) (template-of (car r)) (shape (cadr r)) (shape (caddr r)))) wrong))
   (for ([g (in-list (sort groups > #:key length))]
         #:when (or (not only) (equal? only (class-of (car g)))))
     (define r0 (car g))
-    (printf "\n~a pairs — class ~a — the reference: ~a; ours: ~a\n" (length g) (class-of r0) (shape (cadr r0)) (shape (caddr r0)))
-    (define by-expr (group-by (lambda (r) (pair-expr (car r))) g))
-    (printf "  (~a expressions)\n" (length by-expr))
-    (for ([e (in-list (take by-expr (min 6 (length by-expr))))])
+    (printf "\n~a pairs [~a] ~a ~a — the reference: ~a; ours: ~a\n" (length g) (class-of r0) (fp-pair-group (car r0)) (template-of (car r0)) (shape (cadr r0)) (shape (caddr r0)))
+    (define by-expr (group-by (lambda (r) (fp-pair-expr (car r))) g))
+    (for ([e (in-list (take by-expr (min 3 (length by-expr))))])
       (define r (car e))
-      (printf "  [~a ~a] ~a\n    over ~a\n    reference: ~a\n    ours:      ~a\n"
-              (pair-group (car r)) (pair-type (car r)) (pair-expr (car r)) (file-name (pair-file (car r))) (show (cadr r)) (show (caddr r))))))
+      (printf "  ~a ~a  (~a)\n    reference: ~a\n    ours:      ~a\n"
+              (fp-pair-type (car r)) (short (fp-pair-expr (car r)) 150) (file-name (fp-pair-file (car r)))
+              (if (equal? (cadr r) "error") (short (string-append "error: " (cadddr r)) 200) (short (show (cadr r)) 200))
+              (if (equal? (caddr r) "error") (short (our-error (car r)) 200) (short (show (caddr r)) 200))))))
 (define (file-name f) (let-values ([(_b n _d) (split-path f)]) (path->string n)))
+
+;; print-suite : (listof Row) -> void   HL7's own suite: every expression on which the two engines differ
+(define (print-suite rows)
+  (define mine (filter (lambda (r) (eq? (fp-pair-group (car r)) 'suite)) rows))
+  (define wrong (filter (lambda (r) (not (agree? r))) mine))
+  (printf "HL7's FHIRPath suite for R4, ~a expressions over its own resources: the two engines differ on ~a\n" (length mine) (length wrong))
+  (for ([r (in-list wrong)])
+    (printf "  ~a\n    reference: ~a\n    ours:      ~a\n" (short (fp-pair-expr (car r)) 110)
+            (if (equal? (cadr r) "error") (short (string-append "error: " (cadddr r)) 150) (short (show (cadr r)) 150))
+            (if (equal? (caddr r) "error") (short (string-append "error: " (our-error (car r))) 150) (short (show (caddr r)) 150)))))
 
 ;; print-classes : (listof Row) -> void   every disagreement by class: sample, held out
 (define (print-classes rows)
-  (define wrong (filter (lambda (r) (and (not (agree? r)) (not (eq? (pair-group (car r)) 'suite)))) rows))
+  (define wrong (filter (lambda (r) (and (not (agree? r)) (not (eq? (fp-pair-group (car r)) 'suite)))) rows))
   (define names (append (map car classes) '("unclassified")))
-  (printf "~a ~a ~a ~a\n" (pad "class" 44) (pad "head" 10) (pad "sample" 8) "held out")
+  (printf "~a ~a ~a ~a\n" (pad "class" 92) (pad "head" 10) (pad "sample" 8) "held out")
   (for ([n (in-list names)])
     (define mine (filter (lambda (r) (equal? (class-of r) n)) wrong))
     (define head (cond [(assoc n classes) => cadr] [else '-]))
-    (printf "~a ~a ~a ~a\n" (pad n 44) (pad head 10) (pad (count (lambda (r) (pair-sample? (car r))) mine) 8)
-            (count (lambda (r) (not (pair-sample? (car r)))) mine))))
+    (printf "~a ~a ~a ~a\n" (pad n 92) (pad head 10) (pad (count (lambda (r) (fp-pair-sample? (car r))) mine) 8)
+            (count (lambda (r) (not (fp-pair-sample? (car r)))) mine)))
+  ;; by head, and what the agreement is when the reference's own departures are set aside
+  (define (head-of r) (cond [(assoc (class-of r) classes) => cadr] [else 'unread]))
+  (newline)
+  (for ([part '(sample held-out)])
+    (define sample? (eq? part 'sample))
+    (define all (filter (lambda (r) (and (not (eq? (fp-pair-group (car r)) 'suite)) (eq? (fp-pair-sample? (car r)) sample?))) rows))
+    (define mine (filter (lambda (r) (eq? (fp-pair-sample? (car r)) sample?)) wrong))
+    (define (n head) (count (lambda (r) (eq? (head-of r) head)) mine))
+    (printf "~a: ~a pairs, ~a differ — the reference's departure ~a, this engine's ~a, open ~a, in no class ~a~a\n"
+            part (length all) (length mine) (n 'reference) (n 'ours) (n 'open) (n 'unread) (if sample? "" " (unread)"))
+    (printf "  the same answer, or a difference that is the reference's departure: ~a of ~a (~a)\n"
+            (+ (- (length all) (length mine)) (n 'reference)) (length all)
+            (percent (+ (- (length all) (length mine)) (n 'reference)) (length all)))))
 
 (module+ main
   (define args (vector->list (current-command-line-arguments)))
-  (define (rows-of dir ref ours) (agreement-rows (read-pairs dir) (read-answers ref) (read-answers ours)))
+  (define (rows-of dir ref ours) (agreement-rows (read-pairs dir) (read-answers ref) (read-answers ours) (read-errors ref)))
   (cond
     [(and (= (length args) 2) (equal? (car args) "pairs"))
      (printf "~a pairs\n" (write-pairs! (cadr args)))]
@@ -295,14 +404,51 @@
        (newline)
        (print-agreement "after:" (rows-of (cadr args) (caddr args) (list-ref args 4))))]
     [(and (>= (length args) 4) (equal? (car args) "read"))
-     (print-sample (rows-of (cadr args) (caddr args) (cadddr args)) (and (= (length args) 5) (list-ref args 4)))]
+     (print-sample (cadr args) (rows-of (cadr args) (caddr args) (cadddr args)) (and (= (length args) 5) (list-ref args 4)))]
+    [(and (= (length args) 4) (equal? (car args) "suite"))
+     (print-suite (rows-of (cadr args) (caddr args) (cadddr args)))]
     [(and (= (length args) 4) (equal? (car args) "classes"))
      (print-classes (rows-of (cadr args) (caddr args) (cadddr args)))]
     [else (eprintf "usage: fhirpath-reference.rkt pairs DIR | ask DIR JAR | keep DIR FILE | ours DIR FILE | report DIR REF OURS [AFTER] | read DIR REF OURS [CLASS] | classes DIR REF OURS\n")
           (exit 2)]))
 
+;; live-rows : dir path -> (listof Row)   the pairs made afresh under dir, this engine run over them
+;; now, beside the reference's kept answers
+(define (live-rows dir reference)
+  (write-materials! dir)
+  (define ps (all-pairs dir))
+  (define ref (read-answers reference))
+  (define errors (read-errors reference))
+  (for/list ([p (in-list ps)])
+    (list p (hash-ref ref (fp-pair-id p) 'missing)
+          (our-answer (path->string (build-path dir (fp-pair-file p))) (fp-pair-expr p))
+          (hash-ref errors (fp-pair-id p) ""))))
+
 (module+ test
   (require rackunit)
+  ;; the engine as it is now, held to the reference's kept answers: the agreement of the write-up
+  ;; as floors, and no disagreement of the sample outside the classes read from it
+  (let ([dir (make-temporary-file "fhirpath-reference-~a" 'directory)])
+    (dynamic-wind
+     void
+     (lambda ()
+       (define rows (live-rows dir kept-reference))
+       (define (part group sample?) (filter (lambda (r) (and (eq? (fp-pair-group (car r)) group) (eq? (fp-pair-sample? (car r)) sample?))) rows))
+       (check-equal? (length rows) 172527)
+       (check-false (ormap (lambda (r) (eq? (cadr r) 'missing)) rows))
+       (for ([floor (in-list '((search #t 926) (search #f 5909) (invariant #t 417) (invariant #f 2684)
+                               (probe #t 19141) (probe #f 109342) (changed #t 2363) (changed #f 11629) (suite #t 833)))])
+         (check-true (>= (count agree? (part (car floor) (cadr floor))) (caddr floor)) (format "~a" floor)))
+       (check-equal? (count (lambda (r) (and (fp-pair-sample? (car r)) (not (eq? (fp-pair-group (car r)) 'suite))
+                                             (not (agree? r)) (equal? (class-of r) "unclassified")))
+                            rows)
+                     0)
+       ;; nothing of the sample is still this engine's
+       (check-equal? (count (lambda (r) (and (fp-pair-sample? (car r)) (not (agree? r))
+                                             (eq? 'ours (cond [(assoc (class-of r) classes) => cadr] [else #f]))))
+                            rows)
+                     0))
+     (lambda () (delete-directory/files dir))))
   (check-equal? (number-text "1.0") "1")
   (check-equal? (number-text "0.10") "1/10")
   (check-equal? (number-text "abc") "abc")

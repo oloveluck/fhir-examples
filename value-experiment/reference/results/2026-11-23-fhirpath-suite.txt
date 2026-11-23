@@ -1,0 +1,61 @@
+HL7's FHIRPath suite for R4, 853 expressions over its own resources: the two engines differ on 20
+  name.given1
+    reference: []
+    ours:      error: fhirpath: no element HumanName.given1 (did you mean `given`?)
+  Encounter.name.given
+    reference: []
+    ours:      error: fhirpath: no element Patient.Encounter
+  Observation.valueQuantity.unit
+    reference: [["string","lbs"]]
+    ours:      error: fhirpath: direct access to choice element Observation.valueQuantity
+  (Observation.value as Period).unit
+    reference: []
+    ours:      error: fhirpath: no element Period.unit
+  Patient.children().skip(1)
+    reference: [["complex",["status=generated"]],["complex",["assigner.display=Acme Healthcare","period.start=2001-05-06","system=urn:oid:1.2.36.146.595.217.0.1","ty…
+    ours:      error: fhirpath: skip() on an unordered collection
+  Patient.name.select(given | family).distinct()
+    reference: [["string","Chalmers"],["string","Jim"],["string","Peter"],["string","James"],["string","Windsor"]]
+    ours:      [["string","Peter"],["string","James"],["string","Chalmers"],["string","Jim"],["string","Windsor"]]
+  iif('non boolean criteria', 'true-result', 'true-result')
+    reference: [["string","true-result"]]
+    ours:      error: fhirpath: expected Boolean
+  Appointment.identifier.startsWith('rand')
+    reference: []
+    ours:      error: fhirpath: startsWith() applied to a complex type Identifier
+  Appointment.identifier.endsWith('rand')
+    reference: []
+    ours:      error: fhirpath: endsWith() applied to a complex type Identifier
+  Appointment.identifier.contains('rand')
+    reference: []
+    ours:      error: fhirpath: contains() applied to a complex type Identifier
+  Patient.active.type().namespace = 'FHIR'
+    reference: [["boolean","false"]]
+    ours:      [["boolean","true"]]
+  Patient.active.type().name = 'boolean'
+    reference: [["boolean","false"]]
+    ours:      [["boolean","true"]]
+  Patient.active.is(Boolean).not()
+    reference: [["boolean","false"]]
+    ours:      [["boolean","true"]]
+  Patient.active.is(System.Boolean).not()
+    reference: [["boolean","false"]]
+    ours:      [["boolean","true"]]
+  Patient.type().namespace = 'FHIR'
+    reference: [["boolean","false"]]
+    ours:      [["boolean","true"]]
+  Patient.is(System.Patient).not()
+    reference: [["boolean","false"]]
+    ours:      [["boolean","true"]]
+  conformsTo('http://hl7.org/fhir/StructureDefinition/Patient')
+    reference: error: Error: No parent on root resource
+    ours:      [["boolean","true"]]
+  conformsTo('http://hl7.org/fhir/StructureDefinition/Person')
+    reference: error: Error: No parent on root resource
+    ours:      [["boolean","false"]]
+  Observation.valueQuantity.exists()
+    reference: [["boolean","true"]]
+    ours:      error: fhirpath: direct access to choice element Observation.valueQuantity
+  Patient.name.as(HumanName).use
+    reference: [["string","official"],["string","usual"],["string","maiden"]]
+    ours:      error: fhirpath: as() requires a singleton input

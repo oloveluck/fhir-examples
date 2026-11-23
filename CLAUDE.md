@@ -377,6 +377,28 @@ procedures, no server), `bench.rkt` (the spec-driven benchmark: tasks, scoring, 
   `raco test -p fhir-examples` (the fetched guides' gate) BEFORE committing a validator change,
   and `raco setup --pkgs …` the dependents after one (a stale compiled dependent fails with
   `instantiate-linklet: mismatch`).
+  **H: each engine held to its reference implementation** (2026-11-23; the protocol's entries "H
+  begins" and "H part 1 after its first read"). No agents and no bar: the method that found the
+  validator's misses, applied to an engine at a time. `value-experiment/reference/`:
+  `fhirpath-cases.rkt` (the Pairs — `fp-pair`: search parameters and invariants of R4 core and US
+  Core over US Core's examples, each search expression continued by one of `continuations`,
+  V-profile's well-formed changed copies, HL7's R4 suite; `sample-expression?`: a fifth of the
+  published expressions by SHA-1, the rest held out), `FhirPathReference.java` (the bridge to the
+  validator jar's own engine: it calls and prints), `fhirpath-reference.rkt` (`pairs`, `ask`,
+  `keep`, `ours`, `report`, `read` — the sample only —, `classes`, `suite`; each engine's answer
+  in one compared form; `classes`: rules over the expression, the two answers and the
+  reference's message, each under `ours`, `reference` or `open`; its test runs the live engine
+  over all 172,527 pairs against `answers/fhirpath-reference.jsonl.gz` with the write-up's
+  agreement as floors, in twelve seconds). Part 1, FHIRPath: held-out agreement 85.5% -> 89.1%
+  (99.1% with the reference's departures from the specification set aside); three defects of
+  this engine fixed (toString() of a complex value raised; children() in a hash walk's order;
+  type().name of a nested element), seven of HL7's engine named with the specification's
+  sentence. A struct named `pair` hides Racket's `pair?` in every module that imports it: the
+  class rules matched nothing for one run. The jar's packages are not HAPI's published ones
+  (`org.hl7.fhir.services.fhirpath.FHIRPathEngine`, `…elementmodel.Element.getChildList`):
+  find a class with `javap -cp validator_cli.jar`, and set `JAVA_TOOL_OPTIONS=` to quiet the
+  JVM. Next, each with its own entry first: the held-out pairs opened (a second pass), then
+  the mapping language, SQL on FHIR, FSH.
 - `model.rkt` is the shared model runner (`ask`, `extract-block`); `run-task!` and notes-to-fhir use it.
 - `run-task!` talks to the model through files (`round-N.prompt.md` on stdin, `round-N.answer.txt`),
   kills the process group past `--timeout`, and feeds `check`'s diagnostics into the next round.

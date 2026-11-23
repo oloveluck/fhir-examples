@@ -649,3 +649,23 @@ error — its static check — where the reference answers nothing.
 **Then**, each with an entry of its own before it starts: the mapping language against the same
 jar's StructureMap engine; SQL on FHIR against its JavaScript reference implementation; FSH
 against SUSHI.
+
+### 2026-11-23, H part 1 after its first read
+
+Three things changed or were found after the first comparison (d0e77d3) and before the outcome
+was written; RESULTS.md says each where it bears on a number.
+
+- The compared form: a dateTime in UTC written `Z` and one written `+00:00` are the same value.
+  The reference prints `+00:00` for an element whose text is `Z`, so every such element
+  differed. The report made before this rule is kept beside the final one.
+- The classes are rules over the expression, the two answers and the reference's error message
+  (the entry above said the first two). A message is what tells "the reference does not know
+  this function" from "the reference could not follow a reference".
+- The harness had a defect that changed no count: a structure named `pair` hid Racket's `pair?`
+  inside the module, so for one run the class rules matched nothing. The agreement figures never
+  used it.
+
+What the protocol does not provide for, and the outcome asks: 618 held-out pairs differ under no
+class, and 60 raise under a rule whose cause in the sample is fixed. They have not been read.
+Opening them ends their being held out, so it is a second pass with its own entry: the outcome
+above stands as measured, and anything found there is reported as found after it.

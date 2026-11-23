@@ -1,0 +1,21 @@
+class                                                                                        head       sample   held out
+resolve(): the reference, run as its command line runs it, raises                            reference  1696     7007
+toDate(): the reference does not know the function                                           reference  191      1068
+toTime(): the reference does not implement it                                                reference  177      1014
+hasExtension(): no function of the specification; this engine has it, the reference does not open       355      0
+single() of nothing: the reference raises                                                    reference  83       496
+convertsTo…() of nothing: the reference answers false                                        reference  664      3968
+convertsToString() of a complex value: the reference answers true                            reference  39       270
+division: the reference keeps too few digits                                                 reference  94       513
+type().name of a FHIR primitive: the reference capitalises it                                reference  55       223
+type().name of a nested element: this engine answered its own name for the type              ours       0        0
+toString() of a complex value: this engine raised                                            ours       0        60
+children(): this engine's order was a hash walk's                                            ours       0        0
+comparing values no order is defined for: an error here, nothing there                       open       78       546
+a UTC dateTime as text: Z here, +00:00 there                                                 open       24       24
+unclassified                                                                                 -          0        618
+
+sample: 26303 pairs, 3456 differ — the reference's departure 2999, this engine's 0, open 457, in no class 0
+  the same answer, or a difference that is the reference's departure: 25846 of 26303 (98.3%)
+held-out: 145371 pairs, 15807 differ — the reference's departure 14559, this engine's 60, open 570, in no class 618 (unread)
+  the same answer, or a difference that is the reference's departure: 144123 of 145371 (99.1%)
