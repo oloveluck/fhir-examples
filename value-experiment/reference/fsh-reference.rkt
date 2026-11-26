@@ -288,7 +288,7 @@
 (define (reference-alone r rx) (and (error? (ref-of r)) (not (error? (ours-of r))) (regexp-match? rx (ref-message r))))
 (define classes
   (list
-   (list "a quantity's unit: this compiler writes the UCUM code as the `unit` too, SUSHI writes a unit only for a display (decided earlier and said in fsh's manual; left)" 'open
+   (list "a quantity's unit: this compiler wrote the UCUM code as the `unit` too, SUSHI writes a unit only for a display (decided earlier; fixed in the second pass)" 'ours
          unit-only?)
    (list "a unit with its display and no number (`'[lb_av]' \"lb\"`): this compiler wrote the unit as the value and the display as the code" 'ours
          (lambda (r) (and (results? r) (regexp-match? #rx"Quantity\":\\{[^}]*\"value\":\"" (ours-of r)))))
@@ -297,7 +297,7 @@
                                          (and (pair? ps) (andmap (lambda (p) (member p written-paths)) ps))))))
    (list "a Ratio assigned in a profile: this compiler raised" 'ours
          (lambda (r) (and (error? (ours-of r)) (not (error? (ref-of r))) (regexp-match? #rx"^raised: " (our-message r)))))
-   (list "an instance without an element its type requires: an error of SUSHI's compile; here `raco fsh check` says it (compiling does not validate)" 'open
+   (list "an instance without an element its type requires: an error of SUSHI's compile, said here by `raco fsh check` alone (compiling did not check it; fixed in the second pass)" 'ours
          (lambda (r) (reference-alone r #rx"has minimum cardinality .* but occurs")))
    (list "a value set or a code's system named by a name nothing defines (\"is not a valid URI\"): written as the name here" 'ours
          (lambda (r) (reference-alone r #rx"is not a valid URI")))
@@ -317,8 +317,12 @@
          (lambda (r) (reference-alone r #rx"No element found at path|The element or path you referenced does not exist")))
    (list "a name that is defined nowhere: a RuleSet inserted in a value set or code system, a Mapping's Source, an instance to embed, a concept's ancestor (named, not fixed)" 'ours
          (lambda (r) (reference-alone r #rx"Unable to find definition for RuleSet|Unable to find source|Could not find a resource named|Could not find .* in concept hierarchy")))
+   (list "a value that contradicts what is already assigned: in the sample, an instance's against its profile's (fixed in the second pass)" 'ours
+         (lambda (r) (reference-alone r #rx"is already assigned")))
    (list "a value that does not fit its element: its type, a value the Parent already fixed, a code of one of FHIR's own required sets (named, not fixed)" 'ours
-         (lambda (r) (reference-alone r #rx"Value does not match element type|does not match any of the allowed types|is already assigned|Missing required value|Invalid value: ")))))
+         (lambda (r) (reference-alone r #rx"Value does not match element type|does not match any of the allowed types|is already assigned|Missing required value|Invalid value: ")))
+   (list "the reference fails inside its own code (a JavaScript TypeError), where this compiler writes resources" 'reference
+         (lambda (r) (reference-alone r #rx"^Cannot read properties of undefined")))))
 ;; without-units-answer : Answer Answer -> Answer   this compiler's answer without the units the
 ;; reference did not write (so that a difference in units does not hide the others)
 (define (without-units-answer ours ref)
@@ -421,9 +425,9 @@
        (define (part sample?) (filter (lambda (r) (eq? (fsh-pair-sample? (car r)) sample?)) rows))
        (check-equal? (length rows) 2802)
        (check-false (ormap (lambda (r) (eq? (ref-of r) 'missing)) rows))
-       (check-true (>= (count agree? (part #t)) 715))
-       (check-true (>= (count agree? (part #f)) 1640))
-       (check-true (>= (count same-verdict? rows) 2453))
+       (check-true (>= (count agree? (part #t)) 805))
+       (check-true (>= (count agree? (part #f)) 1962))
+       (check-true (>= (count same-verdict? rows) 2770))
        ;; this compiler alone reports an error on no text
        (check-equal? (count (lambda (r) (and (error? (ours-of r)) (not (error? (ref-of r))))) rows) 0)
        (check-equal? (count (lambda (r) (and (fsh-pair-sample? (car r)) (not (agree? r)) (eq? (head-of r) 'unread))) rows) 0))

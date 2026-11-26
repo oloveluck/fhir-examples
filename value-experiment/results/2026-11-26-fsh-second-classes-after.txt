@@ -1,0 +1,26 @@
+class                                                                                                head       sample   held out
+a quantity's unit: this compiler wrote the UCUM code as the `unit` too, SUSHI writes a unit only for a display (decided earlier; fixed in the second pass) ours       0        0
+a unit with its display and no number (`'[lb_av]' "lb"`): this compiler wrote the unit as the value and the display as the code ours       0        0
+what is written for an entity that states little, or for a flag: a bare root element, no empty compose, the standards status of TU/N/D, a concept named twice, an extension's scaffold ours       0        3
+a Ratio assigned in a profile: this compiler raised                                                  ours       0        0
+an instance without an element its type requires: an error of SUSHI's compile, said here by `raco fsh check` alone (compiling did not check it; fixed in the second pass) ours       0        0
+a value set or a code's system named by a name nothing defines ("is not a valid URI"): written as the name here ours       0        0
+an id that is no FHIR id                                                                             ours       0        0
+`contains` on an element nothing says how to slice                                                   ours       0        0
+a cardinality that does not fit within the base's                                                    ours       0        1
+an extension slice with no Extension behind it, in a profile                                         ours       0        0
+a Parent nothing defines, for an Extension or a Logical model                                        ours       0        0
+an invariant no Invariant defines                                                                    ours       0        0
+a path whose later step is no element, or an index in a profile's path: only a path's first step is checked here (named, not fixed) ours       2        4
+a name that is defined nowhere: a RuleSet inserted in a value set or code system, a Mapping's Source, an instance to embed, a concept's ancestor (named, not fixed) ours       2        0
+a value that contradicts what is already assigned: in the sample, an instance's against its profile's (fixed in the second pass) ours       0        0
+a value that does not fit its element: its type, a value the Parent already fixed, a code of one of FHIR's own required sets (named, not fixed) ours       8        13
+the reference fails inside its own code (a JavaScript TypeError), where this compiler writes resources reference  0        2
+unclassified                                                                                         -          0        0
+
+sample: 817 texts, 12 differ — the reference's departure 0, this compiler's 12, open 0, in no class 0
+  the same answer, or a difference that is the reference's departure: 805 of 817 (98.5%)
+held-out: 1985 texts, 23 differ — the reference's departure 2, this compiler's 21, open 0, in no class 0 (opened and read)
+  the same answer, or a difference that is the reference's departure: 1964 of 1985 (98.9%)
+all: 2802 texts, 35 differ — the reference's departure 2, this compiler's 33, open 0, in no class 0
+  the same answer, or a difference that is the reference's departure: 2769 of 2802 (98.8%)

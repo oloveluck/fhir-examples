@@ -1436,3 +1436,55 @@ difference was this compiler's or a decision. The held-out texts say the classes
 incomplete: 183 differences (9.2% of the held-out texts) fall under no class, the same number
 before and after — causes the sample did not hold. They are the next thing to open, with the
 37 named.
+
+### Second pass: the named causes fixed, the held-out texts opened (2026-11-26)
+
+Stated first in PROTOCOL.md ("H part 3, second pass"). The baseline is part 3's outcome as
+measured, which the compiler as it stood at the start of the pass gave again: the same answer on
+2,355 of 2,802 texts, the same verdict on 2,453. The pass then fixed in fsh the causes part 3
+named, opened every held-out difference by cause, and decided the two open classes
+(`results/2026-11-26-fsh-second-report.txt`, `-classes-before.txt`, `-classes-after.txt`).
+
+**The 183 held-out differences under no class** were 87 texts on which SUSHI fails inside its
+own code (a JavaScript `TypeError` on a logical model whose element is flagged MS) and 96 in
+eleven causes, all this compiler's: MS in a logical model or custom resource (39 texts; SUSHI's
+rule, which this compiler now reports, and the reason those 87 agree as errors), several types
+on a path not ending `[x]` (25), what is written for `family.id.id` (15), `\u` and `"""`
+escapes (6), an Extension with a value and sub-extensions (4), two standards statuses (2), an
+added element's short taken as `or` (2), an id made from a name (1), a caret on a concept a
+value set does not list (1), a value set of excludes alone (1). The prediction (a dozen causes
+or fewer, most of them errors SUSHI reports that this compiler does not) held.
+
+**The two open classes, decided: both followed.** A quantity's `unit` is written only from a
+display, as SUSHI writes it (70 texts); cql's guide recipe reads `Coalesce(unit, code)` and
+fhir-mcp's change test was updated with it. An instance without an element its InstanceOf
+requires is a compile error at the instance (79 texts), as is a value that contradicts what the
+profile assigns there (8); `raco fsh check` leaves both to the validator, which says the same at
+the rule.
+
+**After** (each fix a case in fsh's `tests/sushi-reference-test.rkt`; every corpus floor held or
+rose):
+
+```
+group       part      texts  same answer     same verdict
+all         sample    817    805 (98.5%)     805 (98.5%)
+all         held-out  1985   1962 (98.8%)    1965 (99.0%)
+an error from the reference on 1639 of the 2802 texts, from this compiler on 1607, from both on 1607
+```
+
+The same answer on 2,767 texts (98.8%), the same verdict on 2,770 (98.9%), and still none on
+which this compiler alone reports an error: the prediction (95% and 92%) is met. Of the 35 left,
+33 fall under named classes this compiler does not cover yet — a value that does not fit
+its element in a profile's or caret's rule (a time with a zone, a number into an Address or an
+integer, an `only` type the element does not allow, a slicing rule missing its parts: 21), a
+path's later step that is no element (6), a name defined nowhere (`^contained = myResource`: 2),
+what is written for a complex extension or a concept with a rule removed (3), a cardinality
+outside the base's (1) — and 2 are SUSHI failing in its own code. 85 of the agreements are both compilers refusing a
+text for different reasons (SUSHI's crash, this compiler's MS rule).
+
+**Reading.** Once the sample's causes were fixed, the held-out texts held a handful more, all
+of the same kind as part 3's: an error SUSHI makes that this compiler did not. The method's
+limit is now the corpus: these texts are SUSHI's own tests and the guide's blocks, written to
+exercise the parser and the rules one at a time. Whether that carries to whole projects is the
+next set the protocol names (the vendored guides' own FSH, each changed in one rule line,
+compiled by both), in a pass of its own.
