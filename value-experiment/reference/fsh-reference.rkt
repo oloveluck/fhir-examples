@@ -305,6 +305,10 @@
          (lambda (r) (reference-alone r #rx"does not represent a valid FHIR id")))
    (list "`contains` on an element nothing says how to slice" 'ours
          (lambda (r) (reference-alone r #rx"No slicing found")))
+   ;; `value[x] 0..0 MS` in an Extension with sub-extensions: SUSHI takes `value[x] 0..0` and
+   ;; refuses it with a flag, naming a 1..* cardinality the text does not state
+   (list "a flag on `value[x] 0..0` in an Extension with sub-extensions: SUSHI refuses it, naming a cardinality the text does not state (left open)" 'open
+         (lambda (r) (reference-alone r #rx"Cannot constrain cardinality to 0[.][.]0, as it does not fit within the original 1[.][.][*]")))
    (list "a cardinality that does not fit within the base's" 'ours
          (lambda (r) (reference-alone r #rx"Cannot constrain cardinality")))
    (list "an extension slice with no Extension behind it, in a profile" 'ours
@@ -313,13 +317,13 @@
          (lambda (r) (reference-alone r #rx"^Parent .* not found")))
    (list "an invariant no Invariant defines" 'ours
          (lambda (r) (reference-alone r #rx"because it was never defined")))
-   (list "a path whose later step is no element, or an index in a profile's path: only a path's first step is checked here (named, not fixed)" 'ours
+   (list "a path whose later step is no element, or an index in a profile's path (fixed in the second and third passes)" 'ours
          (lambda (r) (reference-alone r #rx"No element found at path|The element or path you referenced does not exist")))
-   (list "a name that is defined nowhere: a RuleSet inserted in a value set or code system, a Mapping's Source, an instance to embed, a concept's ancestor (named, not fixed)" 'ours
+   (list "a name that is defined nowhere: a RuleSet inserted in a value set or code system, a Mapping's Source, an instance to embed, a concept's ancestor (fixed in the second and third passes)" 'ours
          (lambda (r) (reference-alone r #rx"Unable to find definition for RuleSet|Unable to find source|Could not find a resource named|Could not find .* in concept hierarchy")))
    (list "a value that contradicts what is already assigned: in the sample, an instance's against its profile's (fixed in the second pass)" 'ours
          (lambda (r) (reference-alone r #rx"is already assigned")))
-   (list "a value that does not fit its element: its type, a value the Parent already fixed, a code of one of FHIR's own required sets (named, not fixed)" 'ours
+   (list "a value that does not fit its element: its type, an `only` type the element does not take, a slicing without its parts (fixed in the third pass)" 'ours
          (lambda (r) (reference-alone r #rx"Value does not match element type|does not match any of the allowed types|is already assigned|Missing required value|Invalid value: ")))
    (list "the reference fails inside its own code (a JavaScript TypeError), where this compiler writes resources" 'reference
          (lambda (r) (reference-alone r #rx"^Cannot read properties of undefined")))))
@@ -425,9 +429,9 @@
        (define (part sample?) (filter (lambda (r) (eq? (fsh-pair-sample? (car r)) sample?)) rows))
        (check-equal? (length rows) 2802)
        (check-false (ormap (lambda (r) (eq? (ref-of r) 'missing)) rows))
-       (check-true (>= (count agree? (part #t)) 805))
-       (check-true (>= (count agree? (part #f)) 1962))
-       (check-true (>= (count same-verdict? rows) 2770))
+       (check-true (>= (count agree? (part #t)) 817))
+       (check-true (>= (count agree? (part #f)) 1982))
+       (check-true (>= (count same-verdict? rows) 2799))
        ;; this compiler alone reports an error on no text
        (check-equal? (count (lambda (r) (and (error? (ours-of r)) (not (error? (ref-of r))))) rows) 0)
        (check-equal? (count (lambda (r) (and (fsh-pair-sample? (car r)) (not (agree? r)) (eq? (head-of r) 'unread))) rows) 0))

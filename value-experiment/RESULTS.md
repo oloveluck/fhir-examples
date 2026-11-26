@@ -1488,3 +1488,26 @@ limit is now the corpus: these texts are SUSHI's own tests and the guide's block
 exercise the parser and the rules one at a time. Whether that carries to whole projects is the
 next set the protocol names (the vendored guides' own FSH, each changed in one rule line,
 compiled by both), in a pass of its own.
+
+### Third pass: the named causes closed (2026-11-26)
+
+After the second pass every one of the 2,802 texts had been read, so this pass tests nothing
+held out: it closes what the second named, and its numbers describe the set, no more
+(`reference/results/2026-11-26-fsh-third-report.txt`, `-third-classes.txt`). Fixed in fsh, each
+with a case in `tests/sushi-reference-test.rkt`: a value its element cannot hold, in a profile, a
+caret or an instance (a time with a zone, a number into an Address, `0.45` into an integer,
+`"changed"` into a date; an instance's is said at it and its value kept, `12E4` into an integer
+and an empty text taken as SUSHI takes them); `^contained` naming an instance nothing defines; an
+`only` type the base element does not take; an instance list longer than its profile allows; a
+logical model's element under a parent it never added; a caret on a concept of a code system with
+none; a slicing without its discriminator's type or path or its rules, or with codes FHIR does not
+have; an Extension's slice it never declared; a sub-extension that says nothing of its value
+given `extension 0..0`; a list's unset entries written `false` (SUSHI: `null`).
+
+The same answer on 2,799 texts (2,767 after the second pass), the same verdict on 2,799; this
+compiler alone reports an error on none. The three left: SUSHI failing in its own code (2) and
+one SUSHI refuses for a flag on `value[x] 0..0` in an Extension with sub-extensions, naming a
+1..* cardinality the text does not state (left open). Every corpus floor held (IPS 109, mCODE
+345, Plan-Net 104, HRex 46, Genomics 136 identical; GoFSH 117 and 348; importer 514/515; golden
+22/22). What would test this further is the set the protocol names: whole guides, changed in
+one rule line, compiled by both.

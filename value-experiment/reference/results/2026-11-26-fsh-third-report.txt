@@ -1,0 +1,19 @@
+this compiler's answer is the reference's:
+  group       part      texts  same answer     same verdict
+  published   sample    172    168 (97.7%)     168 (97.7%)
+  published   held-out  367    360 (98.1%)     360 (98.1%)
+  changed     sample    645    637 (98.8%)     637 (98.8%)
+  changed     held-out  1618   1602 (99.0%)    1605 (99.2%)
+  all         sample    817    805 (98.5%)     805 (98.5%)
+  all         held-out  1985   1962 (98.8%)    1965 (99.0%)
+  an error from the reference on 1639 of the 2802 texts, from this compiler on 1607, from both on 1607
+
+after:
+  group       part      texts  same answer     same verdict
+  published   sample    172    172 (100.0%)    172 (100.0%)
+  published   held-out  367    367 (100.0%)    367 (100.0%)
+  changed     sample    645    645 (100.0%)    645 (100.0%)
+  changed     held-out  1618   1615 (99.8%)    1615 (99.8%)
+  all         sample    817    817 (100.0%)    817 (100.0%)
+  all         held-out  1985   1982 (99.8%)    1982 (99.8%)
+  an error from the reference on 1639 of the 2802 texts, from this compiler on 1636, from both on 1636
