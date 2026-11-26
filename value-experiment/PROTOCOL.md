@@ -969,3 +969,27 @@ one rule line by the same rules, compared resource by resource.
 **A prediction.** The 183 are a dozen causes or fewer, most of them errors SUSHI reports that
 this compiler does not; after the pass the same verdict on at least 95% of all texts and the
 same answer on at least 92%, and still no text on which this compiler alone errs.
+
+### 2026-11-26, V-profile's validator, third pass: the fresh set's over-reports opened
+
+Stated before any fresh case is read. The fresh set's outcome stands as measured (3,111 of
+3,145 verdicts agree; 5 resources refused that HL7's validator passes, 29 passed that it refuses).
+The validator has changed since (issues now carry where they are in the instance), so the fresh
+set is measured again first, at the current commits, and that is this pass's baseline.
+
+**Opened: the refusals alone.** Refusing what is valid is the worse of the two errors (the
+family's rule is fail-open), so only the cases this validator refuses and HL7's passes are read,
+by cause, with HL7's messages beside this validator's issues. What is this validator's is fixed
+as a class with a test of its own, under the same gates as before (IG validation 0 errors, the
+differential 0 false positives, the R5 core's invariants, the guides of fhir-examples). What is
+HL7's departing from the specification is named with the sentence it departs from. The 29
+passed that HL7's refuses stay unread and held out; once read, the five describe and no longer
+test.
+
+**Reported**: the agreement on the fresh set before and after, the refusals by cause, and the 29
+as a count only.
+
+**A prediction.** The five are one cause, in the QuestionnaireResponse rules (resource-rules.rkt,
+added after the first pass: a derived Questionnaire, or an item checked against a Questionnaire
+that the case's changes leave unchanged); after the pass the fresh set refuses none that HL7's
+passes, and agrees on at least 3,111.
