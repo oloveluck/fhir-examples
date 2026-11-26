@@ -556,6 +556,39 @@ between programs written for different briefs. Files: `verify/results/2026-11-22
 the fixes are `2026-11-22-profile-toolkit-before.json`).
 
 
+### Second pass: the held-out misses opened, and a fresh set (2026-11-26)
+
+As stated in PROTOCOL.md before any held-out case was read. At the pass's start (fhir 15e03cc,
+which had changed since for no held-out case: dom-3, a compose's absolute systems, derived
+Questionnaires) the validator agreed with HL7's on 737 of the 741 cases (579 of the 583 held
+out); the four it passed and HL7's refused were all an element removed, and were three causes:
+
+| case | HL7's validator | cause |
+|---|---|---|
+| condition-duodenal-ulcer~remove-3 | `None of the codings provided are in the value set … (codes = null#confirmed)` | a coding with no system was read as a member by its code alone: this validator's |
+| health-concern-example~remove-6 | `Slice 'Condition.category:us-core': a matching slice is required, but not found` | the same: the slice is told by a value set, and the category's coding had lost its system |
+| condition-duodenal-ulcer~remove-6 | `No code provided, and a code is required from the value set` | a CodeableConcept holding only `text` under a required binding: this validator's |
+| holy-healthcare~remove-6 | `Constraint failed: us-core-16: 'NPI must be 10 digits'` | an NPI identifier with no value: `value.matches(…)` is empty there, which this validator counts as held (only a single `false` breaks an invariant) and HL7's as failed — named, not changed |
+
+Fixed in fhir-validation, with cases in its tests: a coding that names no system is in no value
+set wherever the value set's members can be known (where they cannot — a VSAC value set offline —
+it decides nothing, as HL7's does: the first cut refused a Patient's race coding with no system
+that HL7's passes, and was narrowed before anything was committed); and a CodeableConcept under a
+required binding holds a code. After: **740 of 741 (582 of 583)**, refusing none that HL7's
+passes; every gate as it was.
+
+**The fresh set** (none of it read): the six US Core profiles ranked seventh to twelfth by the
+same rule — screening assessment, device, clinical result, lab, QuestionnaireResponse, simple
+observation — with their 122 published examples and 3,023 changed copies, 3,145 cases, judged
+once by HL7's validator (`truth/fresh/`, `profile-cases.rkt --fresh label`). This validator at the
+pass's start (`results/2026-11-26-profile-fresh-toolkit-15e03cc.json`, `--fresh ceiling-of`) and
+at its end (`--fresh ceiling`) give the same verdicts: **3,111 of 3,145 the same (98.9%)**; 29 say
+valid where HL7's says not, and **5 say not valid where HL7's says valid**, all five
+QuestionnaireResponses. By kind: published 122/122, remove 728/732, code 676/691, twice 658/665,
+text 208/208, unknown 719/727. The prediction held for the agreement (at least 97%) and failed
+for the rest: this validator refuses some resources HL7's passes. Those five, and the 29, are
+the next to open, with an entry of their own first.
+
 ## H, part 1. FHIRPath held to HL7's Java engine (2026-11-23)
 
 The protocol's entry "H begins" states it: no agents and no bar. This toolkit's FHIRPath engine

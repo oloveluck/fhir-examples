@@ -24,7 +24,7 @@
          ;; typed form with (no invariant is evaluated without them)
          (only-in fhir/r4/schemas))
 
-(provide guide-package profiles profile-definition profile-url profile-examples changes cases
+(provide guide-package profiles current-profile-set profile-definition profile-url profile-examples changes cases
          sample-case? truth toolkit-valid? case-example agreement agree? held-out? change-kind)
 
 (define guide-package (spec-package-path "hl7.fhir.us.core.tgz"))
@@ -65,12 +65,19 @@
 ;; profiles : -> (listof Profile)   the rule, stated before any session: of the guide's profiles
 ;; with at least four published examples, the six with the most elements in their differential
 (define (profiles)
+  (define-values (from to) (if (eq? (current-profile-set) 'fresh) (values 6 12) (values 0 6)))
   (define ranked
     (sort (for/list ([sd (in-list (resource-profile-definitions))]
                      #:when (>= (length (examples-of (hash-ref sd 'url))) 4))
             (cons (hash-ref sd 'id) (length (hash-ref (hash-ref sd 'differential (hasheq)) 'element '()))))
           (lambda (a b) (or (> (cdr a) (cdr b)) (and (= (cdr a) (cdr b)) (string<? (car a) (car b)))))))
-  (map car (take ranked (min 6 (length ranked)))))
+  (map car (take (drop ranked (min from (length ranked))) (max 0 (- (min to (length ranked)) from)))))
+
+;; current-profile-set : (parameter 'first | 'fresh)   the six profiles V-profile was run on, or
+;; the six that come next in the same ranking (PROTOCOL.md, "V-profile's validator, second
+;; pass"): a set none of whose disagreements is read, its verdicts under truth/fresh/
+(define current-profile-set (make-parameter 'first))
+(define (truth-directory) (if (eq? (current-profile-set) 'fresh) (build-path truth-dir "fresh") truth-dir))
 
 ;; profile-definition : Profile -> jsexpr   its StructureDefinition, as published
 (define (profile-definition p)
@@ -156,12 +163,13 @@
 
 ;; sample-case? : Profile string -> boolean   the cases of a profile's first example (in id order)
 ;; are what implementers and checkers are shown; the other examples' cases are held out
-(define (sample-case? p name) (equal? (case-example name) (car (car (profile-examples p)))))
+(define (sample-case? p name)
+  (and (eq? (current-profile-set) 'first) (equal? (case-example name) (car (car (profile-examples p))))))
 
 ;; ---- truth: HL7's validator ---------------------------------------------------------------------------
 ;; truth : Profile -> Truth   its verdicts, as `label` wrote them
 (define (truth p)
-  (define f (build-path truth-dir (string-append p ".json")))
+  (define f (build-path (truth-directory) (string-append p ".json")))
   (unless (file-exists? f) (raise-user-error 'profile-cases "no verdicts for ~a: run `profile-cases.rkt label`" p))
   (for/hash ([(k v) (in-hash (call-with-input-file f read-json))]) (values (symbol->string k) v)))
 
@@ -189,7 +197,7 @@
 ;; and example urls allowed, as a guide's examples are validated (without that it refuses every
 ;; published Patient example for its `http://example.org/…` identifier system)
 (define (label! dir jar)
-  (make-directory* truth-dir)
+  (make-directory* (truth-directory))
   (for ([p (in-list (profiles))])
     (define out (build-path dir (string-append p ".outcomes.json")))
     (define log (build-path dir (string-append p ".log")))
@@ -207,7 +215,7 @@
     (define names (map car (cases p)))
     (unless (for/and ([n (in-list names)]) (hash-has-key? verdicts n))
       (raise-user-error 'label "HL7's validator answered ~a of ~a cases of ~a (see ~a)" (hash-count verdicts) (length names) p log))
-    (call-with-output-file (build-path truth-dir (string-append p ".json")) #:exists 'truncate
+    (call-with-output-file (build-path (truth-directory) (string-append p ".json")) #:exists 'truncate
       (lambda (o) (write-json (for/hasheq ([n (in-list names)]) (values (string->symbol n) (hash-ref verdicts n))) o)))
     (printf "~a: ~a cases, ~a valid by HL7's validator\n" p (length names) (count (lambda (n) (hash-ref verdicts n)) names))))
 
@@ -226,6 +234,14 @@
 (define (agreement)
   (for*/list ([p (in-list (profiles))] [t (in-value (truth p))] [c (in-list (cases p))])
     (list p (car c) (hash-ref t (car c)) (toolkit-valid? p (cdr c)))))
+
+;; agreement-of : path -> (listof Agreement)   every case, as HL7's validator judged it and as a
+;; kept verdicts file (`verdicts FILE`, made by an earlier validator) says the toolkit did
+(define (agreement-of file)
+  (define kept (call-with-input-file file read-json))
+  (for*/list ([p (in-list (profiles))] [t (in-value (truth p))]
+              [mine (in-value (hash-ref kept (string->symbol p)))] [c (in-list (cases p))])
+    (list p (car c) (hash-ref t (car c)) (hash-ref mine (string->symbol (car c))))))
 
 ;; agree? : Agreement -> boolean      missed? : the toolkit passes what HL7's refuses
 ;; over-reported? : the toolkit refuses what HL7's passes      held-out? : not a sample case
@@ -252,10 +268,16 @@
           (count agree? rows) (length rows) (count agree? held) (length held)))
 
 (module+ main
-  (define args (vector->list (current-command-line-arguments)))
+  ;; `--fresh` first: the commands over the fresh set of profiles
+  (define all-args (vector->list (current-command-line-arguments)))
+  (define fresh? (and (pair? all-args) (equal? (car all-args) "--fresh")))
+  (define args (if fresh? (cdr all-args) all-args))
+  (current-profile-set (if fresh? 'fresh 'first))
   (cond [(and (= (length args) 2) (equal? (car args) "write")) (write-cases! (cadr args))]
         [(and (= (length args) 3) (equal? (car args) "label")) (label! (cadr args) (caddr args))]
         [(equal? args '("ceiling")) (print-agreement (agreement))]
+        ;; a kept verdicts file's agreement with HL7's validator (a validator as it was)
+        [(and (= (length args) 2) (equal? (car args) "ceiling-of")) (print-agreement (agreement-of (cadr args)))]
         ;; the toolkit's verdict for every case, as the validator installed now gives it: a record
         ;; to set a later validator beside (`verdicts FILE`)
         [(and (= (length args) 2) (equal? (car args) "verdicts"))
@@ -265,7 +287,7 @@
                            (values (string->symbol p)
                                    (for/hasheq ([c (in-list (cases p))]) (values (string->symbol (car c)) (toolkit-valid? p (cdr c))))))
                          o)))]
-        [else (raise-user-error 'profile-cases "write DIR | label DIR JAR | ceiling | verdicts FILE")]))
+        [else (raise-user-error 'profile-cases "[--fresh] write DIR | label DIR JAR | ceiling | ceiling-of FILE | verdicts FILE")]))
 
 (module+ test
   (require rackunit)
@@ -294,13 +316,21 @@
   (check-equal? (map change-kind '("ex-1" "ex-1~code-2" "a-b~unknown-31")) '("published" "code" "unknown"))
   ;; the toolkit's validator against HL7's, over every case: floors that only rise. It never
   ;; refuses what HL7's passes; it passed 82 of the 741 that HL7's refuses before the cases were
-  ;; first run (fhir 011ee15: 659 agree, 522 of the 583 held out), and passes 5 now.
+  ;; first run (fhir 011ee15: 659 agree, 522 of the 583 held out), and passes 1 now (an NPI
+  ;; identifier with no value: us-core-16 is empty there, which this validator counts as held).
   (define rows (agreement))
   (check-equal? (length rows) 741)
   (check-equal? (count over-reported? rows) 0 "the toolkit refuses a resource HL7's validator passes")
-  (check-true (>= (count agree? rows) 736) "agreement with HL7's validator fell")
-  (check-true (>= (count agree? (filter held-out? rows)) 578) "agreement on the held-out cases fell")
+  (check-true (>= (count agree? rows) 740) "agreement with HL7's validator fell")
+  (check-true (>= (count agree? (filter held-out? rows)) 582) "agreement on the held-out cases fell")
   (check-equal? (count agree? (filter (lambda (r) (not (held-out? r))) rows)) 158 "every sample case")
+  ;; the fresh set (the next six profiles of the ranking, none of its disagreements read): floors
+  (parameterize ([current-profile-set 'fresh])
+    (define fresh (agreement))
+    (check-equal? (length fresh) 3145)
+    (check-true (>= (count agree? fresh) 3111) "agreement on the fresh set fell")
+    (check-true (<= (count over-reported? fresh) 5) "more refused on the fresh set that HL7's passes")
+    (check-true (andmap held-out? fresh) "every fresh case is held out"))
   ;; the guide's profiles by the rule, each with its examples, its cases and a sample
   (define ps (profiles))
   (check-equal? (length ps) 6)
