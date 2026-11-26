@@ -912,3 +912,32 @@ is counted:
   Equality is as it was; both kept files are written again in this form.
 - **Reading by cause** needs more than the first difference of two answers (a difference in
   `status` hid 166 others): the reader lists every path at which two answers differ.
+
+### 2026-11-26, V-profile's validator, second pass: the held-out misses opened, and a fresh set
+
+Stated before any held-out case is read. V-profile's outcome stands as measured, and so does
+the ceiling after its sample was read (736 of 741, 578 of the 583 held out). The validator has
+changed since in ways no held-out case was read for (the fhir repository's 15e03cc: dom-3, a
+compose's absolute systems, derived Questionnaires), so the ceiling is measured again at that
+commit, first, and reported as the baseline of this pass.
+
+**Opened.** The held-out cases on which the two validators disagree are read, by cause, with
+HL7's messages beside this validator's issues. What is this validator's is fixed as a class,
+with a test of its own, under the same gates as before (IG validation 0 errors, the validator
+differential 0 false positives, the R5 core's invariants, the guides of fhir-examples). What
+is HL7's validator departing from the specification is named with the sentence it departs
+from. Once read, these cases are no longer held out: the agreement over the 741 after this pass
+describes; it does not test.
+
+**A fresh set, to test it.** The same rule (`profiles`) applied to the profiles that come next
+in its ranking: of US Core 9.0.0's profiles with at least four published examples, the six
+ranked seventh to twelfth by the elements in their differential; their examples, and the same
+changes made the same way (`changes`, `chosen`, the same seeds). HL7's validator judges them
+once, offline and with the same options; its verdicts are committed under `truth/fresh/`.
+This validator, as it is at the end of this pass and as it was at its start (15e03cc), is
+held to them. None of the fresh disagreements is read in this pass. Reported: the agreement,
+both validators, by profile and by kind of change, and how many disagreements say valid where
+HL7's says invalid and the other way.
+
+**A prediction.** The five held-out misses are two or three causes, one of them HL7's. On the
+fresh set this validator agrees on at least 97% of cases and refuses none that HL7's passes.
