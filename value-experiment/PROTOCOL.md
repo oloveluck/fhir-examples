@@ -941,3 +941,31 @@ HL7's says invalid and the other way.
 
 **A prediction.** The five held-out misses are two or three causes, one of them HL7's. On the
 fresh set this validator agrees on at least 97% of cases and refuses none that HL7's passes.
+
+### 2026-11-26, H part 3, second pass: the named causes fixed, the held-out texts opened
+
+Stated before any held-out text is read. Part 3's outcome stands as measured (SUSHI's answer on
+2,355 of 2,802 texts, its verdict on 2,453; 183 held-out differences under no class). The
+compiler is measured again first, as it is now (fsh and fhir at their current commits), and that
+is this pass's baseline.
+
+**Fixed, as classes.** The causes the sample showed and part 3 named without fixing — a path
+whose later step is no element, an index in a profile's path, a RuleSet, a Mapping's Source, an
+instance to embed or a concept's ancestor that nothing defines, a value that does not fit its
+element — are fixed in fsh, each with a test, where the FSH specification or SUSHI's own tests
+say what is right. What SUSHI reports as an error and the specification leaves open is followed
+where no published guide of fsh's corpora breaks (the corpus floors are the gate).
+
+**Opened.** Then every held-out disagreement is read by cause (`read-opened`), the 183 under no
+class first, and what is this compiler's is fixed as a class with a test. Once read, the
+held-out texts describe; they do not test. The two open classes (an instance without a required
+element, a quantity's `unit`) are decided in this pass: followed, or kept with the reason.
+
+**What tests it afterwards** is a set no part of this programme has used, built and run in a
+pass of its own with its own entry: the FSH of the guides fsh vendors (IPS, Plan-Net, HRex,
+Genomics), each a whole project given to both compilers with its dependencies, and changed in
+one rule line by the same rules, compared resource by resource.
+
+**A prediction.** The 183 are a dozen causes or fewer, most of them errors SUSHI reports that
+this compiler does not; after the pass the same verdict on at least 95% of all texts and the
+same answer on at least 92%, and still no text on which this compiler alone errs.
