@@ -589,6 +589,25 @@ text 208/208, unknown 719/727. The prediction held for the agreement (at least 9
 for the rest: this validator refuses some resources HL7's passes. Those five, and the 29, are
 the next to open, with an entry of their own first.
 
+### Third pass: the fresh set's refusals opened (2026-11-26)
+
+As stated in PROTOCOL.md before any fresh case was read: the refusals alone. At the pass's start
+(the validator now says where each issue is in the instance, which changes no verdict) the fresh
+set stood where the second pass left it: 3,111 of 3,145, 5 refused that HL7's passes. The five
+are one cause, every one a QuestionnaireResponse whose top-level `item` list had an entry
+doubled (`twice`):
+
+| cases | HL7's validator | cause |
+|---|---|---|
+| AUDIT-C~twice-16, TAPS~twice-18, exercise-vital-sign~twice-10, glascow-coma-score~twice-8, hunger-vital-sign-example~twice-14 | `Warning … Constraint failed: sdcqr-2: … (Best Practice Recommendation)` | SDC's sdcqr-2 (answered items of one parent have distinct linkIds), carried by US Core's profile at severity `error` with the `elementdefinition-bestpractice` extension: a rule "implementers may choose to enforce at error level". Both validators find it broken; HL7's reports a best practice rule as a warning, this validator reported it as an error: this validator's |
+
+Fixed in fhir-validation (`constraint-severity`, `best-practice?`, a case in its tests): a
+constraint marked best practice is reported as a warning, its message saying so. After: the fresh
+set **3,116 of 3,145 the same (99.1%), refusing none that HL7's passes**; the first set 740 of 741
+as before; every gate as it was. The prediction held (one cause, in the QuestionnaireResponse
+rules, though not in resource-rules.rkt: in how an invariant's severity is read). The five now
+describe; the 29 this validator passes and HL7's refuses stay unread and held out.
+
 ## H, part 1. FHIRPath held to HL7's Java engine (2026-11-23)
 
 The protocol's entry "H begins" states it: no agents and no bar. This toolkit's FHIRPath engine
