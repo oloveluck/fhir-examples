@@ -608,6 +608,26 @@ as before; every gate as it was. The prediction held (one cause, in the Question
 rules, though not in resource-rules.rkt: in how an invariant's severity is read). The five now
 describe; the 29 this validator passes and HL7's refuses stay unread and held out.
 
+### Fourth pass: the fresh set's 29 passes opened (2026-11-27)
+
+As stated in PROTOCOL.md before any of them was read. HL7's validator was run again on the 29
+alone, offline and with `label`'s options, for its messages. They were three causes, all this
+validator's: what its walk never reached.
+
+| cases | HL7's validator | cause |
+|---|---|---|
+| 15 Observations (clinical result 7, lab 5, screening assessment 3), all `code` | `Constraint failed: us-core-3: 'The system SHALL be UCUM for coded quantity units.'` | the constraint is on `Observation.value[x]`; the focus was read as the FHIRPath `value[x]`, which indexes `value` by a name and finds nothing, so no constraint on a choice element was ever checked |
+| 8 QuestionnaireResponses (`remove` 3, `unknown` 5) | `Unrecognized property 'notAnElement'`, `QuestionnaireResponse.item.linkId: minimum required = 1, but only found 0` at `item[0].item[2].item[1]` | a nested item is defined by `contentReference` to `#QuestionnaireResponse.item`, which the walk did not follow: nothing below the first level of items was checked |
+| 6 QuestionnaireResponses (`remove` 1, `twice` 2, `unknown` 3) | `Object must have some content`; `…questionnaire.extension:url: max allowed = 1, but found 2`; `Unrecognized property` in `_questionnaire` and in its extension | a primitive's `_` object (its id and extensions) was not checked at all |
+
+Fixed in fhir-validation, each with a case in its tests (`rel-path` drops a choice element's
+`[x]`; `referenced-path`; `primitive-element-issues`, `element-content-issues`). After: the fresh
+set **3,145 of 3,145**, the first set 740 of 741 as before (the one named in the second pass:
+an NPI identifier with no value, an empty invariant counted as held), every gate as it was. The
+prediction was wrong on its causes (none was terminology; all three were places the walk did not
+go) and right on the number (at least 3,125). The fresh set now describes; a set that tests again
+is the next six profiles, with an entry of its own.
+
 ## H, part 1. FHIRPath held to HL7's Java engine (2026-11-23)
 
 The protocol's entry "H begins" states it: no agents and no bar. This toolkit's FHIRPath engine

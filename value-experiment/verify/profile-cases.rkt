@@ -328,7 +328,7 @@
   (parameterize ([current-profile-set 'fresh])
     (define fresh (agreement))
     (check-equal? (length fresh) 3145)
-    (check-true (>= (count agree? fresh) 3116) "agreement on the fresh set fell")
+    (check-true (>= (count agree? fresh) 3145) "agreement on the fresh set fell")
     (check-true (<= (count over-reported? fresh) 0) "refused on the fresh set what HL7's passes")
     (check-true (andmap held-out? fresh) "every fresh case is held out"))
   ;; the guide's profiles by the rule, each with its examples, its cases and a sample
