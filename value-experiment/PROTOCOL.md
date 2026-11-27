@@ -993,3 +993,25 @@ as a count only.
 added after the first pass: a derived Questionnaire, or an item checked against a Questionnaire
 that the case's changes leave unchanged); after the pass the fresh set refuses none that HL7's
 passes, and agrees on at least 3,111.
+
+### 2026-11-27, V-profile's validator, fourth pass: the fresh set's 29 passes opened
+
+Stated before any of them is read. The fresh set stands where the third pass left it: 3,116 of
+3,145, refusing none that HL7's validator passes; 29 that this validator passes and HL7's refuses.
+The first set's one difference (an NPI identifier with no value) stays as named.
+
+**Opened: the 29**, by cause, with HL7's messages beside this validator's issues (HL7's validator
+run again on those cases alone, offline and with the same options as `label`). What is this
+validator's is fixed as a class with a test of its own, under the same gates (IG validation 0
+errors, the differential 0 false positives, the R5 core's invariants, the guides of
+fhir-examples, both sets' refusals still 0). What is HL7's validator departing from the
+specification, or deciding what this validator cannot decide offline (a code of a terminology
+that is not here), is named with the reason and left. Once read the fresh set describes and no
+longer tests; a set that tests again (the profiles ranked thirteenth to eighteenth) is a pass of
+its own with its own entry.
+
+**Reported**: the 29 by cause and by kind of change; the agreement on both sets after.
+
+**A prediction.** The 29 are four to six causes, most of them codes of a value set whose content
+is not here (undecidable offline, left) and the rest slicing and invariants; after the pass the
+fresh set agrees on at least 3,125 and refuses none that HL7's passes.
