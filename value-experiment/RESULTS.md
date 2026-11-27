@@ -628,6 +628,33 @@ prediction was wrong on its causes (none was terminology; all three were places 
 go) and right on the number (at least 3,125). The fresh set now describes; a set that tests again
 is the next six profiles, with an entry of its own.
 
+### Fifth pass: a third set, unread (2026-11-27)
+
+As stated in PROTOCOL.md before any case of it was made. The rule of the first two sets (four
+published examples or more) ends at the thirteenth profile, so the third set is every profile
+of resources with at least two examples that neither set holds: **20 profiles** (the entry
+counted 22 by hand; the rule, applied by `profiles`, gives 20), 47 published examples, **1,118
+cases**, judged once by HL7's validator with `label`'s options (`truth/third/`;
+`profile-cases.rkt --third`). This validator was measured against them before any disagreement
+was read, at fhir 199db7a with two changes that do not touch a verdict (how a package's
+`package.json` is read; UCUM's tables built from a literal made when fhirpath compiles, checked
+equal to the XML's).
+
+| | cases | agree | refused, HL7's passes | passed, HL7's refuses |
+|---|---|---|---|---|
+| third set | 1,118 | **1,095 (97.9%)** | 6 | 17 |
+
+By profile, the 17 passes HL7 refuses are blood pressure 7, body height 7, pulse oximetry 2 and
+the ADI DocumentReference 1; the 6 refusals are Specimen 4, Location 1 and the ADI documentation
+Observation 1; the other fourteen profiles agree on every case. By change: published 47 of 47,
+`text` 65 of 65, `unknown` 267 of 267, `remove` 277 of 282, `code` 233 of 246, `twice` 206 of
+211. Validating the 1,118 took 9.9 s with the process start (the test holds these as floors).
+
+**The prediction** (at least 97% agree; at most five refused that HL7's passes; the passes on
+codes of value sets whose content is not here) held on agreement and missed on refusals by one.
+The passes are concentrated in two vital-sign profiles, which says nothing yet of their cause.
+The refusals are read first, in a pass of their own.
+
 ## H, part 1. FHIRPath held to HL7's Java engine (2026-11-23)
 
 The protocol's entry "H begins" states it: no agents and no bar. This toolkit's FHIRPath engine

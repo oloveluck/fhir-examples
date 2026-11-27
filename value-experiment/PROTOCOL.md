@@ -1038,3 +1038,22 @@ a pass with its own entry.
 
 **A prediction.** At least 97% agree; at most five cases are refused that HL7's passes; the
 passes HL7's refuses fall mostly on codes of value sets whose content is not here.
+
+### 2026-11-27, V-profile's validator, sixth pass: the third set's six refusals opened
+
+Stated before any of them is read. The third set stands as the fifth pass measured it: 1,095 of
+1,118 agree; 6 that this validator refuses and HL7's passes (Specimen 4, Location 1, the ADI
+documentation Observation 1); 17 it passes that HL7's refuses.
+
+**Opened: the six refusals**, by cause, with HL7's messages (its validator run again on those
+cases alone, with `label`'s options) beside this validator's issues. What is this validator's is
+fixed as a class with a test of its own, under the same gates (IG validation 0 errors, the
+differential 0 false positives, the R5 core's invariants, the guides of fhir-examples, the first
+and fresh sets' refusals still 0). What is HL7's departing from the specification is named with
+the sentence it departs from. The 17 stay unread: they are the next pass, with its own entry.
+
+**Reported**: the six by cause; the agreement on all three sets after.
+
+**A prediction.** The six are at most two causes, one of them in how a slice of Specimen is
+told (its four refusals); after the pass the third set refuses none that HL7's passes and agrees
+on at least 1,101.

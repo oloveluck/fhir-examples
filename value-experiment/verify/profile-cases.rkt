@@ -64,20 +64,32 @@
 
 ;; profiles : -> (listof Profile)   the rule, stated before any session: of the guide's profiles
 ;; with at least four published examples, the six with the most elements in their differential
+;; (the first set), the six after them (the fresh set); and the third set (PROTOCOL.md, "fifth
+;; pass"): every profile with at least two examples that is in neither, by the same order
 (define (profiles)
-  (define-values (from to) (if (eq? (current-profile-set) 'fresh) (values 6 12) (values 0 6)))
-  (define ranked
-    (sort (for/list ([sd (in-list (resource-profile-definitions))]
-                     #:when (>= (length (examples-of (hash-ref sd 'url))) 4))
-            (cons (hash-ref sd 'id) (length (hash-ref (hash-ref sd 'differential (hasheq)) 'element '()))))
-          (lambda (a b) (or (> (cdr a) (cdr b)) (and (= (cdr a) (cdr b)) (string<? (car a) (car b)))))))
-  (map car (take (drop ranked (min from (length ranked))) (max 0 (- (min to (length ranked)) from)))))
+  (define (ranked least)
+    (map car
+         (sort (for/list ([sd (in-list (resource-profile-definitions))]
+                          #:when (>= (length (examples-of (hash-ref sd 'url))) least))
+                 (cons (hash-ref sd 'id) (length (hash-ref (hash-ref sd 'differential (hasheq)) 'element '()))))
+               (lambda (a b) (or (> (cdr a) (cdr b)) (and (= (cdr a) (cdr b)) (string<? (car a) (car b))))))))
+  (define (slice l from to) (take (drop l (min from (length l))) (max 0 (- (min to (length l)) from))))
+  (define four (ranked 4))
+  (case (current-profile-set)
+    [(fresh) (slice four 6 12)]
+    [(third) (let ([earlier (slice four 0 12)]) (filter (lambda (p) (not (member p earlier))) (ranked 2)))]
+    [else (slice four 0 6)]))
 
-;; current-profile-set : (parameter 'first | 'fresh)   the six profiles V-profile was run on, or
-;; the six that come next in the same ranking (PROTOCOL.md, "V-profile's validator, second
-;; pass"): a set none of whose disagreements is read, its verdicts under truth/fresh/
+;; current-profile-set : (parameter 'first | 'fresh | 'third)   the six profiles V-profile was run
+;; on; the six that come next in the same ranking (PROTOCOL.md, "V-profile's validator, second
+;; pass"), its verdicts under truth/fresh/, read by the third and fourth passes; and the six after
+;; those (PROTOCOL.md, "V-profile's validator, fifth pass"), under truth/third/
 (define current-profile-set (make-parameter 'first))
-(define (truth-directory) (if (eq? (current-profile-set) 'fresh) (build-path truth-dir "fresh") truth-dir))
+(define (truth-directory)
+  (case (current-profile-set)
+    [(fresh) (build-path truth-dir "fresh")]
+    [(third) (build-path truth-dir "third")]
+    [else truth-dir]))
 
 ;; profile-definition : Profile -> jsexpr   its StructureDefinition, as published
 (define (profile-definition p)
@@ -268,11 +280,11 @@
           (count agree? rows) (length rows) (count agree? held) (length held)))
 
 (module+ main
-  ;; `--fresh` first: the commands over the fresh set of profiles
+  ;; `--fresh` or `--third` first: the commands over that set of profiles
   (define all-args (vector->list (current-command-line-arguments)))
-  (define fresh? (and (pair? all-args) (equal? (car all-args) "--fresh")))
-  (define args (if fresh? (cdr all-args) all-args))
-  (current-profile-set (if fresh? 'fresh 'first))
+  (define set (and (pair? all-args) (member (car all-args) '("--fresh" "--third")) (car all-args)))
+  (define args (if set (cdr all-args) all-args))
+  (current-profile-set (cond [(equal? set "--fresh") (quote fresh)] [(equal? set "--third") (quote third)] [else (quote first)]))
   (cond [(and (= (length args) 2) (equal? (car args) "write")) (write-cases! (cadr args))]
         [(and (= (length args) 3) (equal? (car args) "label")) (label! (cadr args) (caddr args))]
         [(equal? args '("ceiling")) (print-agreement (agreement))]
@@ -287,7 +299,7 @@
                            (values (string->symbol p)
                                    (for/hasheq ([c (in-list (cases p))]) (values (string->symbol (car c)) (toolkit-valid? p (cdr c))))))
                          o)))]
-        [else (raise-user-error 'profile-cases "[--fresh] write DIR | label DIR JAR | ceiling | ceiling-of FILE | verdicts FILE")]))
+        [else (raise-user-error 'profile-cases "[--fresh | --third] write DIR | label DIR JAR | ceiling | ceiling-of FILE | verdicts FILE")]))
 
 (module+ test
   (require rackunit)
@@ -331,6 +343,13 @@
     (check-true (>= (count agree? fresh) 3145) "agreement on the fresh set fell")
     (check-true (<= (count over-reported? fresh) 0) "refused on the fresh set what HL7's passes")
     (check-true (andmap held-out? fresh) "every fresh case is held out"))
+  ;; the third set (PROTOCOL.md, "fifth pass": every profile with two examples or more in neither
+  ;; set before, none of its disagreements read when it was measured): floors
+  (parameterize ([current-profile-set 'third])
+    (define third (agreement))
+    (check-equal? (length third) 1118)
+    (check-true (>= (count agree? third) 1095) "agreement on the third set fell")
+    (check-true (<= (count over-reported? third) 6) "refused more on the third set that HL7's passes"))
   ;; the guide's profiles by the rule, each with its examples, its cases and a sample
   (define ps (profiles))
   (check-equal? (length ps) 6)
