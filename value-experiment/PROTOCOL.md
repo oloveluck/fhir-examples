@@ -1015,3 +1015,26 @@ its own with its own entry.
 **A prediction.** The 29 are four to six causes, most of them codes of a value set whose content
 is not here (undecidable offline, left) and the rest slicing and invariants; after the pass the
 fresh set agrees on at least 3,125 and refuses none that HL7's passes.
+
+### 2026-11-27, V-profile's validator, fifth pass: a third set, unread
+
+Stated before any case of it is written or judged. The fourth pass named the profiles ranked
+thirteenth to eighteenth as the next set that tests. By the rule (at least four published
+examples, most differential elements first) the ranking ends at the thirteenth: US Core 9.0.0 has
+thirteen profiles of resources with four examples or more. So the rule is widened, and stated
+here: **the third set is every profile of resources in the guide with at least two published
+examples that is in neither earlier set**, most differential elements first (ties by id) — 22
+profiles (us-core-specimen, the seven with three examples, the fourteen with two), about 54
+examples. The cases are made as before (each example, and its single changes of the five kinds;
+`changes`, unchanged), judged once by HL7's validator with the options of `label`, and kept
+under `truth/third/` (`profile-cases.rkt --third`).
+
+**Measured unread**: this validator, at the current commits, against those verdicts — agreement,
+what it refuses that HL7's passes, what it passes that HL7's refuses, by profile and by kind of
+change. No disagreement is read before this is reported; then, as before, the refusals first, as
+a pass with its own entry.
+
+**Reported**: the counts above, and the time each validator took.
+
+**A prediction.** At least 97% agree; at most five cases are refused that HL7's passes; the
+passes HL7's refuses fall mostly on codes of value sets whose content is not here.
