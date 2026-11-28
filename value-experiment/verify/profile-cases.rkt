@@ -348,8 +348,10 @@
   (parameterize ([current-profile-set 'third])
     (define third (agreement))
     (check-equal? (length third) 1118)
-    (check-true (>= (count agree? third) 1095) "agreement on the third set fell")
-    (check-true (<= (count over-reported? third) 6) "refused more on the third set that HL7's passes"))
+    (check-true (>= (count agree? third) 1100) "agreement on the third set fell")
+    ;; the one refusal left (sixth pass): a required binding's CodeableConcept with text alone, which
+    ;; FHIR's definition of `required` refuses and HL7's validator passes when the value set is not here
+    (check-true (<= (count over-reported? third) 1) "refused more on the third set that HL7's passes"))
   ;; the guide's profiles by the rule, each with its examples, its cases and a sample
   (define ps (profiles))
   (check-equal? (length ps) 6)

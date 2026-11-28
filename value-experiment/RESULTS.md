@@ -655,6 +655,33 @@ codes of value sets whose content is not here) held on agreement and missed on r
 The passes are concentrated in two vital-sign profiles, which says nothing yet of their cause.
 The refusals are read first, in a pass of their own.
 
+### Sixth pass: the third set's six refusals opened (2026-11-28)
+
+As stated in PROTOCOL.md before any was read. HL7's validator was run again on them alone. Two
+causes:
+
+| cases | HL7's validator | this validator | cause |
+|---|---|---|---|
+| 4 Specimens, 1 Location (`code`) | `ValueSet '…1099.54' not found`; `Could not confirm that the codes provided are from the extensible value set …us-core-location-type because there is no terminology service` | `` `not-a-code` is not a code of …v2-0487 `` (…v3-RoleCode) | the code is checked against its code system as part of the binding in force: where that binding cannot be decided (a VSAC set not here; a value set that imports one), HL7's validator says nothing of the code, and where it can (Encounter's ActEncounterCode, the occupation profile's category) it refuses the same code |
+| 1 ADI documentation Observation (`remove`) | `ValueSet '…1267.16' not found` (a warning) | no code given under a required binding (text alone) | named, not changed: FHIR's `required` is "the concept SHALL be from the specified value set", which text alone is not, whether the value set is here or not |
+
+This validator's, fixed in fhir-validation, each with a case in its tests:
+- **The binding in force decides a code** (`within-binding`, `undecided-binding?`): a coding under a
+  binding whose value set cannot say whether it holds the coding — nothing here defines it, or it
+  imports one nothing defines (`partial-value-set?`, fhir-tx's new `missing-imports`) — has its
+  code left undecided against its system.
+- **With a profile walked, its bindings are the ones in force** (`codes-left-to-profiles`): the
+  base type's walk had held US Core's Specimen.type to the base's example binding to v2-0487.
+- And in fhir-tx: an expansion of a value set with an import nothing here defines is marked
+  `valueset-unclosed`, and `$validate-code` says "cannot be decided" for a code not in it, naming
+  the import (it answered "not in the value set").
+
+After: the third set **1,100 of 1,118**, one refused that HL7's passes (the named one); the first
+set 740 of 741 and the fresh set 3,145 of 3,145 as before. The prediction was right on the causes
+(two, one in how Specimen's coding is told: in fact by which binding is in force) and missed on the
+rest by the case kept by decision: 1,100, not 1,101, and one refusal left, not none. The 17 passes
+HL7 refuses stay unread, the next pass, with its own entry.
+
 ## H, part 1. FHIRPath held to HL7's Java engine (2026-11-23)
 
 The protocol's entry "H begins" states it: no agents and no bar. This toolkit's FHIRPath engine
